@@ -84,6 +84,17 @@ ALLOWED_CURRENCIES = {
 # required_amount = VEs required for that payout
 #
 # The frontend must never decide the required VEs.
+
+      # ---------------------------------------------------------------------------
+# PAYOUT CONFIGURATION
+# ---------------------------------------------------------------------------
+
+# Server-side payout configuration.
+#
+# payout_value = actual payout value in INR
+# required_amount = VEs required for that payout
+#
+# The frontend must never decide the required VEs.
 PAYOUT_OPTIONS = [
     {
         "method_id": "upi",
@@ -102,6 +113,42 @@ PAYOUT_OPTIONS = [
             {"payout_value": 1000, "required_amount": 150000},
         ],
         "description": "UPI payout using VEs.",
+    },
+    {
+        "method_id": "bank_transfer",
+        "name": "Bank Transfer",
+        "type": "BANK_TRANSFER",
+        "currency": "ves",
+        "active": True,
+        "denominations": [
+            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 1000, "required_amount": 150000},
+        ],
+        "description": "Bank transfer payout using VEs.",
+    },
+    {
+        "method_id": "upi_qr",
+        "name": "UPI QR",
+        "type": "UPI_QR",
+        "currency": "ves",
+        "active": True,
+        "denominations": [
+            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 1000, "required_amount": 150000},
+        ],
+        "description": "UPI QR payout using VEs.",
     },
 ]
 
