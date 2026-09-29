@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
+from backend.app.database import client
 from backend.app.collections import (
     wallets_collection,
     transactions_collection,
@@ -62,50 +63,68 @@ def credit_wallet(
             detail="Credit amount must be greater than zero",
         )
 
-    wallet = get_wallet(user_id)
+    now = datetime.now(timezone.utc)
 
-    balance_before = wallet.get(currency, 0)
-    balance_after = balance_before + amount
+    # Wallet update and ledger entry are committed together.
+    # If either operation fails, MongoDB rolls back the transaction.
+    with client.start_session() as session:
+        with session.start_transaction():
 
-    result = wallets_collection.update_one(
-        {"user_id": user_id},
-        {
-            "$inc": {currency: amount},
-            "$set": {
-                "updated_at": datetime.now(timezone.utc)
-            },
-        },
-    )
+            wallet = wallets_collection.find_one(
+                {"user_id": user_id},
+                {"_id": 0},
+                session=session,
+            )
 
-    if result.modified_count != 1:
-        raise HTTPException(
-            status_code=500,
-            detail="Wallet credit failed",
-        )
+            if not wallet:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Wallet not found",
+                )
 
-    transaction = {
-        "transaction_id": str(uuid4()),
-        "user_id": user_id,
-        "currency": currency,
-        "type": transaction_type,
-        "amount": amount,
-        "balance_before": balance_before,
-        "balance_after": balance_after,
-        "source": source,
-        "reference_id": reference_id,
-        "status": "COMPLETED",
-        "description": description,
-        "metadata": {},
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
+            balance_before = int(wallet.get(currency, 0))
+            balance_after = balance_before + amount
 
-    transactions_collection.insert_one(transaction)
+            result = wallets_collection.update_one(
+                {"user_id": user_id},
+                {
+                    "$inc": {currency: amount},
+                    "$set": {"updated_at": now},
+                },
+                session=session,
+            )
+
+            if result.modified_count != 1:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Wallet credit failed",
+                )
+
+            transaction = {
+                "transaction_id": str(uuid4()),
+                "user_id": user_id,
+                "currency": currency,
+                "type": transaction_type,
+                "amount": amount,
+                "balance_before": balance_before,
+                "balance_after": balance_after,
+                "source": source,
+                "reference_id": reference_id,
+                "status": "COMPLETED",
+                "description": description,
+                "metadata": {},
+                "created_at": now,
+                "updated_at": now,
+            }
+
+            transactions_collection.insert_one(
+                transaction,
+                session=session,
+            )
 
     transaction.pop("_id", None)
 
     return transaction
-
 
 def debit_wallet(
     user_id: str,
@@ -125,60 +144,79 @@ def debit_wallet(
             detail="Debit amount must be greater than zero",
         )
 
-    wallet = get_wallet(user_id)
+    now = datetime.now(timezone.utc)
 
-    balance_before = wallet.get(currency, 0)
+    # Wallet debit and ledger entry are committed together.
+    # The balance condition is part of the database update itself,
+    # protecting against concurrent withdrawals/debits.
+    with client.start_session() as session:
+        with session.start_transaction():
 
-    if balance_before < amount:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Insufficient {currency.upper()} balance",
-        )
+            wallet = wallets_collection.find_one(
+                {"user_id": user_id},
+                {"_id": 0},
+                session=session,
+            )
 
-    result = wallets_collection.update_one(
-        {
-            "user_id": user_id,
-            currency: {"$gte": amount},
-        },
-        {
-            "$inc": {currency: -amount},
-            "$set": {
-                "updated_at": datetime.now(timezone.utc)
-            },
-        },
-    )
+            if not wallet:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Wallet not found",
+                )
 
-    if result.modified_count != 1:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Insufficient {currency.upper()} balance",
-        )
+            balance_before = int(wallet.get(currency, 0))
 
-    balance_after = balance_before - amount
+            if balance_before < amount:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient {currency.upper()} balance",
+                )
 
-    transaction = {
-        "transaction_id": str(uuid4()),
-        "user_id": user_id,
-        "currency": currency,
-        "type": transaction_type,
-        "amount": amount,
-        "balance_before": balance_before,
-        "balance_after": balance_after,
-        "source": source,
-        "reference_id": reference_id,
-        "status": "COMPLETED",
-        "description": description,
-        "metadata": {},
-        "created_at": datetime.now(timezone.utc),
-        "updated_at": datetime.now(timezone.utc),
-    }
+            result = wallets_collection.update_one(
+                {
+                    "user_id": user_id,
+                    currency: {"$gte": amount},
+                },
+                {
+                    "$inc": {currency: -amount},
+                    "$set": {"updated_at": now},
+                },
+                session=session,
+            )
 
-    transactions_collection.insert_one(transaction)
+            if result.modified_count != 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient {currency.upper()} balance",
+                )
+
+            balance_after = balance_before - amount
+
+            transaction = {
+                "transaction_id": str(uuid4()),
+                "user_id": user_id,
+                "currency": currency,
+                "type": transaction_type,
+                "amount": amount,
+                "balance_before": balance_before,
+                "balance_after": balance_after,
+                "source": source,
+                "reference_id": reference_id,
+                "status": "COMPLETED",
+                "description": description,
+                "metadata": {},
+                "created_at": now,
+                "updated_at": now,
+            }
+
+            transactions_collection.insert_one(
+                transaction,
+                session=session,
+            )
 
     transaction.pop("_id", None)
 
     return transaction
-
 
 def get_transactions(
     user_id: str,
