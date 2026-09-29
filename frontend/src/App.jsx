@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
 const API_URL =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+  "https://veloop-rewards-jj94.onrender.com";
 
 const EMPTY_WALLET = {
   ves: 0,
@@ -855,7 +855,7 @@ function App() {
             request_id:
               typeof crypto !==
                 "undefined" &&
-              crypto.randomUUID
+                crypto.randomUUID
                 ? crypto.randomUUID()
                 : `web-${Date.now()}-${Math.random()
                   .toString(16)
