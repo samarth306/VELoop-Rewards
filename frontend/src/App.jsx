@@ -32,6 +32,7 @@ const DEFAULT_PAYOUT_OPTIONS = [
   },
 ];
 
+
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
 
@@ -582,10 +583,36 @@ function App() {
     );
   }
   function getPayoutOptionForMethod(method) {
+    const normalizedMethod = String(
+      method || ""
+    ).toUpperCase();
+
+    const typeMap = {
+      UPI: "UPI",
+      BANK: "BANK_TRANSFER",
+      QR: "UPI_QR",
+    };
+
+    const expectedType =
+      typeMap[normalizedMethod] ||
+      normalizedMethod;
+
     return payoutOptions.find(
-      (option) =>
-        String(option?.type || "").toUpperCase() ===
-        String(method || "").toUpperCase()
+      (option) => {
+        const optionType = String(
+          option?.type || ""
+        ).toUpperCase();
+
+        const optionMethodId = String(
+          option?.method_id || ""
+        ).toLowerCase();
+
+        return (
+          optionType === expectedType ||
+          optionMethodId ===
+          normalizedMethod.toLowerCase()
+        );
+      }
     );
   }
 
@@ -4079,5 +4106,6 @@ function maskSensitive(value) {
 }
 
 export default App;
+
 
 
