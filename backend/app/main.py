@@ -1666,6 +1666,81 @@ class AdminRewardCreditRequest(BaseModel):
         max_length=200,
     )
 
+
+class AdminPasswordResetRequest(BaseModel):
+    email: EmailStr
+    new_password: str = Field(
+        min_length=6,
+        max_length=128,
+    )
+    admin_secret: str = Field(
+        min_length=16,
+        max_length=256,
+    )
+
+
+@app.post("/admin/auth/reset-password")
+def admin_reset_password(
+    request: AdminPasswordResetRequest,
+):
+    configured_secret = os.getenv(
+        "ADMIN_RESET_SECRET",
+        "",
+    ).strip()
+
+    if not configured_secret:
+        raise HTTPException(
+            status_code=503,
+            detail="Password reset maintenance is not configured",
+        )
+
+    if not secrets.compare_digest(
+        request.admin_secret,
+        configured_secret,
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid admin reset secret",
+        )
+
+    email = request.email.strip().lower()
+
+    user = users_collection.find_one(
+        {"email": email},
+        {"_id": 0},
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
+
+    result = users_collection.update_one(
+        {"user_id": user["user_id"]},
+        {
+            "$set": {
+                "password_hash": hash_password(
+                    request.new_password
+                ),
+                "updated_at": now_utc(),
+                "password_changed_at": now_utc(),
+            }
+        },
+    )
+
+    if result.modified_count != 1:
+        raise HTTPException(
+            status_code=500,
+            detail="Password update failed",
+        )
+
+    return {
+        "message": "Password reset successfully",
+        "email": email,
+    }
+
+
 @app.post("/admin/rewards/credit")
 def admin_reward_credit(
     request: AdminRewardCreditRequest,
