@@ -1056,16 +1056,18 @@ def forgot_password(
             },
         )
 
-        try:
-            send_reset_email(
-                user["email"],
-                raw_token,
-            )
-
-        except Exception:
-            # Do not expose SMTP errors.
-            pass
-
+    try:
+        send_reset_email(
+            user["email"],
+            raw_token,
+        )
+    except Exception as exc:
+        print(
+            "PASSWORD RESET EMAIL ERROR:",
+            type(exc).__name__,
+            str(exc),
+    )
+            
     return {
         "message": (
             "If an account exists for this email, "
