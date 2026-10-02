@@ -1,14 +1,13 @@
 /* =========================================================
    VELOOP REWARDS
-   APP.CSS — COMPLETE STYLESHEET
-========================================================= */
+   APP.CSS — PREMIUM DARK WALLET THEME
+   ========================================================= */
 
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
-
 /* =========================================================
    RESET
-========================================================= */
+   ========================================================= */
 
 * {
   margin: 0;
@@ -27,8 +26,8 @@ body {
   min-width: 320px;
   min-height: 100vh;
   font-family: "Inter", Arial, sans-serif;
-  background: #f4f9ff;
-  color: #17324d;
+  background: #080d18;
+  color: #e8eef8;
   overflow-x: hidden;
 }
 
@@ -58,27 +57,27 @@ select {
   min-height: 100vh;
 }
 
-
 /* =========================================================
    COMMON
-========================================================= */
+   ========================================================= */
 
 .app {
   width: 100%;
   min-height: 100vh;
   display: flex;
+
   background:
-    radial-gradient(circle at 85% 10%,
-      rgba(55, 190, 255, 0.12),
-      transparent 28%),
-    linear-gradient(135deg,
-      #eef9ff 0%,
-      #f7fbff 45%,
-      #f5f1ff 100%);
+    radial-gradient(circle at 82% 5%,
+      rgba(56, 189, 248, 0.08),
+      transparent 25%),
+    radial-gradient(circle at 55% 70%,
+      rgba(124, 92, 255, 0.06),
+      transparent 30%),
+    #080d18;
 }
 
 .eyebrow {
-  color: #167dc4;
+  color: #65cfff;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 3px;
@@ -96,10 +95,10 @@ select {
   gap: 28px;
 }
 
-
 /* =========================================================
    LOGIN PAGE
-========================================================= */
+   Keep login functionality/layout intact.
+   ========================================================= */
 
 .login-page {
   position: relative;
@@ -161,7 +160,6 @@ select {
   z-index: 2;
 
   width: min(480px, 100%);
-
   padding: 42px 46px 34px;
 
   border: 1px solid rgba(255, 255, 255, 0.9);
@@ -181,24 +179,8 @@ select {
   -webkit-backdrop-filter: blur(18px);
 }
 
-.login-card::before {
-  content: "";
-  position: absolute;
-  width: 120px;
-  height: 120px;
-  right: -35px;
-  top: -35px;
-  border-radius: 50%;
-  background: linear-gradient(135deg,
-      rgba(32, 190, 240, 0.16),
-      rgba(117, 77, 224, 0.12));
-  pointer-events: none;
-}
-
 .login-brand {
   text-align: center;
-  position: relative;
-  z-index: 2;
 }
 
 .login-logo {
@@ -275,7 +257,6 @@ select {
 .input-group label {
   display: block;
   margin-bottom: 8px;
-
   color: #2d5877;
   font-size: 13px;
   font-weight: 700;
@@ -305,7 +286,6 @@ select {
 .input-group select {
   width: 100%;
   height: 52px;
-
   padding: 0 16px;
 
   border: 1px solid #c9d9e8;
@@ -328,11 +308,6 @@ select {
 
 .input-group input::placeholder {
   color: #8ba0b2;
-}
-
-.input-group input:hover,
-.input-group select:hover {
-  border-color: #8abfdc;
 }
 
 .input-group input:focus,
@@ -379,7 +354,7 @@ select {
   transform: translateY(-2px);
   box-shadow:
     0 14px 28px rgba(35, 139, 207, 0.28);
-  filter: brightness(1.03);
+  filter: brightness(1.05);
 }
 
 .primary-btn:active {
@@ -390,7 +365,6 @@ select {
   width: 100%;
   height: 54px;
   margin-top: 5px;
-
   border-radius: 14px;
   font-size: 15px;
 }
@@ -413,9 +387,7 @@ select {
   display: flex;
   align-items: center;
   gap: 12px;
-
   margin: 27px 0 18px;
-
   color: #8ca0b0;
   font-size: 9px;
   font-weight: 800;
@@ -487,7 +459,6 @@ select {
 .login-footer {
   margin-top: 25px;
   padding-top: 19px;
-
   border-top: 1px solid #e0e9f0;
 
   text-align: center;
@@ -499,20 +470,19 @@ select {
   color: #2d6386;
 }
 
-
 /* =========================================================
    ERROR / SUCCESS
-========================================================= */
+   ========================================================= */
 
 .error-message {
   display: flex;
   align-items: center;
   gap: 9px;
 
-  color: #b62e45;
-  background: #fff2f4;
-  border: 1px solid #f3cbd2;
-  border-radius: 11px;
+  color: #ff9eab;
+  background: rgba(126, 24, 45, 0.18);
+  border: 1px solid rgba(255, 91, 115, 0.22);
+  border-radius: 12px;
 
   font-size: 12px;
   line-height: 1.4;
@@ -531,7 +501,6 @@ select {
 .error-icon {
   width: 21px;
   height: 21px;
-
   flex: 0 0 21px;
 
   display: flex;
@@ -539,7 +508,6 @@ select {
   justify-content: center;
 
   border-radius: 50%;
-
   color: white;
   background: #df4d60;
 
@@ -550,7 +518,7 @@ select {
 .error-close {
   margin-left: auto;
   background: transparent;
-  color: #a83a4d;
+  color: #ff8b9b;
   font-size: 20px;
 }
 
@@ -562,10 +530,10 @@ select {
   margin-bottom: 20px;
   padding: 13px 15px;
 
-  color: #16704e;
-  background: #edfdf5;
-  border: 1px solid #bcebd6;
-  border-radius: 11px;
+  color: #71e0b4;
+  background: rgba(21, 116, 81, 0.15);
+  border: 1px solid rgba(67, 211, 154, 0.22);
+  border-radius: 12px;
 
   font-size: 12px;
   font-weight: 600;
@@ -582,13 +550,13 @@ select {
   border-radius: 50%;
   color: white;
   background: #22a970;
+
   font-size: 12px;
 }
 
-
 /* =========================================================
-   SIDEBAR
-========================================================= */
+   SIDEBAR — PREMIUM DARK
+   ========================================================= */
 
 .sidebar {
   position: sticky;
@@ -607,16 +575,21 @@ select {
   color: white;
 
   background:
-    radial-gradient(circle at 30% 10%,
-      rgba(65, 196, 242, 0.28),
+    radial-gradient(circle at 25% 5%,
+      rgba(56, 189, 248, 0.18),
       transparent 28%),
+    radial-gradient(circle at 100% 65%,
+      rgba(124, 92, 255, 0.14),
+      transparent 30%),
     linear-gradient(165deg,
-      #075b9c 0%,
-      #075195 45%,
-      #143b91 100%);
+      #0b1426 0%,
+      #0c172c 48%,
+      #111633 100%);
+
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
 
   box-shadow:
-    8px 0 35px rgba(17, 74, 119, 0.13);
+    8px 0 35px rgba(0, 0, 0, 0.22);
 
   z-index: 20;
 }
@@ -646,28 +619,34 @@ select {
 
   background:
     linear-gradient(145deg,
-      #25c4ef,
-      #138bd2);
+      #38c8f7,
+      #237edb 55%,
+      #7358ef);
 
   box-shadow:
-    0 9px 22px rgba(7, 40, 88, 0.25);
+    0 10px 28px rgba(56, 189, 248, 0.18);
 }
 
 .logo-mark::after {
   content: "";
+
   position: absolute;
   width: 19px;
   height: 19px;
+
   right: -5px;
   bottom: -5px;
+
   border-radius: 6px;
-  border: 2px solid rgba(255, 255, 255, 0.55);
-  background: rgba(112, 80, 222, 0.55);
+  border: 2px solid rgba(255, 255, 255, 0.45);
+
+  background: rgba(124, 92, 255, 0.65);
 }
 
 .logo-mark span {
   position: relative;
   z-index: 2;
+
   color: white;
   font-size: 25px;
   font-weight: 800;
@@ -685,7 +664,7 @@ select {
   display: block;
   margin-top: 6px;
 
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.55);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 1.5px;
@@ -694,7 +673,7 @@ select {
 .sidebar-line {
   height: 1px;
   margin: 0 9px 22px;
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .nav {
@@ -718,7 +697,7 @@ select {
   border: 1px solid transparent;
   border-radius: 14px;
 
-  color: rgba(255, 255, 255, 0.76);
+  color: rgba(255, 255, 255, 0.62);
   background: transparent;
 
   text-align: left;
@@ -734,7 +713,7 @@ select {
 
 .nav-item:hover {
   color: white;
-  background: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.055);
   transform: translateX(2px);
 }
 
@@ -743,14 +722,14 @@ select {
 
   background:
     linear-gradient(100deg,
-      rgba(31, 192, 239, 0.30),
-      rgba(110, 82, 224, 0.38));
+      rgba(56, 189, 248, 0.14),
+      rgba(124, 92, 255, 0.22));
 
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.10);
 
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.13),
-    0 8px 20px rgba(0, 20, 65, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.16);
 }
 
 .nav-icon {
@@ -760,7 +739,7 @@ select {
   align-items: center;
   justify-content: center;
 
-  color: #bdefff;
+  color: #72d9ff;
   font-size: 17px;
   font-weight: 700;
 }
@@ -775,8 +754,8 @@ select {
 
   border-radius: 50%;
 
-  background: #72e4ff;
-  box-shadow: 0 0 10px #72e4ff;
+  background: #73ddff;
+  box-shadow: 0 0 12px #73ddff;
 }
 
 .sidebar-bottom {
@@ -792,10 +771,10 @@ select {
 
   padding: 12px;
 
-  border: 1px solid rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
 
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.045);
 }
 
 .avatar {
@@ -811,10 +790,11 @@ select {
   border-radius: 11px;
 
   color: white;
+
   background:
     linear-gradient(145deg,
-      #23b9e9,
-      #6656dc);
+      #26bce9,
+      #7358eb);
 
   font-size: 13px;
   font-weight: 800;
@@ -827,7 +807,6 @@ select {
 
 .user-mini-info strong {
   display: block;
-
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -837,14 +816,13 @@ select {
   display: block;
 
   max-width: 100%;
-
   margin-top: 4px;
 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 
-  color: rgba(255, 255, 255, 0.58);
+  color: rgba(255, 255, 255, 0.48);
   font-size: 9px;
 }
 
@@ -859,11 +837,11 @@ select {
 
   margin-top: 10px;
 
-  border: 1px solid rgba(255, 255, 255, 0.17);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   border-radius: 12px;
 
-  color: rgba(255, 255, 255, 0.85);
-  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
 
   font-size: 12px;
   font-weight: 700;
@@ -876,14 +854,13 @@ select {
 
 .logout-btn:hover {
   color: white;
-  background: rgba(229, 69, 88, 0.20);
-  border-color: rgba(255, 116, 130, 0.35);
+  background: rgba(239, 80, 96, 0.12);
+  border-color: rgba(255, 116, 130, 0.22);
 }
 
-
 /* =========================================================
-   MAIN
-========================================================= */
+   MAIN DASHBOARD — DARK
+   ========================================================= */
 
 .main {
   min-width: 0;
@@ -896,13 +873,16 @@ select {
   overflow-x: hidden;
 
   background:
-    radial-gradient(circle at 90% 0%,
-      rgba(53, 192, 240, 0.10),
-      transparent 25%),
+    radial-gradient(circle at 85% 0%,
+      rgba(56, 189, 248, 0.08),
+      transparent 24%),
+    radial-gradient(circle at 50% 55%,
+      rgba(124, 92, 255, 0.045),
+      transparent 32%),
     linear-gradient(135deg,
-      #f2faff 0%,
-      #f8fbff 52%,
-      #f5f2ff 100%);
+      #0a101d 0%,
+      #0b1220 50%,
+      #0d1020 100%);
 }
 
 .topbar {
@@ -918,7 +898,7 @@ select {
 .topbar-heading h1 {
   margin-top: 6px;
 
-  color: #143e62;
+  color: #f7faff;
   font-size: clamp(32px, 4vw, 43px);
   line-height: 1.1;
   font-weight: 800;
@@ -935,8 +915,11 @@ select {
 
   background:
     linear-gradient(90deg,
-      #12b8e8,
-      #7151df);
+      #38c8f7,
+      #7658ef);
+
+  box-shadow:
+    0 0 16px rgba(56, 200, 247, 0.18);
 }
 
 .profile {
@@ -953,18 +936,19 @@ select {
   align-items: center;
   justify-content: center;
 
-  border: 1px solid #dce8f1;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
 
-  color: #55809a;
-  background: rgba(255, 255, 255, 0.76);
+  color: #8ea3bb;
+  background: rgba(255, 255, 255, 0.045);
 
-  box-shadow: 0 5px 14px rgba(24, 87, 123, 0.05);
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.15);
 }
 
 .notification:hover {
-  border-color: #a6cde3;
-  background: white;
+  border-color: rgba(56, 189, 248, 0.25);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .notification span {
@@ -975,7 +959,8 @@ select {
 
   color: transparent;
   background: #ef5060;
-  box-shadow: 0 0 0 4px rgba(239, 80, 96, 0.12);
+  box-shadow:
+    0 0 0 4px rgba(239, 80, 96, 0.12);
 }
 
 .profile-avatar {
@@ -992,20 +977,16 @@ select {
 
   background:
     linear-gradient(145deg,
-      #12b8e8,
-      #6b55dc);
+      #19b9eb,
+      #7358e8);
 
   box-shadow:
-    0 9px 20px rgba(54, 110, 194, 0.20);
-
-  font-size: 14px;
-  font-weight: 800;
+    0 9px 25px rgba(56, 110, 194, 0.22);
 }
-
 
 /* =========================================================
    HERO WALLET CARD
-========================================================= */
+   ========================================================= */
 
 .hero-card {
   position: relative;
@@ -1021,27 +1002,34 @@ select {
 
   overflow: hidden;
 
-  border: 1px solid rgba(255, 255, 255, 0.40);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 26px;
 
   color: white;
 
   background:
+    radial-gradient(circle at 70% 10%,
+      rgba(255, 255, 255, 0.10),
+      transparent 30%),
     linear-gradient(115deg,
-      #0db9e7 0%,
-      #168bd9 42%,
-      #6555d9 76%,
-      #8c5be3 100%);
+      #119ccf 0%,
+      #176bc8 43%,
+      #5547c8 75%,
+      #7650d5 100%);
 
   box-shadow:
-    0 20px 45px rgba(30, 119, 184, 0.20),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    0 25px 55px rgba(0, 0, 0, 0.25),
+    0 0 40px rgba(76, 91, 225, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+
+  animation: heroAppear 0.55s ease both;
 }
 
 .hero-card::before {
   content: "";
 
   position: absolute;
+
   width: 330px;
   height: 330px;
 
@@ -1051,9 +1039,10 @@ select {
   border-radius: 50%;
 
   border: 1px solid rgba(255, 255, 255, 0.12);
+
   box-shadow:
     0 0 0 28px rgba(255, 255, 255, 0.025),
-    0 0 0 58px rgba(255, 255, 255, 0.02);
+    0 0 0 58px rgba(255, 255, 255, 0.018);
 }
 
 .hero-content {
@@ -1062,7 +1051,7 @@ select {
 }
 
 .hero-label {
-  color: rgba(255, 255, 255, 0.84);
+  color: rgba(255, 255, 255, 0.78);
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.2px;
@@ -1076,13 +1065,16 @@ select {
   line-height: 1;
   font-weight: 800;
   letter-spacing: -2px;
+
+  text-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.14);
 }
 
 .hero-description {
   display: block;
   margin-top: 12px;
 
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.67);
   font-size: 12px;
 }
 
@@ -1097,16 +1089,19 @@ select {
   align-items: center;
   justify-content: center;
 
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   border-radius: 30px;
 
-  background: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.10);
 
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.25),
-    0 12px 30px rgba(34, 57, 135, 0.10);
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 15px 35px rgba(19, 30, 90, 0.16);
 
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  animation: floatSymbol 4s ease-in-out infinite;
 }
 
 .hero-symbol span {
@@ -1123,23 +1118,26 @@ select {
 .hero-shape-one {
   width: 230px;
   height: 230px;
+
   right: -75px;
   top: -125px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  border: 1px solid rgba(255, 255, 255, 0.13);
 }
 
 .hero-shape-two {
   width: 300px;
   height: 300px;
+
   right: 45px;
   bottom: -270px;
-  border: 1px solid rgba(255, 255, 255, 0.11);
-}
 
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
 
 /* =========================================================
    SECTION HEADINGS
-========================================================= */
+   ========================================================= */
 
 .section-heading {
   width: 100%;
@@ -1153,7 +1151,7 @@ select {
 
 .section-heading h2,
 .page-card-header h2 {
-  color: #164568;
+  color: #f1f6ff;
   font-size: 21px;
   font-weight: 800;
   letter-spacing: -0.4px;
@@ -1162,26 +1160,30 @@ select {
 .section-heading p,
 .page-card-header p {
   margin-top: 5px;
-  color: #7990a2;
+  color: #8191a7;
   font-size: 11px;
   line-height: 1.5;
 }
 
 .text-btn {
-  color: #168bc7;
+  color: #62cfff;
   background: transparent;
   font-size: 11px;
   font-weight: 800;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .text-btn:hover {
-  color: #704ed8;
+  color: #a38cff;
+  transform: translateX(2px);
 }
-
 
 /* =========================================================
    CURRENCY CARDS
-========================================================= */
+   ========================================================= */
 
 .currency-grid {
   width: 100%;
@@ -1200,54 +1202,60 @@ select {
 
   overflow: hidden;
 
-  border: 1px solid #dceaf3;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 18px;
 
   background:
-    linear-gradient(150deg,
-      rgba(255, 255, 255, 0.97),
-      rgba(237, 248, 255, 0.90));
+    linear-gradient(145deg,
+      rgba(20, 29, 47, 0.96),
+      rgba(14, 22, 38, 0.94));
 
   box-shadow:
-    0 10px 24px rgba(28, 90, 125, 0.07);
+    0 14px 30px rgba(0, 0, 0, 0.17),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
 
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
 
 .currency-card::after {
   content: "";
+
   position: absolute;
 
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
 
-  right: -32px;
-  bottom: -35px;
+  right: -38px;
+  bottom: -43px;
 
   border-radius: 50%;
 
-  background: rgba(36, 180, 231, 0.08);
+  background:
+    radial-gradient(circle,
+      rgba(56, 189, 248, 0.13),
+      transparent 68%);
 }
 
 .currency-card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
 
-  border-color: #afd8ed;
+  border-color: rgba(56, 189, 248, 0.22);
 
   box-shadow:
-    0 16px 30px rgba(28, 90, 125, 0.11);
+    0 20px 38px rgba(0, 0, 0, 0.23),
+    0 0 25px rgba(56, 189, 248, 0.045);
 }
 
 .currency-card.primary-card {
-  border-color: #b4dff0;
+  border-color: rgba(56, 189, 248, 0.20);
 
   background:
     linear-gradient(145deg,
-      #eafaff,
-      #f4f8ff);
+      rgba(18, 42, 64, 0.98),
+      rgba(27, 25, 59, 0.96));
 }
 
 .currency-top {
@@ -1260,7 +1268,7 @@ select {
 }
 
 .currency-top>span {
-  color: #567b94;
+  color: #9cb0c5;
   font-size: 12px;
   font-weight: 800;
 }
@@ -1279,8 +1287,11 @@ select {
 
   background:
     linear-gradient(145deg,
-      #16b8e5,
-      #6c54dc);
+      #24bce9,
+      #7058e8);
+
+  box-shadow:
+    0 6px 15px rgba(56, 189, 248, 0.12);
 
   font-size: 11px;
   font-weight: 800;
@@ -1292,7 +1303,7 @@ select {
 
   margin-top: 18px;
 
-  color: #17496b;
+  color: #f5f8ff;
   font-size: 27px;
   line-height: 1;
   font-weight: 800;
@@ -1304,15 +1315,14 @@ select {
 
   margin-top: 9px;
 
-  color: #8298a9;
+  color: #74869b;
   font-size: 10px;
   font-weight: 600;
 }
 
-
 /* =========================================================
    QUICK ACTIONS
-========================================================= */
+   ========================================================= */
 
 .quick-actions {
   width: 100%;
@@ -1324,27 +1334,27 @@ select {
 
   padding: 22px 25px;
 
-  border: 1px solid #dbe9f3;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 19px;
 
   background:
     linear-gradient(120deg,
-      rgba(255, 255, 255, 0.95),
-      rgba(242, 250, 255, 0.88));
+      rgba(19, 28, 46, 0.94),
+      rgba(14, 22, 39, 0.92));
 
   box-shadow:
-    0 10px 25px rgba(31, 89, 123, 0.06);
+    0 14px 32px rgba(0, 0, 0, 0.15);
 }
 
 .quick-content h2 {
-  color: #194a6a;
+  color: #f1f6ff;
   font-size: 17px;
   font-weight: 800;
 }
 
 .quick-content p {
   margin-top: 4px;
-  color: #8195a5;
+  color: #7f91a6;
   font-size: 11px;
 }
 
@@ -1363,11 +1373,11 @@ select {
   justify-content: center;
   gap: 9px;
 
-  border: 1px solid #c8ddea;
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 13px;
 
-  color: #276080;
-  background: white;
+  color: #b5c4d7;
+  background: rgba(255, 255, 255, 0.045);
 
   font-size: 12px;
   font-weight: 700;
@@ -1375,35 +1385,38 @@ select {
   transition:
     transform 0.2s ease,
     border-color 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .secondary-btn:hover {
   transform: translateY(-2px);
-  border-color: #9bc9e3;
-  background: #f3faff;
-}
 
+  border-color: rgba(56, 189, 248, 0.22);
+  background: rgba(56, 189, 248, 0.07);
+  color: white;
+}
 
 /* =========================================================
    PAGE CARD
-========================================================= */
+   ========================================================= */
 
 .page-card {
   width: 100%;
 
   padding: 28px;
 
-  border: 1px solid #dce9f2;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 22px;
 
   background:
     linear-gradient(145deg,
-      rgba(255, 255, 255, 0.97),
-      rgba(244, 250, 255, 0.94));
+      rgba(18, 27, 44, 0.97),
+      rgba(13, 21, 36, 0.95));
 
   box-shadow:
-    0 14px 32px rgba(30, 85, 119, 0.07);
+    0 16px 36px rgba(0, 0, 0, 0.17),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
 }
 
 .page-card-header {
@@ -1424,7 +1437,7 @@ select {
 
   margin-bottom: 7px;
 
-  color: #188cc6;
+  color: #58cafa;
   font-size: 9px;
   font-weight: 800;
   letter-spacing: 2px;
@@ -1439,21 +1452,20 @@ select {
 }
 
 .card-count strong {
-  color: #17517a;
+  color: #eaf4ff;
   font-size: 23px;
   font-weight: 800;
 }
 
 .card-count span {
   margin-top: 2px;
-  color: #8a9cab;
+  color: #718298;
   font-size: 9px;
 }
 
-
 /* =========================================================
    TRANSACTION LIST
-========================================================= */
+   ========================================================= */
 
 .transaction-list {
   width: 100%;
@@ -1470,7 +1482,16 @@ select {
 
   padding: 15px 4px;
 
-  border-bottom: 1px solid #e7eef3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.065);
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.transaction:hover {
+  background: rgba(255, 255, 255, 0.018);
+  transform: translateX(2px);
 }
 
 .transaction:last-child {
@@ -1495,13 +1516,15 @@ select {
 }
 
 .reward-icon {
-  color: #128d6a;
-  background: #e8faf4;
+  color: #4fe0ad;
+  background: rgba(34, 169, 112, 0.12);
+  border: 1px solid rgba(34, 169, 112, 0.12);
 }
 
 .withdrawal-icon {
-  color: #d34a5a;
-  background: #fff0f2;
+  color: #ff8494;
+  background: rgba(211, 74, 90, 0.12);
+  border: 1px solid rgba(211, 74, 90, 0.12);
 }
 
 .transaction-info {
@@ -1512,7 +1535,7 @@ select {
 .transaction-info strong {
   display: block;
 
-  color: #2b516b;
+  color: #dce8f5;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1522,7 +1545,7 @@ select {
 
   margin-top: 5px;
 
-  color: #91a1ad;
+  color: #74869b;
   font-size: 9px;
 }
 
@@ -1539,11 +1562,11 @@ select {
 }
 
 .amount-positive {
-  color: #168d68;
+  color: #49dba9;
 }
 
 .amount-negative {
-  color: #d34a5a;
+  color: #ff7486;
 }
 
 .status {
@@ -1561,13 +1584,13 @@ select {
 }
 
 .status.completed {
-  color: #16845f;
-  background: #e7faf3;
+  color: #5de0b1;
+  background: rgba(34, 169, 112, 0.12);
 }
 
 .status.pending {
-  color: #c67b19;
-  background: #fff6df;
+  color: #f3bf5d;
+  background: rgba(198, 123, 25, 0.13);
 }
 
 .empty-state,
@@ -1581,10 +1604,10 @@ select {
 
   text-align: center;
 
-  border: 1px dashed #d5e3ec;
+  border: 1px dashed rgba(255, 255, 255, 0.10);
   border-radius: 15px;
 
-  background: rgba(246, 251, 255, 0.75);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .empty-icon {
@@ -1599,8 +1622,8 @@ select {
 
   border-radius: 13px;
 
-  color: #258fc5;
-  background: #eaf8ff;
+  color: #59c9f7;
+  background: rgba(56, 189, 248, 0.09);
 
   font-size: 19px;
   font-weight: 800;
@@ -1608,21 +1631,20 @@ select {
 
 .empty-state strong,
 .withdrawal-history-empty strong {
-  color: #3a6078;
+  color: #cbd8e7;
   font-size: 12px;
 }
 
 .empty-state span,
 .withdrawal-history-empty span {
   margin-top: 5px;
-  color: #8a9dab;
+  color: #73869a;
   font-size: 10px;
 }
 
-
 /* =========================================================
    WITHDRAWAL PAGE
-========================================================= */
+   ========================================================= */
 
 .withdrawal-page-card {
   padding-bottom: 32px;
@@ -1633,10 +1655,10 @@ select {
 
   padding: 11px 14px;
 
-  border: 1px solid #cde5f0;
+  border: 1px solid rgba(56, 189, 248, 0.15);
   border-radius: 13px;
 
-  background: #effaff;
+  background: rgba(56, 189, 248, 0.06);
 
   text-align: right;
 }
@@ -1644,7 +1666,7 @@ select {
 .withdraw-balance-badge span {
   display: block;
 
-  color: #7d94a5;
+  color: #7d91a6;
   font-size: 9px;
   font-weight: 600;
 }
@@ -1654,7 +1676,7 @@ select {
 
   margin-top: 4px;
 
-  color: #1687c1;
+  color: #58cdf7;
   font-size: 14px;
   font-weight: 800;
 }
@@ -1662,19 +1684,19 @@ select {
 .withdraw-box {
   padding: 24px;
 
-  border: 1px solid #dce9f2;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 17px;
 
   background:
     linear-gradient(145deg,
-      #fbfdff,
-      #f3faff);
+      rgba(20, 29, 47, 0.92),
+      rgba(14, 22, 38, 0.90));
 }
 
 .form-section-title {
   margin-bottom: 19px;
 
-  color: #315c76;
+  color: #d7e3f0;
   font-size: 12px;
   font-weight: 800;
 }
@@ -1695,14 +1717,49 @@ select {
 
 .input-with-suffix span {
   position: absolute;
+
   right: 15px;
   top: 50%;
 
   transform: translateY(-50%);
 
-  color: #5790ad;
+  color: #63b9dc;
   font-size: 11px;
   font-weight: 800;
+}
+
+.withdraw-box .input-group label {
+  color: #aebed0;
+}
+
+.withdraw-box .input-group input,
+.withdraw-box .input-group select {
+  color: #edf5ff;
+
+  border-color: rgba(255, 255, 255, 0.09);
+
+  background:
+    rgba(7, 13, 24, 0.72);
+}
+
+.withdraw-box .input-group input::placeholder {
+  color: #62748a;
+}
+
+.withdraw-box .input-group input:hover,
+.withdraw-box .input-group select:hover {
+  border-color: rgba(56, 189, 248, 0.20);
+}
+
+.withdraw-box .input-group input:focus,
+.withdraw-box .input-group select:focus {
+  border-color: #42bce9;
+
+  background: rgba(8, 16, 29, 0.92);
+
+  box-shadow:
+    0 0 0 4px rgba(56, 189, 248, 0.08),
+    0 8px 25px rgba(0, 0, 0, 0.16);
 }
 
 .input-group small {
@@ -1710,7 +1767,7 @@ select {
 
   margin-top: 7px;
 
-  color: #8a9dab;
+  color: #72859a;
   font-size: 9px;
 }
 
@@ -1726,16 +1783,16 @@ select {
 .withdraw-summary>div {
   padding: 14px;
 
-  border: 1px solid #dfebf3;
+  border: 1px solid rgba(255, 255, 255, 0.075);
   border-radius: 12px;
 
-  background: white;
+  background: rgba(255, 255, 255, 0.035);
 }
 
 .withdraw-summary span {
   display: block;
 
-  color: #8b9dab;
+  color: #74869a;
   font-size: 9px;
 }
 
@@ -1744,7 +1801,7 @@ select {
 
   margin-top: 5px;
 
-  color: #285773;
+  color: #d8e6f4;
   font-size: 13px;
 }
 
@@ -1766,7 +1823,7 @@ select {
 
   padding: 14px 2px;
 
-  border-bottom: 1px solid #e7eef3;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.065);
 }
 
 .withdrawal-row:last-child {
@@ -1781,7 +1838,7 @@ select {
 .withdrawal-info strong {
   display: block;
 
-  color: #315b75;
+  color: #d6e3f0;
   font-size: 12px;
 }
 
@@ -1790,7 +1847,7 @@ select {
 
   margin-top: 4px;
 
-  color: #91a0ad;
+  color: #718398;
   font-size: 9px;
 }
 
@@ -1799,13 +1856,83 @@ select {
   align-items: center;
 }
 
+/* =========================================================
+   PROFILE / MODAL SUPPORT
+   ========================================================= */
+
+.profile-menu {
+  position: relative;
+}
+
+.profile-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 100;
+
+  min-width: 210px;
+
+  padding: 12px;
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 15px;
+
+  background:
+    linear-gradient(145deg,
+      #151f33,
+      #0f1829);
+
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.32);
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(2, 6, 15, 0.74);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.modal-card {
+  width: min(480px, 100%);
+
+  padding: 28px;
+
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 22px;
+
+  background:
+    linear-gradient(145deg,
+      #151f33,
+      #0f1829);
+
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.42);
+}
+
+.modal-card h2 {
+  color: #f4f8ff;
+}
+
+.modal-card p {
+  color: #8092a7;
+}
 
 /* =========================================================
    RESPONSIVE — LARGE TABLET
-========================================================= */
+   ========================================================= */
 
 @media (max-width: 1150px) {
-
   .sidebar {
     width: 225px;
     min-width: 225px;
@@ -1825,13 +1952,11 @@ select {
   }
 }
 
-
 /* =========================================================
    RESPONSIVE — TABLET
-========================================================= */
+   ========================================================= */
 
 @media (max-width: 850px) {
-
   .sidebar {
     width: 195px;
     min-width: 195px;
@@ -1886,13 +2011,11 @@ select {
   }
 }
 
-
 /* =========================================================
    RESPONSIVE — MOBILE
-========================================================= */
+   ========================================================= */
 
 @media (max-width: 680px) {
-
   .app {
     display: block;
   }
@@ -1956,6 +2079,7 @@ select {
 
   .sidebar-bottom {
     margin-top: 12px;
+
     display: flex;
     align-items: center;
     gap: 8px;
@@ -1996,9 +2120,7 @@ select {
 
   .hero-card {
     min-height: 205px;
-
     padding: 28px 25px;
-
     border-radius: 21px;
   }
 
@@ -2100,13 +2222,11 @@ select {
   }
 }
 
-
 /* =========================================================
    RESPONSIVE — SMALL MOBILE
-========================================================= */
+   ========================================================= */
 
 @media (max-width: 430px) {
-
   .sidebar-top {
     flex-wrap: wrap;
   }
@@ -2164,10 +2284,9 @@ select {
   }
 }
 
-
 /* =========================================================
    ANIMATIONS
-========================================================= */
+   ========================================================= */
 
 @keyframes spin {
   from {
@@ -2179,22 +2298,44 @@ select {
   }
 }
 
+@keyframes heroAppear {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatSymbol {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
 
 /* =========================================================
    ACCESSIBILITY
-========================================================= */
+   ========================================================= */
 
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(31, 164, 220, 0.22);
+  outline: 3px solid rgba(56, 189, 248, 0.22);
   outline-offset: 2px;
 }
 
-
 /* =========================================================
-   SCROLLBAR
-========================================================= */
+   DARK SCROLLBAR
+   ========================================================= */
 
 ::-webkit-scrollbar {
   width: 8px;
@@ -2202,14 +2343,14 @@ select:focus-visible {
 }
 
 ::-webkit-scrollbar-track {
-  background: #edf5fa;
+  background: #080d18;
 }
 
 ::-webkit-scrollbar-thumb {
   border-radius: 10px;
-  background: #a9c9dc;
+  background: #26354b;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #79abc7;
+  background: #3b506c;
 }
