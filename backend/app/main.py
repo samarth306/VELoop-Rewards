@@ -1056,6 +1056,10 @@ def forgot_password(
             },
         )
 
+        send_reset_email(
+            str(request.email),
+            raw_token,
+        )
  
         return {
         "message": (
