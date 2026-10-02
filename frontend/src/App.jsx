@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 
-const API_URL =
-  "https://veloop-rewards-jj94.onrender.com";
+const API_URL = "https://veloop-rewards-jj94.onrender.com";
 
 const EMPTY_WALLET = {
   ves: 0,
@@ -32,6 +31,44 @@ const DEFAULT_PAYOUT_OPTIONS = [
   },
 ];
 
+const NAV_ITEMS = [
+  { key: "Wallet", icon: "wallet", label: "Wallet" },
+  { key: "Transactions", icon: "activity", label: "Transactions" },
+  { key: "Withdrawals", icon: "arrow-up", label: "Withdrawals" },
+];
+
+const CURRENCY_META = {
+  ves: {
+    name: "VEs",
+    label: "Reward Points",
+    icon: "V",
+    accent: "cyan",
+  },
+  sves: {
+    name: "SVEs",
+    label: "Special VEs",
+    icon: "S",
+    accent: "indigo",
+  },
+  gems: {
+    name: "Gems",
+    label: "Reward Gems",
+    icon: "G",
+    accent: "gold",
+  },
+  tokens: {
+    name: "Tokens",
+    label: "Reward Tokens",
+    icon: "T",
+    accent: "green",
+  },
+  spins: {
+    name: "Spins",
+    label: "Game Spins",
+    icon: "S",
+    accent: "pink",
+  },
+};
 
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
@@ -50,28 +87,22 @@ function App() {
 
   const [password, setPassword] = useState("");
 
-  const [showRegister, setShowRegister] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
   const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerConfirmPassword, setRegisterConfirmPassword] =
     useState("");
 
-  const [showForgotPassword, setShowForgotPassword] =
-    useState(false);
-
-  const [showLoginPassword, setShowLoginPassword] =
-    useState(false);
-
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
   const [resetToken, setResetToken] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetConfirmPassword, setResetConfirmPassword] =
     useState("");
-
-  const [showResetPassword, setShowResetPassword] =
-    useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const [rememberMe, setRememberMe] = useState(
     localStorage.getItem("veloop_remember") !== "false"
@@ -94,11 +125,13 @@ function App() {
   const [refreshing, setRefreshing] = useState(false);
 
   const [error, setError] = useState("");
-  const [withdrawMessage, setWithdrawMessage] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [profileOpen, setProfileOpen] = useState(false);
-  const [profileModalOpen, setProfileModalOpen] =
-    useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const [withdrawalConfirmation, setWithdrawalConfirmation] =
+    useState(null);
 
   const [transactionFilter, setTransactionFilter] =
     useState("ALL");
@@ -117,17 +150,8 @@ function App() {
     qrFileName: "",
   });
 
-  /*
-   * Detect a password reset link.
-   *
-   * Backend sends:
-   * /reset-password?token=...
-   */
   useEffect(() => {
-    const params = new URLSearchParams(
-      window.location.search
-    );
-
+    const params = new URLSearchParams(window.location.search);
     const tokenFromUrl = params.get("token");
 
     if (
@@ -139,8 +163,9 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
-    loadAllData();
+    if (token) {
+      loadAllData();
+    }
   }, [token]);
 
   async function apiRequest(endpoint, options = {}) {
@@ -178,7 +203,7 @@ function App() {
 
   async function handleForgotPassword() {
     setError("");
-    setWithdrawMessage("");
+    setSuccess("");
 
     const targetEmail = (
       forgotEmail.trim() || email.trim()
@@ -220,10 +245,10 @@ function App() {
         );
       }
 
-      setShowForgotPassword(false);
+      setForgotOpen(false);
       setForgotEmail("");
 
-      setError(
+      setSuccess(
         data.message ||
         "If an account exists for this email, a password reset link has been sent."
       );
@@ -241,7 +266,7 @@ function App() {
     event.preventDefault();
 
     setError("");
-    setWithdrawMessage("");
+    setSuccess("");
 
     if (!resetToken) {
       setError(
@@ -302,15 +327,17 @@ function App() {
       setResetPassword("");
       setResetConfirmPassword("");
 
-      setError(
+      setSuccess(
         data.message ||
         "Password reset successfully. You can now sign in."
       );
 
-      /*
-       * Remove token from URL and return to normal login.
-       */
-      window.history.replaceState({}, "", "/");
+      window.history.replaceState(
+        {},
+        "",
+        "/"
+      );
+
       setResetToken("");
     } catch (err) {
       setError(
@@ -326,7 +353,7 @@ function App() {
     event.preventDefault();
 
     setError("");
-    setWithdrawMessage("");
+    setSuccess("");
     setLoading(true);
 
     try {
@@ -354,7 +381,8 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail || "Invalid email or password"
+          data.detail ||
+          "Invalid email or password"
         );
       }
 
@@ -374,8 +402,13 @@ function App() {
           "true"
         );
 
-        sessionStorage.removeItem("veloop_token");
-        sessionStorage.removeItem("veloop_email");
+        sessionStorage.removeItem(
+          "veloop_token"
+        );
+
+        sessionStorage.removeItem(
+          "veloop_email"
+        );
       } else {
         sessionStorage.setItem(
           "veloop_token",
@@ -387,8 +420,13 @@ function App() {
           email.trim()
         );
 
-        localStorage.removeItem("veloop_token");
-        localStorage.removeItem("veloop_email");
+        localStorage.removeItem(
+          "veloop_token"
+        );
+
+        localStorage.removeItem(
+          "veloop_email"
+        );
 
         localStorage.setItem(
           "veloop_remember",
@@ -400,7 +438,9 @@ function App() {
       setEmail(email.trim());
       setPassword("");
     } catch (err) {
-      setError(err.message || "Login failed");
+      setError(
+        err.message || "Login failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -410,25 +450,36 @@ function App() {
     event.preventDefault();
 
     setError("");
-    setWithdrawMessage("");
+    setSuccess("");
 
     if (!registerName.trim()) {
-      setError("Please enter your full name.");
+      setError(
+        "Please enter your full name."
+      );
       return;
     }
 
     if (!registerEmail.trim()) {
-      setError("Please enter your email address.");
+      setError(
+        "Please enter your email address."
+      );
       return;
     }
 
     if (registerPassword.length < 6) {
-      setError("Password must contain at least 6 characters.");
+      setError(
+        "Password must contain at least 6 characters."
+      );
       return;
     }
 
-    if (registerPassword !== registerConfirmPassword) {
-      setError("Passwords do not match.");
+    if (
+      registerPassword !==
+      registerConfirmPassword
+    ) {
+      setError(
+        "Passwords do not match."
+      );
       return;
     }
 
@@ -466,15 +517,20 @@ function App() {
         );
       }
 
-      setEmail(registerEmail.trim());
+      setEmail(
+        registerEmail.trim()
+      );
+
       setPassword("");
+
       setRegisterName("");
       setRegisterEmail("");
       setRegisterPassword("");
       setRegisterConfirmPassword("");
-      setShowRegister(false);
+      setRegisterOpen(false);
 
-      setError(
+      setSuccess(
+        data.message ||
         "Account created successfully. Please sign in."
       );
     } catch (err) {
@@ -487,7 +543,9 @@ function App() {
     }
   }
 
-  async function loadAllData(showSpinner = false) {
+  async function loadAllData(
+    showSpinner = false
+  ) {
     if (!token) return;
 
     if (showSpinner) {
@@ -517,7 +575,10 @@ function App() {
   }
 
   async function loadWallet() {
-    const data = await apiRequest("/wallet/me");
+    const data =
+      await apiRequest(
+        "/wallet/me"
+      );
 
     setWallet({
       ves: Number(data.ves || 0),
@@ -529,9 +590,10 @@ function App() {
   }
 
   async function loadTransactions() {
-    const data = await apiRequest(
-      "/wallet/me/transactions"
-    );
+    const data =
+      await apiRequest(
+        "/wallet/me/transactions"
+      );
 
     setTransactions(
       Array.isArray(data.transactions)
@@ -541,9 +603,10 @@ function App() {
   }
 
   async function loadWithdrawals() {
-    const data = await apiRequest(
-      "/wallet/me/withdrawals"
-    );
+    const data =
+      await apiRequest(
+        "/wallet/me/withdrawals"
+      );
 
     setWithdrawals(
       Array.isArray(data.withdrawals)
@@ -553,11 +616,20 @@ function App() {
   }
 
   async function loadProfile() {
-    const data = await apiRequest("/auth/me");
+    const data =
+      await apiRequest(
+        "/auth/me"
+      );
 
     setProfile({
-      name: data?.name || "VELOOP User",
-      email: data?.email || email || "",
+      name:
+        data?.name ||
+        "VELOOP User",
+
+      email:
+        data?.email ||
+        email ||
+        "",
     });
 
     if (data?.email) {
@@ -566,26 +638,33 @@ function App() {
   }
 
   async function loadPayoutOptions() {
-    const data = await apiRequest(
-      "/payout-options"
-    );
+    const data =
+      await apiRequest(
+        "/payout-options"
+      );
 
-    const options = Array.isArray(data?.options)
-      ? data.options
-      : [];
+    const options =
+      Array.isArray(data?.options)
+        ? data.options
+        : [];
 
     setPayoutOptions(
       options.length
         ? options.filter(
-          (option) => option?.active !== false
+          (option) =>
+            option?.active !== false
         )
         : DEFAULT_PAYOUT_OPTIONS
     );
   }
-  function getPayoutOptionForMethod(method) {
-    const normalizedMethod = String(
-      method || ""
-    ).toUpperCase();
+
+  function getPayoutOptionForMethod(
+    method
+  ) {
+    const normalized =
+      String(
+        method || ""
+      ).toUpperCase();
 
     const typeMap = {
       UPI: "UPI",
@@ -593,71 +672,222 @@ function App() {
       QR: "UPI_QR",
     };
 
-    const expectedType =
-      typeMap[normalizedMethod] ||
-      normalizedMethod;
+    const expected =
+      typeMap[normalized] ||
+      normalized;
 
     return payoutOptions.find(
       (option) => {
-        const optionType = String(
-          option?.type || ""
-        ).toUpperCase();
+        const type =
+          String(
+            option?.type || ""
+          ).toUpperCase();
 
-        const optionMethodId = String(
-          option?.method_id || ""
-        ).toLowerCase();
+        const methodId =
+          String(
+            option?.method_id || ""
+          ).toLowerCase();
 
         return (
-          optionType === expectedType ||
-          optionMethodId ===
-          normalizedMethod.toLowerCase()
+          type === expected ||
+          methodId ===
+          normalized.toLowerCase()
         );
       }
     );
   }
 
-  function getPayoutDenominations(option) {
-    if (!Array.isArray(option?.denominations)) {
+  function getPayoutDenominations(
+    option
+  ) {
+    if (
+      !Array.isArray(
+        option?.denominations
+      )
+    ) {
       return [];
     }
 
-    return option.denominations
+    return [...option.denominations]
       .filter(
-        (denomination) =>
-          Number(denomination?.payout_value) > 0 &&
-          Number(denomination?.required_amount) > 0
+        (item) =>
+          Number(
+            item?.payout_value
+          ) > 0 &&
+          Number(
+            item?.required_amount
+          ) > 0
       )
       .sort(
         (a, b) =>
-          Number(a.payout_value) -
-          Number(b.payout_value)
+          Number(
+            a.payout_value
+          ) -
+          Number(
+            b.payout_value
+          )
       );
   }
 
-  function getSelectedPayoutDenomination(
+  function getSelectedDenomination(
     option,
     payoutValue
   ) {
-    const value = Number(payoutValue);
+    const value =
+      Number(payoutValue);
 
-    if (!Number.isFinite(value) || value <= 0) {
+    if (
+      !Number.isFinite(value) ||
+      value <= 0
+    ) {
       return null;
     }
 
     return (
-      getPayoutDenominations(option).find(
-        (denomination) =>
-          Number(denomination.payout_value) ===
-          value
+      getPayoutDenominations(
+        option
+      ).find(
+        (item) =>
+          Number(
+            item.payout_value
+          ) === value
       ) || null
     );
   }
+
+  function getMethodValue(
+    option
+  ) {
+    const type =
+      String(
+        option?.type || ""
+      ).toUpperCase();
+
+    const methodId =
+      String(
+        option?.method_id || ""
+      ).toUpperCase();
+
+    if (
+      type === "BANK_TRANSFER" ||
+      methodId.includes("BANK")
+    ) {
+      return "BANK";
+    }
+
+    if (
+      type === "UPI_QR" ||
+      methodId.includes("QR")
+    ) {
+      return "QR";
+    }
+
+    if (
+      type === "UPI" ||
+      methodId === "UPI"
+    ) {
+      return "UPI";
+    }
+
+    return type || methodId;
+  }
+
+  function getMethodDisplayName(
+    method
+  ) {
+    if (method === "BANK") {
+      return "Bank Transfer";
+    }
+
+    if (method === "QR") {
+      return "UPI QR";
+    }
+
+    if (method === "UPI") {
+      return "UPI";
+    }
+
+    return method || "Payout";
+  }
+
+  function availableMethods() {
+    const result = [];
+    const seen = new Set();
+
+    for (
+      const option of payoutOptions || []
+    ) {
+      const value =
+        getMethodValue(option);
+
+      if (
+        !value ||
+        seen.has(value)
+      ) {
+        continue;
+      }
+
+      seen.add(value);
+
+      result.push({
+        value,
+        name:
+          option?.name ||
+          getMethodDisplayName(
+            value
+          ),
+
+        icon:
+          value === "BANK"
+            ? "bank"
+            : value === "QR"
+              ? "qr"
+              : "wallet",
+
+        description:
+          value === "BANK"
+            ? "Direct bank payout"
+            : value === "QR"
+              ? "UPI QR payout"
+              : "UPI payout",
+      });
+    }
+
+    return result;
+  }
+
+  function setTab(tab) {
+    setActiveTab(tab);
+    setError("");
+    setSuccess("");
+    setProfileOpen(false);
+  }
+
+  function updateWithdrawForm(
+    key,
+    value
+  ) {
+    setWithdrawForm(
+      (prev) => ({
+        ...prev,
+        [key]: value,
+      })
+    );
+
+    setError("");
+    setSuccess("");
+  }
+
   function handleSessionExpired() {
-    localStorage.removeItem("veloop_token");
-    sessionStorage.removeItem("veloop_token");
+    localStorage.removeItem(
+      "veloop_token"
+    );
+
+    sessionStorage.removeItem(
+      "veloop_token"
+    );
 
     setToken("");
-
     setWallet(EMPTY_WALLET);
     setTransactions([]);
     setWithdrawals([]);
@@ -667,21 +897,27 @@ function App() {
       email: "",
     });
 
-    setPayoutOptions(
-      DEFAULT_PAYOUT_OPTIONS
-    );
-
     setError(
       "Your session has expired. Please sign in again."
     );
   }
 
   function handleLogout() {
-    localStorage.removeItem("veloop_token");
-    localStorage.removeItem("veloop_email");
+    localStorage.removeItem(
+      "veloop_token"
+    );
 
-    sessionStorage.removeItem("veloop_token");
-    sessionStorage.removeItem("veloop_email");
+    localStorage.removeItem(
+      "veloop_email"
+    );
+
+    sessionStorage.removeItem(
+      "veloop_token"
+    );
+
+    sessionStorage.removeItem(
+      "veloop_email"
+    );
 
     setToken("");
     setEmail("");
@@ -705,86 +941,133 @@ function App() {
     setActiveTab("Wallet");
   }
 
-  async function handleWithdrawal(event) {
-    event.preventDefault();
+  function buildWithdrawalPayload() {
+    const method =
+      withdrawForm.method;
 
-    setError("");
-    setWithdrawMessage("");
+    if (method === "BANK") {
+      return {
+        account_name:
+          withdrawForm.accountName.trim(),
 
-    const payoutValue = Number(
-      withdrawForm.amount
-    );
+        account_number:
+          withdrawForm.accountNumber.trim(),
 
-    const method = withdrawForm.method;
+        ifsc:
+          withdrawForm.ifsc
+            .trim()
+            .toUpperCase(),
 
-    if (
-      !Number.isFinite(payoutValue) ||
-      payoutValue <= 0
-    ) {
-      setError(
-        "Please select a valid payout amount."
-      );
-      return;
+        bank_name:
+          withdrawForm.bankName.trim(),
+      };
     }
 
-    const selectedPayoutOption =
-      getPayoutOptionForMethod(method);
+    return {
+      upi_id:
+        withdrawForm.upiId.trim(),
 
-    if (!selectedPayoutOption?.method_id) {
-      setError(
-        "Selected payout method is currently unavailable."
+      payout_mode:
+        method === "QR"
+          ? "UPI_QR"
+          : "UPI_ID",
+
+      qr_file_name:
+        withdrawForm.qrFileName ||
+        null,
+    };
+  }
+
+  function validateWithdrawalForm() {
+    const payoutValue =
+      Number(
+        withdrawForm.amount
       );
-      return;
-    }
 
-    const selectedDenomination =
-      getSelectedPayoutDenomination(
-        selectedPayoutOption,
+    const method =
+      withdrawForm.method;
+
+    const selectedOption =
+      getPayoutOptionForMethod(
+        method
+      );
+
+    const denomination =
+      getSelectedDenomination(
+        selectedOption,
         payoutValue
       );
 
-    if (!selectedDenomination) {
-      setError(
-        "Please select a valid payout denomination."
-      );
-      return;
+    if (
+      !Number.isFinite(
+        payoutValue
+      ) ||
+      payoutValue <= 0
+    ) {
+      return {
+        error:
+          "Please select a valid payout amount.",
+      };
     }
 
-    const requiredVes = Number(
-      selectedDenomination.required_amount
-    );
+    if (
+      !selectedOption?.method_id
+    ) {
+      return {
+        error:
+          "Selected payout method is currently unavailable.",
+      };
+    }
+
+    if (!denomination) {
+      return {
+        error:
+          "Please select a valid payout denomination.",
+      };
+    }
+
+    const requiredVes =
+      Number(
+        denomination.required_amount
+      );
 
     if (
-      !Number.isFinite(requiredVes) ||
+      !Number.isFinite(
+        requiredVes
+      ) ||
       requiredVes <= 0
     ) {
-      setError(
-        "The selected payout option is not configured correctly."
-      );
-      return;
+      return {
+        error:
+          "The selected payout option is not configured correctly.",
+      };
     }
 
     if (
       requiredVes >
       Number(wallet.ves || 0)
     ) {
-      setError(
-        `Insufficient VEs balance. Required: ${formatNumber(
-          requiredVes
-        )} VEs. Available: ${formatNumber(
-          wallet.ves
-        )} VEs.`
-      );
-      return;
+      return {
+        error:
+          `Insufficient VEs balance. Required: ${formatAmount(
+            requiredVes
+          )} VEs. Available: ${formatAmount(
+            wallet.ves
+          )} VEs.`,
+      };
     }
 
     if (
       method === "UPI" ||
       method === "QR"
     ) {
-      if (!withdrawForm.upiId.trim()) {
-        setError("Please enter your UPI ID.");
-        return;
+      if (
+        !withdrawForm.upiId.trim()
+      ) {
+        return {
+          error:
+            "Please enter your UPI ID.",
+        };
       }
 
       if (
@@ -792,31 +1075,39 @@ function App() {
           withdrawForm.upiId.trim()
         )
       ) {
-        setError(
-          "Please enter a valid UPI ID, for example name@upi."
-        );
-        return;
+        return {
+          error:
+            "Please enter a valid UPI ID, for example name@upi.",
+        };
       }
     }
 
     if (method === "BANK") {
-      if (!withdrawForm.accountName.trim()) {
-        setError(
-          "Please enter account holder name."
-        );
-        return;
+      if (
+        !withdrawForm.accountName.trim()
+      ) {
+        return {
+          error:
+            "Please enter account holder name.",
+        };
       }
 
-      if (!withdrawForm.accountNumber.trim()) {
-        setError(
-          "Please enter bank account number."
-        );
-        return;
+      if (
+        !withdrawForm.accountNumber.trim()
+      ) {
+        return {
+          error:
+            "Please enter bank account number.",
+        };
       }
 
-      if (!withdrawForm.ifsc.trim()) {
-        setError("Please enter IFSC code.");
-        return;
+      if (
+        !withdrawForm.ifsc.trim()
+      ) {
+        return {
+          error:
+            "Please enter IFSC code.",
+        };
       }
 
       if (
@@ -824,61 +1115,78 @@ function App() {
           withdrawForm.ifsc.trim()
         )
       ) {
-        setError(
-          "Please enter a valid IFSC code."
-        );
-        return;
+        return {
+          error:
+            "Please enter a valid IFSC code.",
+        };
       }
     }
 
+    return {
+      payoutValue,
+      method,
+      selectedOption,
+      denomination,
+      requiredVes,
+    };
+  }
+
+  function requestWithdrawalConfirmation(
+    event
+  ) {
+    event.preventDefault();
+
+    setError("");
+    setSuccess("");
+
+    const validation =
+      validateWithdrawalForm();
+
+    if (validation.error) {
+      setError(
+        validation.error
+      );
+      return;
+    }
+
+    setWithdrawalConfirmation(
+      validation
+    );
+  }
+
+  async function confirmWithdrawal() {
+    if (
+      !withdrawalConfirmation
+    ) {
+      return;
+    }
+
     setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      const payoutOptionId =
-        selectedPayoutOption.method_id;
-
-      const payoutDetails =
-        method === "BANK"
-          ? {
-            account_name:
-              withdrawForm.accountName.trim(),
-            account_number:
-              withdrawForm.accountNumber.trim(),
-            ifsc:
-              withdrawForm.ifsc
-                .trim()
-                .toUpperCase(),
-            bank_name:
-              withdrawForm.bankName.trim(),
-          }
-          : {
-            upi_id:
-              withdrawForm.upiId.trim(),
-            payout_mode:
-              method === "QR"
-                ? "UPI_QR"
-                : "UPI_ID",
-            qr_file_name:
-              withdrawForm.qrFileName ||
-              null,
-          };
+      const {
+        payoutValue,
+        selectedOption,
+        requiredVes,
+      } = withdrawalConfirmation;
 
       await apiRequest(
         "/wallet/me/withdrawal",
         {
           method: "POST",
+
           body: JSON.stringify({
-            /*
-             * Backend expects the payout denomination
-             * (for example ₹10 or ₹25), not the VEs cost.
-             * The server resolves and validates the
-             * corresponding required VEs.
-             */
-            amount: payoutValue,
+            amount:
+              payoutValue,
+
             payout_option_id:
-              payoutOptionId,
+              selectedOption.method_id,
+
             payout_details:
-              payoutDetails,
+              buildWithdrawalPayload(),
+
             request_id:
               typeof crypto !==
                 "undefined" &&
@@ -891,17 +1199,17 @@ function App() {
         }
       );
 
-      setWithdrawMessage(
-        `₹${formatNumber(
+      setSuccess(
+        `₹${formatAmount(
           payoutValue
-        )} payout submitted successfully. ${formatNumber(
+        )} payout submitted successfully. ${formatAmount(
           requiredVes
         )} VEs reserved. Status: PENDING.`
       );
 
       setWithdrawForm(
-        (previous) => ({
-          ...previous,
+        (prev) => ({
+          ...prev,
           amount: "",
           upiId: "",
           accountName: "",
@@ -912,134 +1220,23 @@ function App() {
         })
       );
 
+      setWithdrawalConfirmation(
+        null
+      );
+
       await loadAllData(false);
     } catch (err) {
       setError(
         err.message ||
         "Withdrawal failed."
       );
+
+      setWithdrawalConfirmation(
+        null
+      );
     } finally {
       setLoading(false);
     }
-  }
-
-  function updateWithdrawForm(
-    key,
-    value
-  ) {
-    setWithdrawForm(
-      (previous) => ({
-        ...previous,
-        [key]: value,
-      })
-    );
-
-    setError("");
-    setWithdrawMessage("");
-  }
-
-  function handleQrFile(event) {
-    const file =
-      event.target.files?.[0];
-
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      setError(
-        "Please select a QR image file."
-      );
-      return;
-    }
-
-    updateWithdrawForm(
-      "qrFileName",
-      file.name
-    );
-  }
-
-  function setTab(tab) {
-    setActiveTab(tab);
-    setError("");
-    setWithdrawMessage("");
-    setProfileOpen(false);
-  }
-
-  function formatNumber(value) {
-    return Number(
-      value || 0
-    ).toLocaleString("en-IN");
-  }
-
-  function formatDate(value) {
-    if (!value) return "-";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return "-";
-    }
-
-    return date.toLocaleString(
-      "en-IN",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
-  }
-
-  function getInitial() {
-    return email
-      ? email
-        .trim()
-        .charAt(0)
-        .toUpperCase()
-      : "V";
-  }
-
-  function getTransactionIsCredit(
-    transaction
-  ) {
-    const type = String(
-      transaction?.type || ""
-    ).toUpperCase();
-
-    return (
-      type === "REWARD" ||
-      type === "CREDIT" ||
-      Number(transaction?.amount || 0) >
-      0
-    );
-  }
-
-  function getStatusClass(status) {
-    const normalized =
-      String(status || "").toLowerCase();
-
-    if (
-      [
-        "completed",
-        "success",
-        "successful",
-      ].includes(normalized)
-    ) {
-      return "status completed";
-    }
-
-    if (
-      [
-        "failed",
-        "rejected",
-        "cancelled",
-      ].includes(normalized)
-    ) {
-      return "status failed";
-    }
-
-    return "status pending";
   }
 
   const filteredTransactions =
@@ -1052,10 +1249,11 @@ function App() {
       }
 
       return transactions.filter(
-        (transaction) => {
-          const type = String(
-            transaction?.type || ""
-          ).toUpperCase();
+        (tx) => {
+          const type =
+            String(
+              tx?.type || ""
+            ).toUpperCase();
 
           if (
             transactionFilter ===
@@ -1067,16 +1265,10 @@ function App() {
             );
           }
 
-          if (
-            transactionFilter ===
+          return (
+            type ===
             "WITHDRAWAL"
-          ) {
-            return (
-              type === "WITHDRAWAL"
-            );
-          }
-
-          return true;
+          );
         }
       );
     }, [
@@ -1094,9 +1286,9 @@ function App() {
       }
 
       return withdrawals.filter(
-        (withdrawal) =>
+        (item) =>
           String(
-            withdrawal?.status ||
+            item?.status ||
             "PENDING"
           ).toUpperCase() ===
           withdrawalFilter
@@ -1106,14 +1298,35 @@ function App() {
       withdrawalFilter,
     ]);
 
-  const completedWithdrawals =
-    withdrawals.filter(
-      (item) =>
-        String(
-          item?.status || ""
-        ).toUpperCase() ===
-        "APPROVED"
-    ).length;
+  const availablePayoutCurrencies =
+    useMemo(() => {
+      const currencies =
+        new Set();
+
+      for (
+        const option of payoutOptions || []
+      ) {
+        if (
+          option?.active === false
+        ) {
+          continue;
+        }
+
+        const currency =
+          String(
+            option?.currency ||
+            ""
+          ).toLowerCase();
+
+        if (currency) {
+          currencies.add(
+            currency
+          );
+        }
+      }
+
+      return currencies;
+    }, [payoutOptions]);
 
   const pendingWithdrawals =
     withdrawals.filter(
@@ -1125,1051 +1338,363 @@ function App() {
         "PENDING"
     ).length;
 
-  /*
-   * PASSWORD RESET SCREEN
-   *
-   * This uses the same overall VELOOP visual language.
-   * It does not affect the dashboard design.
-   */
+  const completedWithdrawals =
+    withdrawals.filter(
+      (item) =>
+        [
+          "APPROVED",
+          "COMPLETED",
+          "SUCCESS",
+          "SUCCESSFUL",
+        ].includes(
+          String(
+            item?.status || ""
+          ).toUpperCase()
+        )
+    ).length;
+
   if (resetToken) {
     return (
-      <div className="login-page">
-        <div className="login-decoration decoration-one"></div>
-        <div className="login-decoration decoration-two"></div>
-        <div className="login-decoration decoration-three"></div>
+      <AuthShell
+        eyebrow="ACCOUNT SECURITY"
+        title="Reset password"
+        subtitle="Create a new password for your VELOOP account."
+      >
+        {error && (
+          <Alert
+            type="error"
+            message={error}
+          />
+        )}
 
-        <div className="login-card">
-          <div className="login-brand">
-            <div className="login-logo">
-              V
-            </div>
+        {success && (
+          <Alert
+            type="success"
+            message={success}
+          />
+        )}
 
-            <div className="login-brand-name">
-              VELOOP
-            </div>
-
-            <div className="login-brand-subtitle">
-              REWARDS
-            </div>
-          </div>
-
-          <div className="login-heading">
-            <p className="eyebrow">
-              ACCOUNT SECURITY
-            </p>
-
-            <h1>Reset password</h1>
-
-            <p className="login-subtitle">
-              Create a new password for your
-              VELOOP account.
-            </p>
-          </div>
-
-          {error && (
-            <div className="error-message login-error">
-              <span className="error-icon">
-                !
-              </span>
-
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form
-            className="login-form"
-            onSubmit={handleResetPassword}
-          >
-            <div className="input-group">
-              <label htmlFor="reset-password">
-                New password
-              </label>
-
-              <div
-                style={{
-                  position:
-                    "relative",
-                }}
-              >
-                <input
-                  id="reset-password"
-                  type={
-                    showResetPassword
-                      ? "text"
-                      : "password"
-                  }
-                  placeholder="Enter new password"
-                  value={resetPassword}
-                  onChange={(event) =>
-                    setResetPassword(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="new-password"
-                  required
-                  style={{
-                    paddingRight:
-                      "72px",
-                  }}
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowResetPassword(
-                      (value) =>
-                        !value
-                    )
-                  }
-                  style={{
-                    position:
-                      "absolute",
-                    right: "10px",
-                    top: "50%",
-                    transform:
-                      "translateY(-50%)",
-                    border: "none",
-                    background:
-                      "transparent",
-                    color: "#2563eb",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor:
-                      "pointer",
-                    padding: "5px",
-                  }}
-                >
-                  {showResetPassword
-                    ? "Hide"
-                    : "Show"}
-                </button>
-              </div>
-            </div>
-
-            <div className="input-group">
-              <label htmlFor="reset-confirm-password">
-                Confirm password
-              </label>
-
+        <form
+          className="auth-form"
+          onSubmit={
+            handleResetPassword
+          }
+        >
+          <Field label="New password">
+            <div className="password-field">
               <input
-                id="reset-confirm-password"
-                type="password"
-                placeholder="Confirm new password"
-                value={
-                  resetConfirmPassword
+                type={
+                  showResetPassword
+                    ? "text"
+                    : "password"
                 }
-                onChange={(event) =>
-                  setResetConfirmPassword(
-                    event.target.value
+                placeholder="Enter new password"
+                value={
+                  resetPassword
+                }
+                onChange={(e) =>
+                  setResetPassword(
+                    e.target.value
                   )
                 }
                 autoComplete="new-password"
                 required
               />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() =>
+                  setShowResetPassword(
+                    (value) =>
+                      !value
+                  )
+                }
+              >
+                {showResetPassword
+                  ? "Hide"
+                  : "Show"}
+              </button>
             </div>
+          </Field>
 
-            <button
-              type="submit"
-              className="primary-btn login-btn"
-              disabled={loading}
-            >
-              {loading
-                ? "Updating..."
-                : "Update password"}
+          <Field label="Confirm password">
+            <input
+              type="password"
+              placeholder="Confirm new password"
+              value={
+                resetConfirmPassword
+              }
+              onChange={(e) =>
+                setResetConfirmPassword(
+                  e.target.value
+                )
+              }
+              autoComplete="new-password"
+              required
+            />
+          </Field>
 
-              {!loading && (
-                <span className="button-arrow">
-                  →
-                </span>
-              )}
-            </button>
-          </form>
+          <button
+            className="primary-btn auth-submit"
+            disabled={loading}
+          >
+            {loading
+              ? "Updating…"
+              : "Update password"}
 
-          <div className="login-footer">
-            <button
-              type="button"
-              onClick={() => {
-                setResetToken("");
-                setError("");
-                window.history.replaceState(
-                  {},
-                  "",
-                  "/"
-                );
-              }}
-              style={{
-                border: "none",
-                background:
-                  "transparent",
-                color: "#2563eb",
-                fontWeight: 700,
-                cursor:
-                  "pointer",
-                fontSize: "13px",
-              }}
-            >
-              ← Back to sign in
-            </button>
-          </div>
+            <Icon name="arrow-right" />
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <button
+            className="link-btn"
+            type="button"
+            onClick={() => {
+              setResetToken("");
+              window.history.replaceState(
+                {},
+                "",
+                "/"
+              );
+            }}
+          >
+            ← Back to sign in
+          </button>
         </div>
-      </div>
+      </AuthShell>
     );
   }
 
   if (!token) {
     return (
-      <div className="login-page">
-        <div className="login-decoration decoration-one"></div>
-        <div className="login-decoration decoration-two"></div>
-        <div className="login-decoration decoration-three"></div>
+      <AuthShell
+        eyebrow="VELOOP REWARDS"
+        title="Welcome back"
+        subtitle="Sign in to access your rewards wallet."
+      >
+        {error && (
+          <Alert
+            type="error"
+            message={error}
+          />
+        )}
 
-        <div className="login-card">
-          <div className="login-brand">
-            <div className="login-logo">
-              V
-            </div>
+        {success && (
+          <Alert
+            type="success"
+            message={success}
+          />
+        )}
 
-            <div className="login-brand-name">
-              VELOOP
-            </div>
+        <form
+          className="auth-form"
+          onSubmit={
+            handleLogin
+          }
+        >
+          <Field label="Email address">
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) =>
+                setEmail(
+                  e.target.value
+                )
+              }
+              autoComplete="email"
+              required
+            />
+          </Field>
 
-            <div className="login-brand-subtitle">
-              REWARDS
-            </div>
-          </div>
-
-          <div className="login-heading">
-            <p className="eyebrow">
-              VELOOP REWARDS
-            </p>
-
-            <h1>Welcome back</h1>
-
-            <p className="login-subtitle">
-              Sign in to access your rewards wallet.
-            </p>
-          </div>
-
-          {error && (
-            <div className="error-message login-error">
-              <span className="error-icon">
-                !
-              </span>
-
-              <span>{error}</span>
-            </div>
-          )}
-
-          <form
-            className="login-form"
-            onSubmit={handleLogin}
-          >
-            <div className="input-group">
-              <label htmlFor="login-email">
-                Email address
-              </label>
-
-              <input
-                id="login-email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(event) =>
-                  setEmail(
-                    event.target.value
-                  )
-                }
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            <div className="input-group">
-              <label htmlFor="login-password">
-                Password
-              </label>
-
-              <div
-                style={{
-                  position:
-                    "relative",
-                }}
-              >
-                <input
-                  id="login-password"
-                  type={
-                    showLoginPassword
-                      ? "text"
-                      : "password"
-                  }
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(event) =>
-                    setPassword(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="current-password"
-                  required
-                  style={{
-                    paddingRight:
-                      "72px",
-                  }}
-                />
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowLoginPassword(
-                      (value) =>
-                        !value
-                    )
-                  }
-                  style={{
-                    position:
-                      "absolute",
-                    right: "10px",
-                    top: "50%",
-                    transform:
-                      "translateY(-50%)",
-                    border: "none",
-                    background:
-                      "transparent",
-                    color: "#2563eb",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    cursor:
-                      "pointer",
-                    padding: "5px",
-                  }}
-                >
-                  {showLoginPassword
-                    ? "Hide"
-                    : "Show"}
-                </button>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display:
-                  "flex",
-                alignItems:
-                  "center",
-                justifyContent:
-                  "space-between",
-                gap: "10px",
-                margin:
-                  "2px 0 14px",
-                flexWrap:
-                  "wrap",
-              }}
-            >
-              <label
-                style={{
-                  display:
-                    "flex",
-                  alignItems:
-                    "center",
-                  gap:
-                    "9px",
-                  fontSize:
-                    "13px",
-                  color:
-                    "#475569",
-                  cursor:
-                    "pointer",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={
-                    rememberMe
-                  }
-                  onChange={(
-                    event
-                  ) =>
-                    setRememberMe(
-                      event
-                        .target
-                        .checked
-                    )
-                  }
-                  style={{
-                    width:
-                      "16px",
-                    height:
-                      "16px",
-                    accentColor:
-                      "#2563eb",
-                  }}
-                />
-
-                Remember me
-              </label>
-
+          <Field
+            label="Password"
+            action={
               <button
                 type="button"
+                className="link-btn"
                 onClick={() => {
                   setForgotEmail(
                     email
                   );
-                  setShowForgotPassword(
+
+                  setForgotOpen(
                     true
                   );
-                  setError("");
-                }}
-                style={{
-                  border:
-                    "none",
-                  background:
-                    "transparent",
-                  color:
-                    "#2563eb",
-                  fontSize:
-                    "13px",
-                  fontWeight:
-                    700,
-                  cursor:
-                    "pointer",
-                  padding:
-                    "2px 0",
                 }}
               >
                 Forgot password?
               </button>
+            }
+          >
+            <div className="password-field">
+              <input
+                type={
+                  showLoginPassword
+                    ? "text"
+                    : "password"
+                }
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(
+                    e.target.value
+                  )
+                }
+                autoComplete="current-password"
+                required
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() =>
+                  setShowLoginPassword(
+                    (value) =>
+                      !value
+                  )
+                }
+              >
+                {showLoginPassword
+                  ? "Hide"
+                  : "Show"}
+              </button>
             </div>
+          </Field>
 
-            <button
-              type="submit"
-              className="primary-btn login-btn"
-              disabled={loading}
-            >
-              {loading
-                ? "Signing in..."
-                : "Sign in"}
+          <label className="remember-row">
+            <input
+              type="checkbox"
+              checked={
+                rememberMe
+              }
+              onChange={(e) =>
+                setRememberMe(
+                  e.target.checked
+                )
+              }
+            />
 
-              {!loading && (
-                <span className="button-arrow">
-                  →
-                </span>
-              )}
-            </button>
-          </form>
-
-          <div className="login-footer">
             <span>
-              Password is never stored in the browser.
+              Remember me
             </span>
+          </label>
 
-            <button
-              type="button"
-              onClick={() => {
-                setShowRegister(true);
-                setError("");
-                setWithdrawMessage("");
-              }}
-              style={{
-                marginTop: "12px",
-                border: "none",
-                background: "transparent",
-                color: "#2563eb",
-                fontSize: "13px",
-                fontWeight: 700,
-                cursor: "pointer",
-                padding: "2px 0",
-              }}
-            >
-              Don't have an account? Create account
-            </button>
-          </div>
+          <button
+            className="primary-btn auth-submit"
+            disabled={loading}
+          >
+            {loading
+              ? "Signing in…"
+              : "Sign in"}
+
+            <Icon name="arrow-right" />
+          </button>
+        </form>
+
+        <div className="auth-footer">
+          <span>
+            Password is never stored in
+            the browser.
+          </span>
+
+          <button
+            type="button"
+            className="link-btn footer-action"
+            onClick={() => {
+              setRegisterOpen(
+                true
+              );
+
+              setError("");
+              setSuccess("");
+            }}
+          >
+            Create account
+          </button>
         </div>
 
-        {showForgotPassword && (
-          <div
-            onClick={(event) => {
-              if (
-                event.target ===
-                event.currentTarget
-              ) {
-                setShowForgotPassword(
-                  false
-                );
-              }
-            }}
-            style={{
-              position:
-                "fixed",
-              inset: 0,
-              background:
-                "rgba(15,23,42,0.48)",
-              display:
-                "grid",
-              placeItems:
-                "center",
-              padding:
-                "20px",
-              zIndex: 3000,
-              backdropFilter:
-                "blur(5px)",
-            }}
-          >
-            <div
-              onClick={(event) =>
-                event.stopPropagation()
-              }
-              style={{
-                width:
-                  "min(430px, 100%)",
-                background:
-                  "#ffffff",
-                borderRadius:
-                  "20px",
-                padding:
-                  "28px",
-                boxShadow:
-                  "0 25px 70px rgba(15,23,42,0.24)",
-                position:
-                  "relative",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() =>
-                  setShowForgotPassword(
-                    false
-                  )
-                }
-                style={{
-                  position:
-                    "absolute",
-                  top:
-                    "14px",
-                  right:
-                    "14px",
-                  width:
-                    "34px",
-                  height:
-                    "34px",
-                  border:
-                    "none",
-                  borderRadius:
-                    "10px",
-                  background:
-                    "#f1f5f9",
-                  color:
-                    "#475569",
-                  fontSize:
-                    "20px",
-                  cursor:
-                    "pointer",
-                }}
-              >
-                ×
-              </button>
-
-              <div
-                style={{
-                  width:
-                    "48px",
-                  height:
-                    "48px",
-                  borderRadius:
-                    "14px",
-                  background:
-                    "#eff6ff",
-                  color:
-                    "#2563eb",
-                  display:
-                    "grid",
-                  placeItems:
-                    "center",
-                  fontSize:
-                    "23px",
-                  fontWeight:
-                    800,
-                  marginBottom:
-                    "17px",
-                }}
-              >
-                ↻
-              </div>
-
-              <p className="eyebrow">
-                ACCOUNT RECOVERY
-              </p>
-
-              <h2
-                style={{
-                  margin:
-                    "5px 0 8px",
-                  color:
-                    "#0f172a",
-                  fontSize:
-                    "24px",
-                }}
-              >
-                Forgot your password?
-              </h2>
-
-              <p
-                style={{
-                  margin:
-                    "0 0 20px",
-                  color:
-                    "#64748b",
-                  fontSize:
-                    "14px",
-                  lineHeight:
-                    1.6,
-                }}
-              >
-                Enter your registered email and
-                we'll send you a secure password
-                reset link.
-              </p>
-
-              <div className="input-group">
-                <label htmlFor="forgot-email">
-                  Email address
-                </label>
-
-                <input
-                  id="forgot-email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={forgotEmail}
-                  onChange={(event) =>
-                    setForgotEmail(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="email"
-                  autoFocus
-                />
-              </div>
-
-              <button
-                type="button"
-                className="primary-btn login-btn"
-                onClick={
-                  handleForgotPassword
-                }
-                disabled={loading}
-                style={{
-                  marginTop:
-                    "8px",
-                  width:
-                    "100%",
-                }}
-              >
-                {loading
-                  ? "Sending..."
-                  : "Send reset link"}
-
-                {!loading && (
-                  <span className="button-arrow">
-                    →
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setShowForgotPassword(
-                    false
-                  )
-                }
-                style={{
-                  width:
-                    "100%",
-                  marginTop:
-                    "10px",
-                  padding:
-                    "10px",
-                  border:
-                    "none",
-                  background:
-                    "transparent",
-                  color:
-                    "#64748b",
-                  fontWeight:
-                    600,
-                  cursor:
-                    "pointer",
-                }}
-              >
-                Back to sign in
-              </button>
-            </div>
-          </div>
+        {forgotOpen && (
+          <ForgotModal
+            email={forgotEmail}
+            setEmail={setForgotEmail}
+            loading={loading}
+            onClose={() =>
+              setForgotOpen(
+                false
+              )
+            }
+            onSubmit={
+              handleForgotPassword
+            }
+          />
         )}
 
-        {showRegister && (
-          <div
-            onClick={(event) => {
-              if (
-                event.target ===
-                event.currentTarget
-              ) {
-                setShowRegister(false);
-                setError("");
-              }
+        {registerOpen && (
+          <RegisterModal
+            state={{
+              registerName,
+              registerEmail,
+              registerPassword,
+              registerConfirmPassword,
             }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              background:
-                "rgba(15,23,42,0.48)",
-              display: "grid",
-              placeItems: "center",
-              padding: "20px",
-              zIndex: 3000,
-              backdropFilter:
-                "blur(5px)",
+            setState={{
+              setRegisterName,
+              setRegisterEmail,
+              setRegisterPassword,
+              setRegisterConfirmPassword,
             }}
-          >
-            <div
-              onClick={(event) =>
-                event.stopPropagation()
-              }
-              style={{
-                width:
-                  "min(450px, 100%)",
-                maxHeight:
-                  "calc(100vh - 40px)",
-                overflowY: "auto",
-                background: "#ffffff",
-                borderRadius: "20px",
-                padding: "28px",
-                boxShadow:
-                  "0 25px 70px rgba(15,23,42,0.24)",
-                position: "relative",
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRegister(false);
-                  setError("");
-                }}
-                style={{
-                  position: "absolute",
-                  top: "14px",
-                  right: "14px",
-                  width: "34px",
-                  height: "34px",
-                  border: "none",
-                  borderRadius: "10px",
-                  background: "#f1f5f9",
-                  color: "#475569",
-                  fontSize: "20px",
-                  cursor: "pointer",
-                }}
-              >
-                ×
-              </button>
-
-              <div
-                style={{
-                  width: "48px",
-                  height: "48px",
-                  borderRadius: "14px",
-                  background: "#eff6ff",
-                  color: "#2563eb",
-                  display: "grid",
-                  placeItems: "center",
-                  fontSize: "22px",
-                  fontWeight: 800,
-                  marginBottom: "17px",
-                }}
-              >
-                V
-              </div>
-
-              <p className="eyebrow">
-                CREATE ACCOUNT
-              </p>
-
-              <h2
-                style={{
-                  margin: "5px 0 8px",
-                  color: "#0f172a",
-                  fontSize: "24px",
-                }}
-              >
-                Join VELOOP
-              </h2>
-
-              <p
-                style={{
-                  margin: "0 0 20px",
-                  color: "#64748b",
-                  fontSize: "14px",
-                  lineHeight: 1.6,
-                }}
-              >
-                Create your VELOOP account
-                and start managing your
-                rewards wallet.
-              </p>
-
-              <div className="input-group">
-                <label htmlFor="register-name">
-                  Full name
-                </label>
-
-                <input
-                  id="register-name"
-                  type="text"
-                  placeholder="Enter your full name"
-                  value={registerName}
-                  onChange={(event) =>
-                    setRegisterName(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="name"
-                  required
-                />
-              </div>
-
-              <div
-                className="input-group"
-                style={{
-                  marginTop: "14px",
-                }}
-              >
-                <label htmlFor="register-email">
-                  Email address
-                </label>
-
-                <input
-                  id="register-email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={registerEmail}
-                  onChange={(event) =>
-                    setRegisterEmail(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="email"
-                  required
-                />
-              </div>
-
-              <div
-                className="input-group"
-                style={{
-                  marginTop: "14px",
-                }}
-              >
-                <label htmlFor="register-password">
-                  Password
-                </label>
-
-                <input
-                  id="register-password"
-                  type="password"
-                  placeholder="Create a password"
-                  value={registerPassword}
-                  onChange={(event) =>
-                    setRegisterPassword(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="new-password"
-                  required
-                />
-              </div>
-
-              <div
-                className="input-group"
-                style={{
-                  marginTop: "14px",
-                }}
-              >
-                <label htmlFor="register-confirm-password">
-                  Confirm password
-                </label>
-
-                <input
-                  id="register-confirm-password"
-                  type="password"
-                  placeholder="Confirm your password"
-                  value={
-                    registerConfirmPassword
-                  }
-                  onChange={(event) =>
-                    setRegisterConfirmPassword(
-                      event.target.value
-                    )
-                  }
-                  autoComplete="new-password"
-                  required
-                />
-              </div>
-
-              <button
-                type="button"
-                className="primary-btn login-btn"
-                onClick={handleRegister}
-                disabled={loading}
-                style={{
-                  marginTop: "20px",
-                  width: "100%",
-                }}
-              >
-                {loading
-                  ? "Creating account..."
-                  : "Create account"}
-
-                {!loading && (
-                  <span className="button-arrow">
-                    →
-                  </span>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRegister(false);
-                  setRegisterName("");
-                  setRegisterEmail("");
-                  setRegisterPassword("");
-                  setRegisterConfirmPassword("");
-                  setError("");
-                }}
-                style={{
-                  width: "100%",
-                  marginTop: "10px",
-                  padding: "10px",
-                  border: "none",
-                  background: "transparent",
-                  color: "#64748b",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                ← Back to sign in
-              </button>
-            </div>
-          </div>
+            loading={loading}
+            onClose={() =>
+              setRegisterOpen(
+                false
+              )
+            }
+            onSubmit={
+              handleRegister
+            }
+          />
         )}
-      </div>
+      </AuthShell>
     );
   }
 
   return (
-    <div className="app">
-      <aside className="sidebar">
-        <div className="sidebar-top">
-          <div className="logo">
-            <div className="logo-mark">
-              <span>V</span>
-            </div>
+    <div className="app-shell">
+      <Sidebar
+        activeTab={
+          activeTab
+        }
+        setTab={setTab}
+        profile={profile}
+        email={email}
+        getInitial={
+          getInitial(email)
+        }
+        onLogout={
+          handleLogout
+        }
+      />
 
-            <div className="logo-text">
-              <h2>VELOOP</h2>
-              <span>Rewards</span>
-            </div>
-          </div>
-
-          <div className="sidebar-line"></div>
-
-          <nav className="nav">
-            {[
-              "Wallet",
-              "Transactions",
-              "Withdrawals",
-            ].map((item) => (
-              <button
-                key={item}
-                className={
-                  activeTab === item
-                    ? "nav-item active"
-                    : "nav-item"
-                }
-                onClick={() =>
-                  setTab(item)
-                }
-              >
-                <span className="nav-icon">
-                  {item ===
-                    "Wallet" &&
-                    "◈"}
-
-                  {item ===
-                    "Transactions" &&
-                    "↔"}
-
-                  {item ===
-                    "Withdrawals" &&
-                    "↑"}
-                </span>
-
-                <span className="nav-label">
-                  {item}
-                </span>
-
-                {activeTab ===
-                  item && (
-                    <span className="nav-active-dot"></span>
-                  )}
-              </button>
-            ))}
-          </nav>
-        </div>
-
-        <div className="sidebar-bottom">
-          <div className="user-mini">
-            <div className="avatar">
-              {getInitial()}
-            </div>
-
-            <div className="user-mini-info">
-              <strong>
-                {profile.name ||
-                  "VELOOP User"}
-              </strong>
-
-              <span title={email}>
-                {email}
-              </span>
-            </div>
-          </div>
-
-          <button
-            className="logout-btn"
-            onClick={
-              handleLogout
-            }
-          >
-            <span>↪</span>
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      <main className="main">
+      <main className="main-shell">
         <header className="topbar">
-          <div className="topbar-heading">
-            <p className="eyebrow">
+          <div className="page-title-block">
+            <div className="eyebrow">
               VELOOP REWARDS
-            </p>
+            </div>
 
-            <h1>{activeTab}</h1>
+            <h1>
+              {activeTab}
+            </h1>
 
-            <div className="title-accent"></div>
+            <div className="title-line" />
           </div>
 
-          <div className="profile">
+          <div className="topbar-actions">
             <button
-              type="button"
-              className="notification"
+              className="icon-btn"
               onClick={() =>
                 setError(
                   "No new notifications."
@@ -2178,72 +1703,32 @@ function App() {
               aria-label="Notifications"
               title="Notifications"
             >
-              <span>•</span>
+              <Icon name="bell" />
+              <span className="notification-dot" />
             </button>
 
             <button
-              type="button"
-              onClick={() =>
-                loadAllData(true)
+              className={
+                refreshing
+                  ? "icon-btn is-spinning"
+                  : "icon-btn"
               }
-              disabled={refreshing}
-              aria-label="Refresh wallet"
-              title="Refresh wallet"
-              style={{
-                width:
-                  "44px",
-                height:
-                  "44px",
-                border:
-                  "1px solid #dbe4f0",
-                borderRadius:
-                  "12px",
-                background:
-                  "#ffffff",
-                color:
-                  "#2563eb",
-                display:
-                  "grid",
-                placeItems:
-                  "center",
-                fontSize:
-                  "20px",
-                cursor:
-                  refreshing
-                    ? "wait"
-                    : "pointer",
-                opacity:
-                  refreshing
-                    ? 0.65
-                    : 1,
-                transition:
-                  "0.2s ease",
-              }}
+              onClick={() =>
+                loadAllData(
+                  true
+                )
+              }
+              disabled={
+                refreshing
+              }
+              aria-label="Refresh"
+              title="Refresh"
             >
-              <span
-                style={{
-                  display:
-                    "inline-block",
-                  transform:
-                    refreshing
-                      ? "rotate(180deg)"
-                      : "none",
-                  transition:
-                    "0.4s",
-                }}
-              >
-                ↻
-              </span>
+              <Icon name="refresh" />
             </button>
 
-            <div
-              style={{
-                position:
-                  "relative",
-              }}
-            >
+            <div className="profile-menu-wrap">
               <button
-                type="button"
                 className="profile-avatar"
                 onClick={() =>
                   setProfileOpen(
@@ -2251,1517 +1736,891 @@ function App() {
                       !value
                   )
                 }
-                aria-label="Open profile menu"
-                style={{
-                  cursor:
-                    "pointer",
-                  position:
-                    "relative",
-                  zIndex: 20,
-                  pointerEvents:
-                    "auto",
-                  background:
-                    "#094fe7",
-                  color:
-                    "#ffffff",
-                  border:
-                    "2px solid #ffffff",
-                  boxShadow:
-                    "0 6px 18px rgba(37,99,235,0.25)",
-                }}
+                aria-label="Open profile"
+                aria-expanded={
+                  profileOpen
+                }
               >
-                {getInitial()}
+                {getInitial(email)}
               </button>
 
               {profileOpen && (
-                <div
-                  style={{
-                    position:
-                      "absolute",
-                    top:
-                      "52px",
-                    right:
-                      "0",
-                    width:
-                      "250px",
-                    background:
-                      "#ffffff",
-                    border:
-                      "1px solid #e5eaf2",
-                    borderRadius:
-                      "16px",
-                    padding:
-                      "16px",
-                    boxShadow:
-                      "0 18px 45px rgba(15,23,42,0.18)",
-                    zIndex:
-                      1000,
+                <ProfileDropdown
+                  profile={
+                    profile
+                  }
+                  email={
+                    email
+                  }
+                  getInitial={
+                    getInitial(
+                      email
+                    )
+                  }
+                  onViewProfile={() => {
+                    setProfileOpen(
+                      false
+                    );
+
+                    setProfileModalOpen(
+                      true
+                    );
                   }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      alignItems:
-                        "center",
-                      gap:
-                        "11px",
-                      marginBottom:
-                        "14px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        width:
-                          "42px",
-                        height:
-                          "42px",
-                        borderRadius:
-                          "12px",
-                        background:
-                          "#2563eb",
-                        color:
-                          "#fff",
-                        display:
-                          "grid",
-                        placeItems:
-                          "center",
-                        fontWeight:
-                          800,
-                      }}
-                    >
-                      {getInitial()}
-                    </div>
-
-                    <div
-                      style={{
-                        minWidth:
-                          0,
-                      }}
-                    >
-                      <strong
-                        style={{
-                          display:
-                            "block",
-                          color:
-                            "#0f172a",
-                        }}
-                      >
-                        {profile.name ||
-                          "VELOOP User"}
-                      </strong>
-
-                      <span
-                        style={{
-                          display:
-                            "block",
-                          fontSize:
-                            "12px",
-                          color:
-                            "#64748b",
-                          wordBreak:
-                            "break-word",
-                        }}
-                      >
-                        {email}
-                      </span>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setProfileOpen(
-                        false
-                      );
-                      setProfileModalOpen(
-                        true
-                      );
-                    }}
-                    style={{
-                      width:
-                        "100%",
-                      padding:
-                        "11px",
-                      border:
-                        "none",
-                      borderRadius:
-                        "9px",
-                      background:
-                        "#2563eb",
-                      color:
-                        "#fff",
-                      fontWeight:
-                        700,
-                      cursor:
-                        "pointer",
-                      marginBottom:
-                        "8px",
-                    }}
-                  >
-                    View Profile
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={
-                      handleLogout
-                    }
-                    style={{
-                      width:
-                        "100%",
-                      padding:
-                        "11px",
-                      border:
-                        "none",
-                      borderRadius:
-                        "9px",
-                      background:
-                        "#fee2e2",
-                      color:
-                        "#b91c1c",
-                      fontWeight:
-                        700,
-                      cursor:
-                        "pointer",
-                    }}
-                  >
-                    Logout
-                  </button>
-                </div>
+                  onLogout={
+                    handleLogout
+                  }
+                />
               )}
             </div>
           </div>
         </header>
 
         {error && (
-          <div className="error-message page-error">
-            <span className="error-icon">
-              !
-            </span>
-
-            <span>{error}</span>
-
-            <button
-              type="button"
-              onClick={() =>
-                setError("")
-              }
-              className="error-close"
-            >
-              ×
-            </button>
-          </div>
+          <Alert
+            type="error"
+            message={error}
+            onClose={() =>
+              setError("")
+            }
+          />
         )}
 
-        {activeTab === "Wallet" && (
-          <div className="content-stack">
-            <section className="hero-card">
-              <div className="hero-content">
-                <div className="hero-label">
-                  Total VEs Balance
-                </div>
-
-                <h2>
-                  {formatNumber(
-                    wallet.ves
-                  )}
-                </h2>
-
-                <span className="hero-description">
-                  Available for rewards and withdrawals
-                </span>
-              </div>
-
-              <div className="hero-symbol">
-                <span>VE</span>
-              </div>
-
-              <div className="hero-shape hero-shape-one"></div>
-              <div className="hero-shape hero-shape-two"></div>
-            </section>
-
-            <section className="section">
-              <div className="section-heading">
-                <div>
-                  <h2>Your Rewards</h2>
-
-                  <p>
-                    Current balances from your VELOOP wallet
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    loadAllData(
-                      true
-                    )
-                  }
-                  style={{
-                    border:
-                      "none",
-                    background:
-                      "#eff6ff",
-                    color:
-                      "#2563eb",
-                    borderRadius:
-                      "10px",
-                    padding:
-                      "9px 12px",
-                    fontWeight:
-                      700,
-                    cursor:
-                      "pointer",
-                  }}
-                >
-                  {refreshing
-                    ? "Refreshing..."
-                    : "↻ Refresh"}
-                </button>
-              </div>
-
-              <div className="currency-grid">
-                <CurrencyCard
-                  name="VEs"
-                  value={
-                    wallet.ves
-                  }
-                  label="Reward Points"
-                  primary
-                />
-
-                <CurrencyCard
-                  name="SVEs"
-                  value={
-                    wallet.sves
-                  }
-                  label="Special VEs"
-                />
-
-                <CurrencyCard
-                  name="Gems"
-                  value={
-                    wallet.gems
-                  }
-                  label="Gems"
-                />
-
-                <CurrencyCard
-                  name="Tokens"
-                  value={
-                    wallet.tokens
-                  }
-                  label="Tokens"
-                />
-
-                <CurrencyCard
-                  name="Spins"
-                  value={
-                    wallet.spins
-                  }
-                  label="Game Spins"
-                />
-              </div>
-            </section>
-
-            <section className="quick-actions">
-              <div className="quick-content">
-                <h2>Quick Actions</h2>
-
-                <p>
-                  Manage your rewards wallet
-                </p>
-              </div>
-
-              <div className="action-buttons">
-                <button
-                  onClick={() =>
-                    setTab(
-                      "Withdrawals"
-                    )
-                  }
-                  className="primary-btn"
-                >
-                  Withdraw VEs{" "}
-                  <span>→</span>
-                </button>
-
-                <button
-                  onClick={() =>
-                    setTab(
-                      "Transactions"
-                    )
-                  }
-                  className="secondary-btn"
-                >
-                  View Transactions{" "}
-                  <span>→</span>
-                </button>
-              </div>
-            </section>
-
-            <section className="section">
-              <div className="section-heading">
-                <div>
-                  <h2>Recent Activity</h2>
-
-                  <p>
-                    Your latest wallet transactions
-                  </p>
-                </div>
-
-                <button
-                  className="text-btn"
-                  onClick={() =>
-                    setTab(
-                      "Transactions"
-                    )
-                  }
-                >
-                  View all →
-                </button>
-              </div>
-
-              <TransactionList
-                transactions={transactions.slice(
-                  0,
-                  5
-                )}
-                formatDate={
-                  formatDate
-                }
-              />
-            </section>
-          </div>
+        {success && (
+          <Alert
+            type="success"
+            message={success}
+            onClose={() =>
+              setSuccess("")
+            }
+          />
         )}
 
         {activeTab ===
+          "Wallet" && (
+            <WalletPage
+              wallet={
+                wallet
+              }
+              transactions={
+                transactions
+              }
+              payoutCurrencies={
+                availablePayoutCurrencies
+              }
+              onRefresh={() =>
+                loadAllData(
+                  true
+                )
+              }
+              refreshing={
+                refreshing
+              }
+              onWithdraw={() =>
+                setTab(
+                  "Withdrawals"
+                )
+              }
+              onTransactions={() =>
+                setTab(
+                  "Transactions"
+                )
+              }
+            />
+          )}
+
+        {activeTab ===
           "Transactions" && (
-            <div className="content-stack">
-              <section className="page-card">
-                <div className="page-card-header">
-                  <div>
-                    <span className="card-kicker">
-                      WALLET ACTIVITY
-                    </span>
-
-                    <h2>
-                      Transaction History
-                    </h2>
-
-                    <p>
-                      Complete wallet activity from your account.
-                    </p>
-                  </div>
-
-                  <div className="card-count">
-                    <strong>
-                      {
-                        transactions.length
-                      }
-                    </strong>
-
-                    <span>
-                      Transactions
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display:
-                      "flex",
-                    gap:
-                      "8px",
-                    flexWrap:
-                      "wrap",
-                    margin:
-                      "4px 0 18px",
-                  }}
-                >
-                  {[
-                    "ALL",
-                    "REWARD",
-                    "WITHDRAWAL",
-                  ].map(
-                    (filter) => (
-                      <button
-                        key={
-                          filter
-                        }
-                        type="button"
-                        onClick={() =>
-                          setTransactionFilter(
-                            filter
-                          )
-                        }
-                        style={{
-                          border:
-                            "1px solid #dbe4f0",
-                          borderRadius:
-                            "999px",
-                          padding:
-                            "8px 13px",
-                          background:
-                            transactionFilter ===
-                              filter
-                              ? "#2563eb"
-                              : "#fff",
-                          color:
-                            transactionFilter ===
-                              filter
-                              ? "#fff"
-                              : "#475569",
-                          fontWeight:
-                            700,
-                          cursor:
-                            "pointer",
-                        }}
-                      >
-                        {filter ===
-                          "ALL"
-                          ? "All"
-                          : filter ===
-                            "REWARD"
-                            ? "Rewards"
-                            : "Withdrawals"}
-                      </button>
-                    )
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      loadAllData(
-                        true
-                      )
-                    }
-                    disabled={
-                      refreshing
-                    }
-                    style={{
-                      marginLeft:
-                        "auto",
-                      border:
-                        "none",
-                      borderRadius:
-                        "10px",
-                      padding:
-                        "8px 13px",
-                      background:
-                        "#eff6ff",
-                      color:
-                        "#2563eb",
-                      fontWeight:
-                        700,
-                      cursor:
-                        "pointer",
-                    }}
-                  >
-                    ↻ Refresh
-                  </button>
-                </div>
-
-                <TransactionList
-                  transactions={
-                    filteredTransactions
-                  }
-                  formatDate={
-                    formatDate
-                  }
-                />
-              </section>
-            </div>
+            <TransactionsPage
+              transactions={
+                filteredTransactions
+              }
+              total={
+                transactions.length
+              }
+              filter={
+                transactionFilter
+              }
+              setFilter={
+                setTransactionFilter
+              }
+              onRefresh={() =>
+                loadAllData(
+                  true
+                )
+              }
+              refreshing={
+                refreshing
+              }
+            />
           )}
 
         {activeTab ===
           "Withdrawals" && (
-            <div className="content-stack">
-              <section className="page-card withdrawal-page-card">
-                <div className="page-card-header">
-                  <div>
-                    <span className="card-kicker">
-                      PAYOUT CENTER
-                    </span>
-
-                    <h2>
-                      Withdraw VEs
-                    </h2>
-
-                    <p>
-                      Submit a secure withdrawal request using your available VEs.
-                    </p>
-                  </div>
-
-                  <div className="withdraw-balance-badge">
-                    <span>
-                      Available
-                    </span>
-
-                    <strong>
-                      {formatNumber(
-                        wallet.ves
-                      )}{" "}
-                      VEs
-                    </strong>
-                  </div>
-                </div>
-
-                {withdrawMessage && (
-                  <div className="success-message">
-                    <span className="success-icon">
-                      ✓
-                    </span>
-
-                    <span>
-                      {withdrawMessage}
-                    </span>
-                  </div>
-                )}
-
-                <form
-                  className="withdraw-box"
-                  onSubmit={
-                    handleWithdrawal
-                  }
-                >
-                  <div className="form-section-title">
-                    Withdrawal details
-                  </div>
-
-                  <div className="form-grid">
-                    <div className="input-group">
-                      <label>
-                        Payout Amount
-                      </label>
-
-                      <select
-                        value={
-                          withdrawForm.amount
-                        }
-                        onChange={(
-                          event
-                        ) =>
-                          updateWithdrawForm(
-                            "amount",
-                            event.target.value
-                          )
-                        }
-                        disabled={
-                          !getPayoutDenominations(
-                            getPayoutOptionForMethod(
-                              withdrawForm.method
-                            )
-                          ).length
-                        }
-                      >
-                        <option value="">
-                          Select payout amount
-                        </option>
-
-                        {getPayoutDenominations(
-                          getPayoutOptionForMethod(
-                            withdrawForm.method
-                          )
-                        ).map(
-                          (denomination) => (
-                            <option
-                              key={
-                                denomination.payout_value
-                              }
-                              value={
-                                denomination.payout_value
-                              }
-                            >
-                              ₹{formatNumber(
-                                denomination.payout_value
-                              )} • {formatNumber(
-                                denomination.required_amount
-                              )} VEs
-                            </option>
-                          )
-                        )}
-                      </select>
-
-                      <small>
-                        Choose a payout denomination configured by the backend.
-                      </small>
-                    </div>
-
-                    <div className="input-group">
-                      <label>
-                        Payout Method
-                      </label>
-
-                      <select
-                        value={
-                          withdrawForm.method
-                        }
-                        onChange={(
-                          event
-                        ) => {
-                          updateWithdrawForm(
-                            "method",
-                            event.target.value
-                          );
-
-                          updateWithdrawForm(
-                            "amount",
-                            ""
-                          );
-                        }}
-                      >
-                        {payoutOptions.map(
-                          (option) => {
-                            const type =
-                              String(
-                                option?.type ||
-                                ""
-                              ).toUpperCase();
-
-                            const value =
-                              type ===
-                                "BANK_TRANSFER"
-                                ? "BANK"
-                                : type ===
-                                  "UPI_QR"
-                                  ? "QR"
-                                  : type;
-
-                            return (
-                              <option
-                                key={
-                                  option.method_id
-                                }
-                                value={
-                                  value
-                                }
-                              >
-                                {option.name ||
-                                  value}
-                              </option>
-                            );
-                          }
-                        )}
-                      </select>
-
-                      <small>
-                        Only active payout methods supplied by the backend are shown.
-                      </small>
-                    </div>
-                  </div>
-
-                  {(() => {
-                    const selectedPayoutOption =
-                      getPayoutOptionForMethod(
-                        withdrawForm.method
-                      );
-
-                    const selectedDenomination =
-                      getSelectedPayoutDenomination(
-                        selectedPayoutOption,
-                        withdrawForm.amount
-                      );
-
-                    if (!selectedDenomination) {
-                      return null;
-                    }
-
-                    return (
-                      <div
-                        style={{
-                          marginTop: "2px",
-                          marginBottom: "14px",
-                          padding: "14px 16px",
-                          border: "1px solid #dbeafe",
-                          borderRadius: "14px",
-                          background:
-                            "linear-gradient(135deg,#f8fbff,#eff6ff)",
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          gap: "16px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div>
-                          <span
-                            style={{
-                              display: "block",
-                              fontSize: "11px",
-                              fontWeight: 800,
-                              letterSpacing: "0.08em",
-                              color: "#64748b",
-                              textTransform: "uppercase",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            Payout value
-                          </span>
-
-                          <strong
-                            style={{
-                              color: "#0f172a",
-                              fontSize: "18px",
-                            }}
-                          >
-                            ₹{formatNumber(
-                              selectedDenomination.payout_value
-                            )}
-                          </strong>
-                        </div>
-
-                        <div
-                          style={{
-                            textAlign: "right",
-                          }}
-                        >
-                          <span
-                            style={{
-                              display: "block",
-                              fontSize: "11px",
-                              fontWeight: 800,
-                              letterSpacing: "0.08em",
-                              color: "#64748b",
-                              textTransform: "uppercase",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            Required VEs
-                          </span>
-
-                          <strong
-                            style={{
-                              color: "#2563eb",
-                              fontSize: "18px",
-                            }}
-                          >
-                            {formatNumber(
-                              selectedDenomination.required_amount
-                            )} VEs
-                          </strong>
-                        </div>
-                      </div>
-                    );
-                  })()}
-
-                  {(withdrawForm.method ===
-                    "UPI" ||
-                    withdrawForm.method ===
-                    "QR") && (
-                      <div className="input-group">
-                        <label>
-                          UPI ID
-                        </label>
-
-                        <input
-                          type="text"
-                          placeholder="example@upi"
-                          value={
-                            withdrawForm.upiId
-                          }
-                          onChange={(
-                            event
-                          ) =>
-                            updateWithdrawForm(
-                              "upiId",
-                              event.target
-                                .value
-                            )
-                          }
-                          autoComplete="off"
-                        />
-
-                        <small>
-                          Enter the UPI ID linked to your payout account.
-                        </small>
-                      </div>
-                    )}
-
-                  {withdrawForm.method ===
-                    "QR" && (
-                      <div
-                        style={{
-                          marginTop:
-                            "14px",
-                          padding:
-                            "16px",
-                          border:
-                            "1px dashed #cbd5e1",
-                          borderRadius:
-                            "14px",
-                          background:
-                            "#f8fafc",
-                        }}
-                      >
-                        <strong
-                          style={{
-                            display:
-                              "block",
-                            marginBottom:
-                              "5px",
-                            color:
-                              "#0f172a",
-                          }}
-                        >
-                          UPI QR code
-                        </strong>
-
-                        <span
-                          style={{
-                            display:
-                              "block",
-                            color:
-                              "#64748b",
-                            fontSize:
-                              "13px",
-                            marginBottom:
-                              "12px",
-                          }}
-                        >
-                          Add your QR image for reference. The payout request is securely submitted through the configured UPI option.
-                        </span>
-
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={
-                            handleQrFile
-                          }
-                        />
-
-                        {withdrawForm.qrFileName && (
-                          <div
-                            style={{
-                              marginTop:
-                                "9px",
-                              fontSize:
-                                "13px",
-                              color:
-                                "#2563eb",
-                              fontWeight:
-                                700,
-                            }}
-                          >
-                            ✓{" "}
-                            {
-                              withdrawForm.qrFileName
-                            }
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                  {withdrawForm.method ===
-                    "BANK" && (
-                      <div
-                        style={{
-                          marginTop:
-                            "14px",
-                        }}
-                      >
-                        <div className="form-grid">
-                          <div className="input-group">
-                            <label>
-                              Account Holder Name
-                            </label>
-
-                            <input
-                              type="text"
-                              placeholder="Full name as per bank"
-                              value={
-                                withdrawForm.accountName
-                              }
-                              onChange={(
-                                event
-                              ) =>
-                                updateWithdrawForm(
-                                  "accountName",
-                                  event.target
-                                    .value
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div className="input-group">
-                            <label>
-                              Bank Name
-                            </label>
-
-                            <input
-                              type="text"
-                              placeholder="Bank name"
-                              value={
-                                withdrawForm.bankName
-                              }
-                              onChange={(
-                                event
-                              ) =>
-                                updateWithdrawForm(
-                                  "bankName",
-                                  event.target
-                                    .value
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div className="input-group">
-                            <label>
-                              Account Number
-                            </label>
-
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              placeholder="Enter account number"
-                              value={
-                                withdrawForm.accountNumber
-                              }
-                              onChange={(
-                                event
-                              ) =>
-                                updateWithdrawForm(
-                                  "accountNumber",
-                                  event.target.value.replace(
-                                    /\D/g,
-                                    ""
-                                  )
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div className="input-group">
-                            <label>
-                              IFSC Code
-                            </label>
-
-                            <input
-                              type="text"
-                              placeholder="ABCD0123456"
-                              value={
-                                withdrawForm.ifsc
-                              }
-                              onChange={(
-                                event
-                              ) =>
-                                updateWithdrawForm(
-                                  "ifsc",
-                                  event.target.value.toUpperCase()
-                                )
-                              }
-                              maxLength={
-                                11
-                              }
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                  <div className="withdraw-summary">
-                    <div>
-                      <span>
-                        Available balance
-                      </span>
-
-                      <strong>
-                        {formatNumber(
-                          wallet.ves
-                        )}{" "}
-                        VEs
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Payout value
-                      </span>
-
-                      <strong>
-                        {withdrawForm.amount
-                          ? `₹${formatNumber(
-                            withdrawForm.amount
-                          )}`
-                          : "₹0"}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        VEs required
-                      </span>
-
-                      <strong>
-                        {(() => {
-                          const denomination =
-                            getSelectedPayoutDenomination(
-                              getPayoutOptionForMethod(
-                                withdrawForm.method
-                              ),
-                              withdrawForm.amount
-                            );
-
-                          return denomination
-                            ? `${formatNumber(
-                              denomination.required_amount
-                            )} VEs`
-                            : "0 VEs";
-                        })()}
-                      </strong>
-                    </div>
-
-                    <div>
-                      <span>
-                        Payout method
-                      </span>
-
-                      <strong>
-                        {withdrawForm.method ===
-                          "BANK"
-                          ? "Bank Transfer"
-                          : withdrawForm.method ===
-                            "QR"
-                            ? "UPI QR"
-                            : "UPI"}
-                      </strong>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="primary-btn withdraw-submit-btn"
-                    disabled={loading}
-                  >
-                    {loading
-                      ? "Processing..."
-                      : "Submit Withdrawal"}
-
-                    {!loading && (
-                      <span>→</span>
-                    )}
-                  </button>
-                </form>
-              </section>
-
-              <section className="page-card">
-                <div className="page-card-header compact">
-                  <div>
-                    <span className="card-kicker">
-                      PAYOUT ACTIVITY
-                    </span>
-
-                    <h2>
-                      Withdrawal History
-                    </h2>
-
-                    <p>
-                      Track every submitted withdrawal request and its status.
-                    </p>
-                  </div>
-
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      gap:
-                        "8px",
-                      alignItems:
-                        "center",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize:
-                          "12px",
-                        color:
-                          "#64748b",
-                      }}
-                    >
-                      {
-                        pendingWithdrawals
-                      }{" "}
-                      pending
-                    </span>
-
-                    <span
-                      style={{
-                        fontSize:
-                          "12px",
-                        color:
-                          "#64748b",
-                      }}
-                    >
-                      {
-                        completedWithdrawals
-                      }{" "}
-                      completed
-                    </span>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    display:
-                      "flex",
-                    gap:
-                      "8px",
-                    flexWrap:
-                      "wrap",
-                    margin:
-                      "4px 0 18px",
-                  }}
-                >
-                  {[
-                    "ALL",
-                    "PENDING",
-                    "PROCESSING",
-                    "APPROVED",
-                    "FAILED",
-                  ].map(
-                    (filter) => (
-                      <button
-                        key={
-                          filter
-                        }
-                        type="button"
-                        onClick={() =>
-                          setWithdrawalFilter(
-                            filter
-                          )
-                        }
-                        style={{
-                          border:
-                            "1px solid #dbe4f0",
-                          borderRadius:
-                            "999px",
-                          padding:
-                            "8px 13px",
-                          background:
-                            withdrawalFilter ===
-                              filter
-                              ? "#2563eb"
-                              : "#fff",
-                          color:
-                            withdrawalFilter ===
-                              filter
-                              ? "#fff"
-                              : "#475569",
-                          fontWeight:
-                            700,
-                          cursor:
-                            "pointer",
-                        }}
-                      >
-                        {filter ===
-                          "ALL"
-                          ? "All"
-                          : filter}
-                      </button>
-                    )
-                  )}
-                </div>
-
-                <WithdrawalList
-                  withdrawals={
-                    filteredWithdrawals
-                  }
-                  formatDate={
-                    formatDate
-                  }
-                />
-              </section>
-            </div>
+            <WithdrawalsPage
+              wallet={
+                wallet
+              }
+              payoutOptions={
+                payoutOptions
+              }
+              form={
+                withdrawForm
+              }
+              updateForm={
+                updateWithdrawForm
+              }
+              onSubmit={
+                requestWithdrawalConfirmation
+              }
+              withdrawals={
+                filteredWithdrawals
+              }
+              filter={
+                withdrawalFilter
+              }
+              setFilter={
+                setWithdrawalFilter
+              }
+              pending={
+                pendingWithdrawals
+              }
+              completed={
+                completedWithdrawals
+              }
+            />
           )}
       </main>
 
       {profileModalOpen && (
-        <div
-          onClick={() =>
+        <ProfileModal
+          profile={
+            profile
+          }
+          email={
+            email
+          }
+          wallet={
+            wallet
+          }
+          getInitial={
+            getInitial(email)
+          }
+          onClose={() =>
             setProfileModalOpen(
               false
             )
           }
-          style={{
-            position:
-              "fixed",
-            inset: 0,
-            background:
-              "rgba(15,23,42,0.45)",
-            display:
-              "grid",
-            placeItems:
-              "center",
-            padding:
-              "20px",
-            zIndex:
-              2000,
-          }}
-        >
-          <div
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-            style={{
-              width:
-                "min(500px, 100%)",
-              background:
-                "#fff",
-              borderRadius:
-                "22px",
-              boxShadow:
-                "0 25px 70px rgba(15,23,42,0.25)",
-              overflow:
-                "hidden",
-            }}
-          >
-            <div
-              style={{
-                padding:
-                  "22px 24px",
-                background:
-                  "linear-gradient(135deg,#2563eb,#4f46e5)",
-                color:
-                  "#fff",
-                display:
-                  "flex",
-                alignItems:
-                  "center",
-                gap:
-                  "14px",
-              }}
-            >
-              <div
-                style={{
-                  width:
-                    "58px",
-                  height:
-                    "58px",
-                  borderRadius:
-                    "17px",
-                  background:
-                    "rgba(255,255,255,0.18)",
-                  display:
-                    "grid",
-                  placeItems:
-                    "center",
-                  fontSize:
-                    "24px",
-                  fontWeight:
-                    800,
-                }}
-              >
-                {getInitial()}
-              </div>
+        />
+      )}
 
-              <div>
-                <div
-                  style={{
-                    fontSize:
-                      "12px",
-                    opacity:
-                      0.8,
-                    letterSpacing:
-                      "1.5px",
-                  }}
-                >
-                  ACCOUNT PROFILE
-                </div>
-
-                <h2
-                  style={{
-                    margin:
-                      "4px 0 0",
-                    fontSize:
-                      "23px",
-                  }}
-                >
-                  {profile.name ||
-                    "VELOOP User"}
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setProfileModalOpen(
-                    false
-                  )
-                }
-                style={{
-                  marginLeft:
-                    "auto",
-                  border:
-                    "none",
-                  background:
-                    "rgba(255,255,255,0.15)",
-                  color:
-                    "#fff",
-                  width:
-                    "36px",
-                  height:
-                    "36px",
-                  borderRadius:
-                    "10px",
-                  cursor:
-                    "pointer",
-                  fontSize:
-                    "20px",
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div
-              style={{
-                padding:
-                  "24px",
-              }}
-            >
-              <ProfileRow
-                label="Email address"
-                value={email}
-              />
-
-              <ProfileRow
-                label="Account access"
-                value="Authenticated"
-              />
-
-              <ProfileRow
-                label="Wallet VEs"
-                value={`${formatNumber(
-                  wallet.ves
-                )} VEs`}
-              />
-
-              <ProfileRow
-                label="Security"
-                value="JWT protected session"
-              />
-
-              <div
-                style={{
-                  marginTop:
-                    "18px",
-                  padding:
-                    "14px",
-                  borderRadius:
-                    "13px",
-                  background:
-                    "#f8fafc",
-                  color:
-                    "#64748b",
-                  fontSize:
-                    "13px",
-                  lineHeight:
-                    1.55,
-                }}
-              >
-                Your password is not displayed or
-                stored in this profile panel. Login
-                session data is managed through browser
-                storage according to your Remember Me
-                selection.
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setProfileModalOpen(
-                    false
-                  )
-                }
-                className="primary-btn"
-                style={{
-                  width:
-                    "100%",
-                  marginTop:
-                    "18px",
-                }}
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
+      {withdrawalConfirmation && (
+        <ConfirmationModal
+          confirmation={
+            withdrawalConfirmation
+          }
+          method={getMethodDisplayName(
+            withdrawalConfirmation.method
+          )}
+          loading={
+            loading
+          }
+          onClose={() =>
+            setWithdrawalConfirmation(
+              null
+            )
+          }
+          onConfirm={
+            confirmWithdrawal
+          }
+        />
       )}
     </div>
   );
 }
 
-function ProfileRow({
-  label,
-  value,
+function AuthShell({
+  eyebrow,
+  title,
+  subtitle,
+  children,
 }) {
   return (
-    <div
-      style={{
-        display:
-          "flex",
-        justifyContent:
-          "space-between",
-        gap:
-          "18px",
-        padding:
-          "13px 0",
-        borderBottom:
-          "1px solid #eef2f7",
-      }}
-    >
-      <span
-        style={{
-          color:
-            "#64748b",
-          fontSize:
-            "13px",
-        }}
-      >
-        {label}
-      </span>
+    <div className="auth-page">
+      <div className="auth-orbit orbit-one" />
+      <div className="auth-orbit orbit-two" />
+      <div className="auth-grid" />
 
-      <strong
-        style={{
-          color:
-            "#0f172a",
-          fontSize:
-            "13px",
-          textAlign:
-            "right",
-          wordBreak:
-            "break-word",
-        }}
+      <div className="auth-card">
+        <div className="brand-lockup">
+          <div className="brand-mark">
+            V
+          </div>
+
+          <div>
+            <strong>
+              VELOOP
+            </strong>
+
+            <span>
+              REWARDS
+            </span>
+          </div>
+        </div>
+
+        <div className="auth-heading">
+          <div className="eyebrow">
+            {eyebrow}
+          </div>
+
+          <h1>
+            {title}
+          </h1>
+
+          <p>
+            {subtitle}
+          </p>
+        </div>
+
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Sidebar({
+  activeTab,
+  setTab,
+  profile,
+  email,
+  getInitial,
+  onLogout,
+}) {
+  return (
+    <aside className="sidebar">
+      <div className="sidebar-main">
+        <div className="brand-row">
+          <div className="brand-mark">
+            V
+          </div>
+
+          <div className="brand-copy">
+            <strong>
+              VELOOP
+            </strong>
+
+            <span>
+              Rewards
+            </span>
+          </div>
+        </div>
+
+        <div className="sidebar-divider" />
+
+        <nav className="nav-list">
+          {NAV_ITEMS.map(
+            (item) => (
+              <button
+                key={
+                  item.key
+                }
+                className={
+                  activeTab ===
+                    item.key
+                    ? "nav-item active"
+                    : "nav-item"
+                }
+                onClick={() =>
+                  setTab(
+                    item.key
+                  )
+                }
+              >
+                <span className="nav-icon">
+                  <Icon
+                    name={
+                      item.icon
+                    }
+                  />
+                </span>
+
+                <span>
+                  {
+                    item.label
+                  }
+                </span>
+
+                {activeTab ===
+                  item.key && (
+                    <span className="nav-indicator" />
+                  )}
+              </button>
+            )
+          )}
+        </nav>
+      </div>
+
+      <div className="sidebar-footer">
+        <div className="sidebar-user">
+          <div className="avatar">
+            {
+              getInitial
+            }
+          </div>
+
+          <div className="sidebar-user-copy">
+            <strong>
+              {
+                profile.name ||
+                "VELOOP User"
+              }
+            </strong>
+
+            <span
+              title={
+                email
+              }
+            >
+              {
+                email
+              }
+            </span>
+          </div>
+        </div>
+
+        <button
+          className="logout-btn"
+          onClick={
+            onLogout
+          }
+        >
+          <Icon name="logout" />
+          Logout
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function ProfileDropdown({
+  profile,
+  email,
+  getInitial,
+  onViewProfile,
+  onLogout,
+}) {
+  return (
+    <div className="profile-dropdown">
+      <div className="profile-summary">
+        <div className="avatar large">
+          {
+            getInitial
+          }
+        </div>
+
+        <div>
+          <strong>
+            {
+              profile.name ||
+              "VELOOP User"
+            }
+          </strong>
+
+          <span>
+            {
+              email
+            }
+          </span>
+        </div>
+      </div>
+
+      <button
+        className="dropdown-primary"
+        onClick={
+          onViewProfile
+        }
       >
-        {value}
-      </strong>
+        <Icon name="user" />
+        View profile
+      </button>
+
+      <button
+        className="dropdown-danger"
+        onClick={
+          onLogout
+        }
+      >
+        <Icon name="logout" />
+        Logout
+      </button>
+    </div>
+  );
+}
+
+function WalletPage({
+  wallet,
+  transactions,
+  payoutCurrencies,
+  onRefresh,
+  refreshing,
+  onWithdraw,
+  onTransactions,
+}) {
+  return (
+    <div className="content-stack">
+      <section className="wallet-hero">
+        <div className="hero-glow" />
+        <div className="hero-ring ring-a" />
+        <div className="hero-ring ring-b" />
+
+        <div className="hero-copy">
+          <span className="hero-overline">
+            AVAILABLE REWARD BALANCE
+          </span>
+
+          <h2>
+            {
+              formatAmount(
+                wallet.ves
+              )
+            }
+          </h2>
+
+          <p>
+            VEs ready for supported rewards
+            and withdrawals.
+          </p>
+
+          <div className="hero-badges">
+            <span>
+              <Icon name="shield" />
+              Backend verified
+            </span>
+
+            <span>
+              <Icon name="lock" />
+              Secure wallet
+            </span>
+          </div>
+        </div>
+
+        <div className="hero-side">
+          <div className="hero-token">
+            <span>
+              VE
+            </span>
+          </div>
+
+          <button
+            className="hero-cta"
+            onClick={
+              onWithdraw
+            }
+          >
+            Withdraw VEs
+            <Icon name="arrow-right" />
+          </button>
+        </div>
+      </section>
+
+      <section className="section-block">
+        <div className="section-head">
+          <div>
+            <div className="section-kicker">
+              REWARD ASSETS
+            </div>
+
+            <h2>
+              Your rewards
+            </h2>
+
+            <p>
+              Live balances received directly
+              from your VELOOP wallet.
+            </p>
+          </div>
+
+          <button
+            className="soft-btn"
+            onClick={
+              onRefresh
+            }
+            disabled={
+              refreshing
+            }
+          >
+            {refreshing ? (
+              <span className="btn-spinner" />
+            ) : (
+              <Icon name="refresh" />
+            )}
+
+            {refreshing
+              ? "Refreshing"
+              : "Refresh"}
+          </button>
+        </div>
+
+        <div className="currency-grid">
+          {Object.entries(
+            CURRENCY_META
+          ).map(
+            (
+              [
+                key,
+                meta,
+              ],
+              index
+            ) => (
+              <CurrencyCard
+                key={
+                  key
+                }
+                currencyKey={
+                  key
+                }
+                meta={
+                  meta
+                }
+                value={
+                  wallet[
+                  key
+                  ]
+                }
+                featured={
+                  index ===
+                  0
+                }
+                redeemable={payoutCurrencies.has(
+                  key
+                )}
+              />
+            )
+          )}
+        </div>
+      </section>
+
+      <section className="quick-grid">
+        <button
+          className="action-card primary-action"
+          onClick={
+            onWithdraw
+          }
+        >
+          <div className="action-icon">
+            <Icon name="arrow-up" />
+          </div>
+
+          <div>
+            <span>
+              Redeem rewards
+            </span>
+
+            <strong>
+              Withdraw supported VEs
+            </strong>
+
+            <small>
+              Select payout method and denomination.
+            </small>
+          </div>
+
+          <Icon name="arrow-right" />
+        </button>
+
+        <button
+          className="action-card"
+          onClick={
+            onTransactions
+          }
+        >
+          <div className="action-icon">
+            <Icon name="activity" />
+          </div>
+
+          <div>
+            <span>
+              Wallet activity
+            </span>
+
+            <strong>
+              Review transactions
+            </strong>
+
+            <small>
+              See credits, debits and wallet status.
+            </small>
+          </div>
+
+          <Icon name="arrow-right" />
+        </button>
+      </section>
+
+      <section className="section-block">
+        <div className="section-head">
+          <div>
+            <div className="section-kicker">
+              LATEST ACTIVITY
+            </div>
+
+            <h2>
+              Recent transactions
+            </h2>
+
+            <p>
+              Latest entries recorded in
+              the wallet ledger.
+            </p>
+          </div>
+
+          <button
+            className="text-btn"
+            onClick={
+              onTransactions
+            }
+          >
+            View all
+            <Icon name="arrow-right" />
+          </button>
+        </div>
+
+        <div className="panel">
+          <TransactionList
+            transactions={
+              transactions.slice(
+                0,
+                5
+              )
+            }
+          />
+        </div>
+      </section>
+
+      <section className="wallet-note">
+        <div className="note-icon">
+          <Icon name="shield" />
+        </div>
+
+        <div>
+          <strong>
+            Withdrawal eligibility
+          </strong>
+
+          <p>
+            Only payout currencies and
+            denominations supplied by the
+            backend are redeemable. Other
+            wallet assets remain available
+            for their supported VELOOP
+            reward use cases.
+          </p>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function CurrencyCard({
+  currencyKey,
+  meta,
+  value,
+  featured,
+  redeemable,
+}) {
+  return (
+    <article
+      className={`currency-card ${featured
+          ? "featured"
+          : ""
+        } accent-${meta.accent
+        }`}
+    >
+      <div className="currency-card-top">
+        <div className="currency-label">
+          <span className="asset-icon">
+            {
+              meta.icon
+            }
+          </span>
+
+          <div>
+            <span className="asset-name">
+              {
+                meta.name
+              }
+            </span>
+
+            <small>
+              {
+                meta.label
+              }
+            </small>
+          </div>
+        </div>
+
+        <span
+          className={
+            redeemable
+              ? "asset-status redeemable"
+              : "asset-status utility"
+          }
+        >
+          {redeemable
+            ? "Redeemable"
+            : "Utility"}
+        </span>
+      </div>
+
+      <div className="currency-value">
+        {
+          formatAmount(
+            value
+          )
+        }
+      </div>
+
+      <div className="currency-foot">
+        <span>
+          Backend balance
+        </span>
+
+        {
+          currencyKey ===
+          "ves" && (
+            <span className="primary-asset">
+              Primary payout currency
+            </span>
+          )
+        }
+      </div>
+    </article>
+  );
+}
+
+function TransactionsPage({
+  transactions,
+  total,
+  filter,
+  setFilter,
+  onRefresh,
+  refreshing,
+}) {
+  return (
+    <div className="content-stack">
+      <section className="panel page-panel">
+        <div className="page-head">
+          <div>
+            <div className="section-kicker">
+              WALLET LEDGER
+            </div>
+
+            <h2>
+              Transaction history
+            </h2>
+
+            <p>
+              Auditable activity recorded
+              against your authenticated wallet.
+            </p>
+          </div>
+
+          <div className="stat-pill">
+            <strong>
+              {total}
+            </strong>
+
+            <span>
+              Total entries
+            </span>
+          </div>
+        </div>
+
+        <div className="toolbar">
+          <div className="filter-group">
+            {[
+              "ALL",
+              "REWARD",
+              "WITHDRAWAL",
+            ].map(
+              (item) => (
+                <button
+                  key={
+                    item
+                  }
+                  className={
+                    filter ===
+                      item
+                      ? "filter-btn active"
+                      : "filter-btn"
+                  }
+                  onClick={() =>
+                    setFilter(
+                      item
+                    )
+                  }
+                >
+                  {item ===
+                    "ALL"
+                    ? "All"
+                    : item ===
+                      "REWARD"
+                      ? "Rewards"
+                      : "Withdrawals"}
+                </button>
+              )
+            )}
+          </div>
+
+          <button
+            className="soft-btn"
+            onClick={
+              onRefresh
+            }
+            disabled={
+              refreshing
+            }
+          >
+            {refreshing ? (
+              <span className="btn-spinner" />
+            ) : (
+              <Icon name="refresh" />
+            )}
+
+            {refreshing
+              ? "Refreshing"
+              : "Refresh"}
+          </button>
+        </div>
+
+        <TransactionList
+          transactions={
+            transactions
+          }
+        />
+      </section>
     </div>
   );
 }
 
 function TransactionList({
   transactions,
-  formatDate,
 }) {
-  if (!transactions.length) {
+  if (
+    !transactions.length
+  ) {
     return (
-      <div className="transaction-list">
-        <div className="empty-state">
-          <div className="empty-icon">
-            ↔
-          </div>
-
-          <strong>
-            No transactions found
-          </strong>
-
-          <span>
-            Your wallet activity will appear here.
-          </span>
+      <div className="empty-state">
+        <div className="empty-icon">
+          <Icon name="activity" />
         </div>
+
+        <strong>
+          No transactions found
+        </strong>
+
+        <span>
+          Your wallet activity will appear
+          here.
+        </span>
       </div>
     );
   }
@@ -3769,101 +2628,111 @@ function TransactionList({
   return (
     <div className="transaction-list">
       {transactions.map(
-        (transaction, index) => {
-          const isCredit =
-            String(
-              transaction?.type || ""
-            ).toUpperCase() ===
-            "REWARD" ||
-            String(
-              transaction?.type || ""
-            ).toUpperCase() ===
-            "CREDIT" ||
-            Number(
-              transaction?.amount || 0
-            ) > 0;
+        (
+          transaction,
+          index
+        ) => {
+          const credit =
+            isCredit(
+              transaction
+            );
 
           return (
             <div
-              className="transaction"
+              className="transaction-row"
               key={
                 transaction.transaction_id ||
                 index
               }
             >
               <div
-                className={
-                  isCredit
-                    ? "transaction-icon reward-icon"
-                    : "transaction-icon withdrawal-icon"
-                }
+                className={`transaction-icon ${credit
+                    ? "credit"
+                    : "debit"
+                  }`}
               >
-                {isCredit
-                  ? "+"
-                  : "↑"}
+                <Icon
+                  name={
+                    credit
+                      ? "plus"
+                      : "arrow-up"
+                  }
+                />
               </div>
 
-              <div className="transaction-info">
+              <div className="transaction-main">
                 <strong>
-                  {transaction.description ||
+                  {
+                    transaction.description ||
                     transaction.type ||
-                    "Wallet transaction"}
+                    "Wallet transaction"
+                  }
                 </strong>
 
                 <span>
-                  {transaction.type ||
-                    "TRANSACTION"}{" "}
-                  •{" "}
-                  {formatDate(
-                    transaction.created_at
-                  )}
+                  {
+                    transaction.type ||
+                    "TRANSACTION"
+                  }
+
+                  <i>
+                    •
+                  </i>
+
+                  {
+                    formatDate(
+                      transaction.created_at
+                    )
+                  }
                 </span>
 
-                {transaction.reference_id && (
-                  <small
-                    style={{
-                      color:
-                        "#94a3b8",
-                      marginTop:
-                        "3px",
-                    }}
-                  >
-                    Ref:{" "}
-                    {String(
-                      transaction.reference_id
-                    ).slice(
-                      0,
-                      18
-                    )}
-                    ...
-                  </small>
-                )}
+                {
+                  transaction.reference_id && (
+                    <small>
+                      Ref ·{" "}
+                      {String(
+                        transaction.reference_id
+                      ).slice(
+                        0,
+                        18
+                      )}
+                      …
+                    </small>
+                  )
+                }
               </div>
 
-              <div className="transaction-right">
+              <div className="transaction-meta">
                 <strong
                   className={
-                    isCredit
+                    credit
                       ? "amount-positive"
                       : "amount-negative"
                   }
                 >
-                  {isCredit
-                    ? "+"
-                    : "-"}
-                  {formatAmount(
-                    transaction.amount
-                  )}{" "}
+                  {
+                    credit
+                      ? "+"
+                      : "-"
+                  }
+
+                  {
+                    formatAmount(
+                      transaction.amount
+                    )
+                  }{" "}
                   VEs
                 </strong>
 
                 <span
-                  className={getLocalStatusClass(
+                  className={getStatusClass(
                     transaction.status
                   )}
                 >
-                  {transaction.status ||
-                    "PENDING"}
+                  {
+                    transaction.status ||
+                    "PENDING"
+                  }
                 </span>
               </div>
             </div>
@@ -3874,15 +2743,594 @@ function TransactionList({
   );
 }
 
+function WithdrawalsPage({
+  wallet,
+  payoutOptions,
+  form,
+  updateForm,
+  onSubmit,
+  withdrawals,
+  filter,
+  setFilter,
+  pending,
+  completed,
+}) {
+  const methods =
+    getMethodsForDisplay(
+      payoutOptions
+    );
+
+  const selectedOption =
+    findMethodOption(
+      payoutOptions,
+      form.method
+    );
+
+  const denominations =
+    getDenominations(
+      selectedOption
+    );
+
+  const selectedDenomination =
+    findDenomination(
+      selectedOption,
+      form.amount
+    );
+
+  return (
+    <div className="content-stack">
+      <section className="panel payout-panel">
+        <div className="page-head">
+          <div>
+            <div className="section-kicker">
+              PAYOUT CENTER
+            </div>
+
+            <h2>
+              Withdraw your VEs
+            </h2>
+
+            <p>
+              Choose a backend-configured
+              payout method and submit a
+              secure withdrawal request.
+            </p>
+          </div>
+
+          <div className="balance-chip">
+            <span>
+              Available
+            </span>
+
+            <strong>
+              {
+                formatAmount(
+                  wallet.ves
+                )
+              }{" "}
+              VEs
+            </strong>
+          </div>
+        </div>
+
+        <form
+          className="withdraw-form"
+          onSubmit={
+            onSubmit
+          }
+        >
+          <div className="payout-section">
+            <div className="form-title">
+              <span>
+                01
+              </span>
+
+              <div>
+                <strong>
+                  Choose payout method
+                </strong>
+
+                <small>
+                  Available methods are loaded from the backend.
+                </small>
+              </div>
+            </div>
+
+            <div className="method-grid">
+              {methods.map(
+                (method) => (
+                  <button
+                    type="button"
+                    key={
+                      method.value
+                    }
+                    className={
+                      form.method ===
+                        method.value
+                        ? "method-card active"
+                        : "method-card"
+                    }
+                    onClick={() => {
+                      updateForm(
+                        "method",
+                        method.value
+                      );
+
+                      updateForm(
+                        "amount",
+                        ""
+                      );
+                    }}
+                  >
+                    <span className="method-icon">
+                      <Icon
+                        name={
+                          method.icon
+                        }
+                      />
+                    </span>
+
+                    <span>
+                      <strong>
+                        {
+                          method.name
+                        }
+                      </strong>
+
+                      <small>
+                        {
+                          method.description
+                        }
+                      </small>
+                    </span>
+
+                    {
+                      form.method ===
+                      method.value && (
+                        <span className="selected-mark">
+                          ✓
+                        </span>
+                      )
+                    }
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+
+          <div className="payout-section">
+            <div className="form-title">
+              <span>
+                02
+              </span>
+
+              <div>
+                <strong>
+                  Choose redemption amount
+                </strong>
+
+                <small>
+                  Required VEs are calculated
+                  from the selected backend option.
+                </small>
+              </div>
+            </div>
+
+            <div className="denomination-grid">
+              {denominations.map(
+                (denomination) => {
+                  const insufficient =
+                    Number(
+                      denomination.required_amount
+                    ) >
+                    Number(
+                      wallet.ves || 0
+                    );
+
+                  return (
+                    <button
+                      type="button"
+                      key={
+                        denomination.payout_value
+                      }
+                      className={
+                        Number(
+                          form.amount
+                        ) ===
+                          Number(
+                            denomination.payout_value
+                          )
+                          ? "denomination-card active"
+                          : "denomination-card"
+                      }
+                      onClick={() =>
+                        updateForm(
+                          "amount",
+                          String(
+                            denomination.payout_value
+                          )
+                        )
+                      }
+                      disabled={
+                        insufficient
+                      }
+                    >
+                      <strong>
+                        ₹
+                        {formatAmount(
+                          denomination.payout_value
+                        )}
+                      </strong>
+
+                      <span>
+                        {
+                          formatAmount(
+                            denomination.required_amount
+                          )
+                        }{" "}
+                        VEs
+                      </span>
+
+                      <small>
+                        {insufficient
+                          ? "Insufficient VEs"
+                          : "Available"}
+                      </small>
+                    </button>
+                  );
+                }
+              )}
+            </div>
+          </div>
+
+          {
+            selectedDenomination && (
+              <div className="payout-preview">
+                <div>
+                  <span>
+                    Payout value
+                  </span>
+
+                  <strong>
+                    ₹
+                    {formatAmount(
+                      selectedDenomination.payout_value
+                    )}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Required VEs
+                  </span>
+
+                  <strong>
+                    {
+                      formatAmount(
+                        selectedDenomination.required_amount
+                      )
+                    }{" "}
+                    VEs
+                  </strong>
+                </div>
+
+                <div>
+                  <span>
+                    Remaining VEs
+                  </span>
+
+                  <strong>
+                    {
+                      formatAmount(
+                        Math.max(
+                          0,
+                          Number(
+                            wallet.ves ||
+                            0
+                          ) -
+                          Number(
+                            selectedDenomination.required_amount
+                          )
+                        )
+                      )
+                    }{" "}
+                    VEs
+                  </strong>
+                </div>
+              </div>
+            )
+          }
+
+          <div className="payout-section">
+            <div className="form-title">
+              <span>
+                03
+              </span>
+
+              <div>
+                <strong>
+                  Payout details
+                </strong>
+
+                <small>
+                  Details are validated before the
+                  request is submitted.
+                </small>
+              </div>
+            </div>
+
+            {form.method ===
+              "BANK" ? (
+              <div className="form-grid">
+                <Field label="Account holder name">
+                  <input
+                    value={
+                      form.accountName
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "accountName",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Full name as per bank"
+                    autoComplete="name"
+                  />
+                </Field>
+
+                <Field label="Bank name">
+                  <input
+                    value={
+                      form.bankName
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "bankName",
+                        e.target.value
+                      )
+                    }
+                    placeholder="Bank name"
+                  />
+                </Field>
+
+                <Field label="Account number">
+                  <input
+                    value={
+                      form.accountNumber
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "accountNumber",
+                        e.target.value.replace(
+                          /\D/g,
+                          ""
+                        )
+                      )
+                    }
+                    placeholder="Account number"
+                    inputMode="numeric"
+                  />
+                </Field>
+
+                <Field label="IFSC code">
+                  <input
+                    value={
+                      form.ifsc
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "ifsc",
+                        e.target.value.toUpperCase()
+                      )
+                    }
+                    placeholder="ABCD0123456"
+                    maxLength={
+                      11
+                    }
+                  />
+                </Field>
+              </div>
+            ) : (
+              <div className="form-grid single">
+                <Field label="UPI ID">
+                  <input
+                    value={
+                      form.upiId
+                    }
+                    onChange={(e) =>
+                      updateForm(
+                        "upiId",
+                        e.target.value
+                      )
+                    }
+                    placeholder="example@upi"
+                    autoComplete="off"
+                  />
+
+                  <small>
+                    Use the UPI ID linked to your payout account.
+                  </small>
+                </Field>
+
+                {form.method ===
+                  "QR" && (
+                    <Field label="QR image (reference)">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(
+                          e
+                        ) => {
+                          const file =
+                            e.target.files?.[0];
+
+                          if (
+                            file &&
+                            file.type.startsWith(
+                              "image/"
+                            )
+                          ) {
+                            updateForm(
+                              "qrFileName",
+                              file.name
+                            );
+                          }
+                        }}
+                      />
+
+                      <small>
+                        {
+                          form.qrFileName
+                            ? `Selected: ${form.qrFileName}`
+                            : "Optional image reference for the UPI QR flow."
+                        }
+                      </small>
+                    </Field>
+                  )}
+              </div>
+            )}
+          </div>
+
+          <div className="review-bar">
+            <div>
+              <span>
+                Selected payout
+              </span>
+
+              <strong>
+                {selectedDenomination
+                  ? `₹${formatAmount(
+                    selectedDenomination.payout_value
+                  )}`
+                  : "Not selected"}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                Method
+              </span>
+
+              <strong>
+                {displayMethod(
+                  form.method
+                )}
+              </strong>
+            </div>
+
+            <div>
+              <span>
+                VEs required
+              </span>
+
+              <strong>
+                {selectedDenomination
+                  ? `${formatAmount(
+                    selectedDenomination.required_amount
+                  )} VEs`
+                  : "—"}
+              </strong>
+            </div>
+
+            <button
+              className="primary-btn withdraw-submit"
+              disabled={
+                !selectedDenomination
+              }
+            >
+              <Icon name="lock" />
+              Review & submit
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section className="panel page-panel">
+        <div className="page-head compact">
+          <div>
+            <div className="section-kicker">
+              PAYOUT ACTIVITY
+            </div>
+
+            <h2>
+              Withdrawal history
+            </h2>
+
+            <p>
+              Track every request and its current status.
+            </p>
+          </div>
+
+          <div className="mini-stats">
+            <span>
+              <strong>
+                {pending}
+              </strong>{" "}
+              pending
+            </span>
+
+            <span>
+              <strong>
+                {completed}
+              </strong>{" "}
+              completed
+            </span>
+          </div>
+        </div>
+
+        <div className="toolbar">
+          <div className="filter-group">
+            {[
+              "ALL",
+              "PENDING",
+              "PROCESSING",
+              "APPROVED",
+              "FAILED",
+            ].map(
+              (item) => (
+                <button
+                  key={
+                    item
+                  }
+                  className={
+                    filter ===
+                      item
+                      ? "filter-btn active"
+                      : "filter-btn"
+                  }
+                  onClick={() =>
+                    setFilter(
+                      item
+                    )
+                  }
+                >
+                  {item}
+                </button>
+              )
+            )}
+          </div>
+        </div>
+
+        <WithdrawalList
+          withdrawals={
+            withdrawals
+          }
+        />
+      </section>
+    </div>
+  );
+}
+
 function WithdrawalList({
   withdrawals,
-  formatDate,
 }) {
-  if (!withdrawals.length) {
+  if (
+    !withdrawals.length
+  ) {
     return (
-      <div className="withdrawal-history-empty">
+      <div className="empty-state">
         <div className="empty-icon">
-          ↑
+          <Icon name="arrow-up" />
         </div>
 
         <strong>
@@ -3890,24 +3338,21 @@ function WithdrawalList({
         </strong>
 
         <span>
-          Your withdrawal requests will appear here.
+          Your payout requests will appear here.
         </span>
       </div>
     );
   }
 
   return (
-    <div className="withdrawal-list">
+    <div className="transaction-list">
       {withdrawals.map(
-        (withdrawal, index) => {
-          const method =
-            getPayoutLabel(
-              withdrawal.payout_option_id,
-              withdrawal.payout_details
-            );
-
+        (
+          withdrawal,
+          index
+        ) => {
           const details =
-            withdrawal.payout_details ||
+            withdrawal?.payout_details ||
             {};
 
           const detailText =
@@ -3917,17 +3362,17 @@ function WithdrawalList({
 
           return (
             <div
-              className="withdrawal-row"
+              className="transaction-row"
               key={
                 withdrawal.withdrawal_id ||
                 index
               }
             >
-              <div className="withdrawal-icon">
-                ↑
+              <div className="transaction-icon debit">
+                <Icon name="arrow-up" />
               </div>
 
-              <div className="withdrawal-info">
+              <div className="transaction-main">
                 <strong>
                   {withdrawal.payout_value
                     ? `₹${formatAmount(
@@ -3939,37 +3384,54 @@ function WithdrawalList({
                 </strong>
 
                 <span>
-                  {method} •{" "}
-                  {formatAmount(
-                    withdrawal.amount
-                  )} VEs •{" "}
-                  {formatDate(
-                    withdrawal.created_at
-                  )}
+                  {
+                    getPayoutLabel(
+                      withdrawal.payout_option_id,
+                      details
+                    )
+                  }
+
+                  <i>
+                    •
+                  </i>
+
+                  {
+                    formatAmount(
+                      withdrawal.amount
+                    )
+                  }{" "}
+                  VEs
+
+                  <i>
+                    •
+                  </i>
+
+                  {
+                    formatDate(
+                      withdrawal.created_at
+                    )
+                  }
                 </span>
 
-                <small
-                  style={{
-                    color:
-                      "#94a3b8",
-                    marginTop:
-                      "3px",
-                  }}
-                >
-                  {maskSensitive(
-                    detailText
-                  )}
+                <small>
+                  {
+                    maskSensitive(
+                      detailText
+                    )
+                  }
                 </small>
               </div>
 
-              <div className="withdrawal-right">
+              <div className="transaction-meta">
                 <span
-                  className={getLocalStatusClass(
+                  className={getStatusClass(
                     withdrawal.status
                   )}
                 >
-                  {withdrawal.status ||
-                    "PENDING"}
+                  {
+                    withdrawal.status ||
+                    "PENDING"
+                  }
                 </span>
               </div>
             </div>
@@ -3980,49 +3442,558 @@ function WithdrawalList({
   );
 }
 
-function CurrencyCard({
-  name,
-  value,
-  label,
-  primary,
+function ConfirmationModal({
+  confirmation,
+  method,
+  loading,
+  onClose,
+  onConfirm,
 }) {
   return (
-    <div
-      className={
-        primary
-          ? "currency-card primary-card"
-          : "currency-card"
-      }
-    >
-      <div className="currency-top">
-        <span>{name}</span>
+    <div className="modal-backdrop">
+      <div className="confirm-modal">
+        <div className="confirm-icon">
+          <Icon name="shield" />
+        </div>
 
-        <div className="currency-dot">
-          {name.charAt(0)}
+        <div className="section-kicker">
+          CONFIRM WITHDRAWAL
+        </div>
+
+        <h2>
+          Ready to redeem your
+          rewards?
+        </h2>
+
+        <p>
+          Review the server-validated
+          payout details before
+          submitting the request.
+        </p>
+
+        <div className="confirm-summary">
+          <div>
+            <span>
+              Payout
+            </span>
+
+            <strong>
+              ₹
+              {formatAmount(
+                confirmation.payoutValue
+              )}
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Required
+            </span>
+
+            <strong>
+              {
+                formatAmount(
+                  confirmation.requiredVes
+                )
+              }{" "}
+              VEs
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Method
+            </span>
+
+            <strong>
+              {
+                method
+              }
+            </strong>
+          </div>
+        </div>
+
+        <div className="confirm-actions">
+          <button
+            className="secondary-btn"
+            onClick={
+              onClose
+            }
+            disabled={
+              loading
+            }
+          >
+            Cancel
+          </button>
+
+          <button
+            className="primary-btn"
+            onClick={
+              onConfirm
+            }
+            disabled={
+              loading
+            }
+          >
+            {
+              loading
+                ? "Submitting…"
+                : "Confirm withdrawal"
+            }
+
+            <Icon name="arrow-right" />
+          </button>
         </div>
       </div>
-
-      <h3>
-        {formatAmount(value)}
-      </h3>
-
-      <p>{label}</p>
     </div>
   );
 }
 
-function formatAmount(value) {
-  return Number(
-    value || 0
-  ).toLocaleString("en-IN");
+function ProfileModal({
+  profile,
+  email,
+  wallet,
+  getInitial,
+  onClose,
+}) {
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={
+        onClose
+      }
+    >
+      <div
+        className="profile-modal"
+        onMouseDown={(e) =>
+          e.stopPropagation()
+        }
+      >
+        <div className="profile-modal-head">
+          <div className="avatar xl">
+            {
+              getInitial
+            }
+          </div>
+
+          <div>
+            <div className="section-kicker">
+              ACCOUNT PROFILE
+            </div>
+
+            <h2>
+              {
+                profile.name ||
+                "VELOOP User"
+              }
+            </h2>
+
+            <span>
+              {
+                email
+              }
+            </span>
+          </div>
+
+          <button
+            className="modal-close"
+            onClick={
+              onClose
+            }
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="profile-details">
+          <ProfileRow
+            label="Email address"
+            value={
+              email
+            }
+          />
+
+          <ProfileRow
+            label="Account access"
+            value="Authenticated"
+          />
+
+          <ProfileRow
+            label="Wallet VEs"
+            value={`${formatAmount(
+              wallet.ves
+            )} VEs`}
+          />
+
+          <ProfileRow
+            label="Security"
+            value="JWT protected session"
+          />
+        </div>
+
+        <div className="profile-note">
+          <Icon name="shield" />
+
+          <span>
+            Your password is never
+            displayed here. Wallet
+            balances are loaded from
+            the authenticated backend.
+          </span>
+        </div>
+
+        <button
+          className="primary-btn full-btn"
+          onClick={
+            onClose
+          }
+        >
+          Done
+        </button>
+      </div>
+    </div>
+  );
 }
 
-function getLocalStatusClass(
+function ProfileRow({
+  label,
+  value,
+}) {
+  return (
+    <div className="profile-row">
+      <span>
+        {
+          label
+        }
+      </span>
+
+      <strong>
+        {
+          value
+        }
+      </strong>
+    </div>
+  );
+}
+
+function ForgotModal({
+  email,
+  setEmail,
+  loading,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div className="modal-backdrop">
+      <div className="auth-modal">
+        <button
+          className="modal-close"
+          onClick={
+            onClose
+          }
+        >
+          ×
+        </button>
+
+        <div className="modal-symbol">
+          <Icon name="refresh" />
+        </div>
+
+        <div className="section-kicker">
+          ACCOUNT RECOVERY
+        </div>
+
+        <h2>
+          Forgot your password?
+        </h2>
+
+        <p>
+          Enter your registered email
+          and we’ll send a secure reset
+          link.
+        </p>
+
+        <Field label="Email address">
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={
+              email
+            }
+            onChange={(e) =>
+              setEmail(
+                e.target.value
+              )
+            }
+            autoFocus
+          />
+        </Field>
+
+        <button
+          className="primary-btn full-btn"
+          onClick={
+            onSubmit
+          }
+          disabled={
+            loading
+          }
+        >
+          {
+            loading
+              ? "Sending…"
+              : "Send reset link"
+          }
+
+          <Icon name="arrow-right" />
+        </button>
+
+        <button
+          className="modal-link"
+          onClick={
+            onClose
+          }
+        >
+          Back to sign in
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RegisterModal({
+  state,
+  setState,
+  loading,
+  onClose,
+  onSubmit,
+}) {
+  return (
+    <div
+      className="modal-backdrop"
+      onMouseDown={
+        onClose
+      }
+    >
+      <div
+        className="auth-modal register-modal"
+        onMouseDown={(e) =>
+          e.stopPropagation()
+        }
+      >
+        <button
+          className="modal-close"
+          onClick={
+            onClose
+          }
+        >
+          ×
+        </button>
+
+        <div className="modal-symbol">
+          V
+        </div>
+
+        <div className="section-kicker">
+          CREATE ACCOUNT
+        </div>
+
+        <h2>
+          Join VELOOP
+        </h2>
+
+        <p>
+          Create your account and
+          manage your rewards wallet
+          securely.
+        </p>
+
+        <Field label="Full name">
+          <input
+            value={
+              state.registerName
+            }
+            onChange={(e) =>
+              setState.setRegisterName(
+                e.target.value
+              )
+            }
+            placeholder="Enter your full name"
+            autoComplete="name"
+          />
+        </Field>
+
+        <Field label="Email address">
+          <input
+            type="email"
+            value={
+              state.registerEmail
+            }
+            onChange={(e) =>
+              setState.setRegisterEmail(
+                e.target.value
+              )
+            }
+            placeholder="Enter your email"
+            autoComplete="email"
+          />
+        </Field>
+
+        <Field label="Password">
+          <input
+            type="password"
+            value={
+              state.registerPassword
+            }
+            onChange={(e) =>
+              setState.setRegisterPassword(
+                e.target.value
+              )
+            }
+            placeholder="Create a password"
+            autoComplete="new-password"
+          />
+        </Field>
+
+        <Field label="Confirm password">
+          <input
+            type="password"
+            value={
+              state.registerConfirmPassword
+            }
+            onChange={(e) =>
+              setState.setRegisterConfirmPassword(
+                e.target.value
+              )
+            }
+            placeholder="Confirm your password"
+            autoComplete="new-password"
+          />
+        </Field>
+
+        <button
+          className="primary-btn full-btn"
+          onClick={
+            onSubmit
+          }
+          disabled={
+            loading
+          }
+        >
+          {
+            loading
+              ? "Creating account…"
+              : "Create account"
+          }
+
+          <Icon name="arrow-right" />
+        </button>
+
+        <button
+          className="modal-link"
+          onClick={
+            onClose
+          }
+        >
+          Back to sign in
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  label,
+  action,
+  children,
+}) {
+  return (
+    <label className="field">
+      <span className="field-label">
+        <strong>
+          {
+            label
+          }
+        </strong>
+
+        {
+          action
+        }
+      </span>
+
+      {
+        children
+      }
+    </label>
+  );
+}
+
+function Alert({
+  type,
+  message,
+  onClose,
+}) {
+  return (
+    <div
+      className={`alert ${type}`}
+    >
+      <span className="alert-symbol">
+        {
+          type ===
+            "success"
+            ? "✓"
+            : "!"
+        }
+      </span>
+
+      <span>
+        {
+          message
+        }
+      </span>
+
+      {
+        onClose && (
+          <button
+            onClick={
+              onClose
+            }
+          >
+            ×
+          </button>
+        )
+      }
+    </div>
+  );
+}
+
+function isCredit(
+  transaction
+) {
+  const type =
+    String(
+      transaction?.type ||
+      ""
+    ).toUpperCase();
+
+  return (
+    type ===
+    "REWARD" ||
+    type ===
+    "CREDIT" ||
+    Number(
+      transaction?.amount ||
+      0
+    ) > 0
+  );
+}
+
+function getStatusClass(
   status
 ) {
-  const normalized =
+  const value =
     String(
-      status || ""
+      status ||
+      "PENDING"
     ).toLowerCase();
 
   if (
@@ -4031,7 +4002,9 @@ function getLocalStatusClass(
       "completed",
       "success",
       "successful",
-    ].includes(normalized)
+    ].includes(
+      value
+    )
   ) {
     return "status completed";
   }
@@ -4041,7 +4014,9 @@ function getLocalStatusClass(
       "rejected",
       "cancelled",
       "failed",
-    ].includes(normalized)
+    ].includes(
+      value
+    )
   ) {
     return "status failed";
   }
@@ -4060,31 +4035,40 @@ function getPayoutLabel(
     return "UPI QR";
   }
 
+  const id =
+    String(
+      optionId || ""
+    ).toLowerCase();
+
   if (
-    optionId ===
-    "demo_bank" ||
-    optionId ===
-    "bank_transfer"
+    id.includes("bank")
   ) {
     return "Bank Transfer";
   }
 
   if (
-    optionId ===
-    "upi"
+    id.includes("upi")
   ) {
     return "UPI";
   }
 
-  return optionId || "Payout";
+  return (
+    optionId ||
+    "Payout"
+  );
 }
 
-function maskSensitive(value) {
-  const text = String(
-    value || ""
-  );
+function maskSensitive(
+  value
+) {
+  const text =
+    String(
+      value || ""
+    );
 
-  if (text.includes("@")) {
+  if (
+    text.includes("@")
+  ) {
     const [
       name,
       domain,
@@ -4096,16 +4080,445 @@ function maskSensitive(value) {
     )}***@${domain}`;
   }
 
-  if (text.length > 6) {
-    return `••••${text.slice(
+  return text.length > 6
+    ? `••••${text.slice(
       -4
-    )}`;
+    )}`
+    : text;
+}
+
+function formatAmount(
+  value
+) {
+  return Number(
+    value || 0
+  ).toLocaleString(
+    "en-IN"
+  );
+}
+
+function formatDate(
+  value
+) {
+  if (!value) {
+    return "-";
   }
 
-  return text;
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "-";
+  }
+
+  return date.toLocaleString(
+    "en-IN",
+    {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+}
+
+function findMethodOption(
+  options,
+  method
+) {
+  const upper =
+    String(
+      method || ""
+    ).toUpperCase();
+
+  const map = {
+    UPI: "UPI",
+    BANK: "BANK_TRANSFER",
+    QR: "UPI_QR",
+  };
+
+  const expected =
+    map[upper] ||
+    upper;
+
+  return (
+    options || []
+  ).find(
+    (option) => {
+      const type =
+        String(
+          option?.type ||
+          ""
+        ).toUpperCase();
+
+      const id =
+        String(
+          option?.method_id ||
+          ""
+        ).toLowerCase();
+
+      return (
+        type ===
+        expected ||
+        id ===
+        upper.toLowerCase()
+      );
+    }
+  );
+}
+
+function getMethodsForDisplay(
+  options
+) {
+  const methods = [];
+  const seen =
+    new Set();
+
+  for (
+    const option of
+    options || []
+  ) {
+    const value =
+      methodValue(
+        option
+      );
+
+    if (
+      !value ||
+      seen.has(value)
+    ) {
+      continue;
+    }
+
+    seen.add(value);
+
+    methods.push({
+      value,
+
+      name:
+        option?.name ||
+        displayMethod(
+          value
+        ),
+
+      description:
+        value ===
+          "BANK"
+          ? "Direct bank payout"
+          : value ===
+            "QR"
+            ? "UPI QR payout"
+            : "UPI payout",
+
+      icon:
+        value ===
+          "BANK"
+          ? "bank"
+          : value === "QR"
+            ? "qr"
+            : "wallet",
+    });
+  }
+
+  return methods;
+}
+
+function methodValue(
+  option
+) {
+  const type =
+    String(
+      option?.type ||
+      ""
+    ).toUpperCase();
+
+  const id =
+    String(
+      option?.method_id ||
+      ""
+    ).toUpperCase();
+
+  if (
+    type ===
+    "BANK_TRANSFER" ||
+    id.includes("BANK")
+  ) {
+    return "BANK";
+  }
+
+  if (
+    type ===
+    "UPI_QR" ||
+    id.includes("QR")
+  ) {
+    return "QR";
+  }
+
+  if (
+    type === "UPI" ||
+    id === "UPI"
+  ) {
+    return "UPI";
+  }
+
+  return (
+    type || id
+  );
+}
+
+function displayMethod(
+  method
+) {
+  if (
+    method === "BANK"
+  ) {
+    return "Bank Transfer";
+  }
+
+  if (
+    method === "QR"
+  ) {
+    return "UPI QR";
+  }
+
+  if (
+    method === "UPI"
+  ) {
+    return "UPI";
+  }
+
+  return (
+    method || "Payout"
+  );
+}
+
+function getDenominations(
+  option
+) {
+  if (
+    !Array.isArray(
+      option?.denominations
+    )
+  ) {
+    return [];
+  }
+
+  return [
+    ...option.denominations,
+  ]
+    .filter(
+      (item) =>
+        Number(
+          item?.payout_value
+        ) > 0 &&
+        Number(
+          item?.required_amount
+        ) > 0
+    )
+    .sort(
+      (a, b) =>
+        Number(
+          a.payout_value
+        ) -
+        Number(
+          b.payout_value
+        )
+    );
+}
+
+function findDenomination(
+  option,
+  value
+) {
+  const n =
+    Number(value);
+
+  if (
+    !Number.isFinite(n) ||
+    n <= 0
+  ) {
+    return null;
+  }
+
+  return (
+    getDenominations(
+      option
+    ).find(
+      (item) =>
+        Number(
+          item.payout_value
+        ) === n
+    ) || null
+  );
+}
+
+function getInitial(
+  email
+) {
+  return email
+    ? String(
+      email
+    )
+      .trim()
+      .charAt(0)
+      .toUpperCase()
+    : "V";
+}
+
+function Icon({
+  name,
+}) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke:
+      "currentColor",
+    strokeWidth: 1.8,
+    strokeLinecap:
+      "round",
+    strokeLinejoin:
+      "round",
+    "aria-hidden": true,
+  };
+
+  const icons = {
+    wallet: (
+      <>
+        <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H19a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 19 19H6.5A2.5 2.5 0 0 1 4 16.5z" />
+        <path d="M4 8h13.5A3.5 3.5 0 0 1 21 11.5v1H17a2.5 2.5 0 0 0 0 5h4" />
+        <circle
+          cx="17.5"
+          cy="15"
+          r=".8"
+          fill="currentColor"
+        />
+      </>
+    ),
+
+    activity: (
+      <path d="M4 12h4l2.1-6 3.2 12 2.1-6H20" />
+    ),
+
+    "arrow-up": (
+      <>
+        <path d="M12 19V5" />
+        <path d="m6 11 6-6 6 6" />
+      </>
+    ),
+
+    "arrow-right": (
+      <>
+        <path d="M5 12h13" />
+        <path d="m13 6 6 6-6 6" />
+      </>
+    ),
+
+    plus: (
+      <path d="M12 5v14M5 12h14" />
+    ),
+
+    refresh: (
+      <>
+        <path d="M20 11a8 8 0 0 0-14.9-3M4 5v4h4" />
+        <path d="M4 13a8 8 0 0 0 14.9 3M20 19v-4h-4" />
+      </>
+    ),
+
+    bell: (
+      <>
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+        <path d="M10 21h4" />
+      </>
+    ),
+
+    user: (
+      <>
+        <circle
+          cx="12"
+          cy="8"
+          r="3.5"
+        />
+        <path d="M5 20a7 7 0 0 1 14 0" />
+      </>
+    ),
+
+    logout: (
+      <>
+        <path d="M10 5H6.5A1.5 1.5 0 0 0 5 6.5v11A1.5 1.5 0 0 0 6.5 19H10" />
+        <path d="m13 16 4-4-4-4" />
+        <path d="M17 12H9" />
+      </>
+    ),
+
+    shield: (
+      <>
+        <path d="M12 3 19 6v5.4c0 4.4-2.7 7.8-7 9.6-4.3-1.8-7-5.2-7-9.6V6z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+
+    lock: (
+      <>
+        <rect
+          x="5"
+          y="10"
+          width="14"
+          height="10"
+          rx="2"
+        />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </>
+    ),
+
+    bank: (
+      <>
+        <path d="M3 10 12 4l9 6" />
+        <path d="M5 10v8M9 10v8M15 10v8M19 10v8" />
+        <path d="M3 20h18M4 10h16" />
+      </>
+    ),
+
+    qr: (
+      <>
+        <rect
+          x="4"
+          y="4"
+          width="6"
+          height="6"
+        />
+        <rect
+          x="14"
+          y="4"
+          width="6"
+          height="6"
+        />
+        <rect
+          x="4"
+          y="14"
+          width="6"
+          height="6"
+        />
+        <path d="M14 14h3v3h-3zM18 18h2v2h-2zM14 18v2h2" />
+      </>
+    ),
+  };
+
+  return (
+    <svg {...common}>
+      {
+        icons[
+        name
+        ] || null
+      }
+    </svg>
+  );
 }
 
 export default App;
-
-
-
