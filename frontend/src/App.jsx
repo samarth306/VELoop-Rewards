@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef , useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import "./App.css";
 
@@ -2746,20 +2746,13 @@ function QrPayoutScanner({ form, updateForm }) {
   const [scanning, setScanning] = useState(false);
   const [scannerError, setScannerError] = useState("");
   const [scanSource, setScanSource] = useState("");
-
-  useEffect(() => {
-    return () => {
-      stopScanner();
-    };
-  }, []);
+  const scannerRef = useRef(null);
 
   function extractUpiId(decodedText) {
     const value = String(decodedText || "").trim();
     if (!value) return "";
 
-    if (/^[^\s@]+@[^\s@]+$/.test(value)) {
-      return value;
-    }
+    if (/^[^\s@]+@[^\s@]+$/.test(value)) return value;
 
     try {
       const parsed = new URL(value);
@@ -2767,12 +2760,11 @@ function QrPayoutScanner({ form, updateForm }) {
         parsed.searchParams.get("pa") ||
         parsed.searchParams.get("upi_id") ||
         parsed.searchParams.get("vpa");
-
       if (upiId && /^[^\s@]+@[^\s@]+$/.test(upiId.trim())) {
         return upiId.trim();
       }
     } catch {
-      // Some QR scanners return non-URL text; fall through to regex parsing.
+      // Some QR scanners return non-URL text.
     }
 
     const match = value.match(/(?:^|[?&])(?:pa|upi_id|vpa)=([^&\s]+)/i);
@@ -2781,85 +2773,158 @@ function QrPayoutScanner({ form, updateForm }) {
       : "";
   }
 
-  async function startScanner() {
-    setScannerError("");
-    setScannerOpen(true);
-    setScanning(true);
-
-    const scanner = new Html5Qrcode("upi-qr-reader");
-
-    try {
-      await scanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1,
-        },
-        async (decodedText) => {
-          const upiId = extractUpiId(decodedText);
-
-          if (!upiId) {
-            setScannerError(
-              "This QR code does not contain a valid UPI payment address."
-            );
-            return;
-          }
-
-          updateForm("upiId", upiId);
-          setScanSource("Camera scan");
-          await stopScanner(scanner);
-          setScannerOpen(false);
-        },
-        () => {}
-      );
-
-      window.__veloopQrScanner = scanner;
-    } catch (err) {
-      setScanning(false);
-      setScannerError(
-        err?.message?.includes("Permission")
-          ? "Camera permission was denied. Please allow camera access and try again."
-          : "Unable to open the camera. Please use HTTPS/localhost and allow camera access."
-      );
-      try {
-        await scanner.clear();
-      } catch {
-        // Ignore scanner cleanup errors.
-      }
-    }
-  }
-
-  async function stopScanner(scannerInstance = window.__veloopQrScanner) {
+  async function stopScanner(scannerInstance = scannerRef.current) {
     const scanner = scannerInstance;
     setScanning(false);
-
     if (!scanner) return;
 
     try {
-      const state = scanner.getState?.();
-      if (state === 2 || state === 3) {
-        await scanner.stop();
-      }
+      await scanner.stop();
     } catch {
-      // Ignore scanner stop errors.
+      // Scanner may already be stopped or may not have started.
     }
 
     try {
-      await scanner.clear();
+      scanner.clear();
     } catch {
       // Ignore scanner cleanup errors.
     }
 
-    if (window.__veloopQrScanner === scanner) {
-      window.__veloopQrScanner = null;
+    if (scannerRef.current === scanner) {
+      scannerRef.current = null;
     }
   }
+
+  function startScanner() {
+    setScannerError("");
+    setScanning(false);
+    setScannerOpen(true);
+  }
+
+  useEffect(() => {
+    if (!scannerOpen) return undefined;
+
+    let cancelled = false;
+    let scanner = null;
+    let frameOne = 0;
+    let frameTwo = 0;
+
+    async function initializeScanner() {
+      const reader = document.getElementById("upi-qr-reader");
+      if (!reader || cancelled) return;
+
+      setScannerError("");
+
+      try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera access is not supported in this browser.");
+        }
+
+        // Ask for camera access first and select a real camera device.
+        // This is more reliable than forcing facingMode on laptops/desktops.
+        const cameras = await Html5Qrcode.getCameras();
+        if (cancelled) return;
+
+        if (!Array.isArray(cameras) || cameras.length === 0) {
+          throw new Error("No camera was found on this device.");
+        }
+
+        const preferredCamera =
+          cameras.find((camera) =>
+            /back|rear|environment/i.test(camera.label || "")
+          ) || cameras[0];
+
+        scanner = new Html5Qrcode("upi-qr-reader");
+        scannerRef.current = scanner;
+
+        await scanner.start(
+          preferredCamera.id,
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1,
+          },
+          async (decodedText) => {
+            if (cancelled) return;
+
+            const upiId = extractUpiId(decodedText);
+            if (!upiId) {
+              setScannerError(
+                "This QR code does not contain a valid UPI payment address."
+              );
+              return;
+            }
+
+            updateForm("upiId", upiId);
+            setScanSource("Camera scan");
+            await stopScanner(scanner);
+            setScannerOpen(false);
+          },
+          () => {}
+        );
+
+        if (!cancelled) {
+          setScanning(true);
+        }
+      } catch (err) {
+        if (cancelled) return;
+
+        setScanning(false);
+
+        const message = String(err?.message || err || "");
+        const lower = message.toLowerCase();
+
+        if (lower.includes("permission") || lower.includes("notallowed")) {
+          setScannerError(
+            "Camera permission was denied. Please allow camera access and try again."
+          );
+        } else if (lower.includes("no camera") || lower.includes("notfound")) {
+          setScannerError(
+            "No camera was found on this device. Please connect a camera or use Upload QR image."
+          );
+        } else {
+          setScannerError(
+            "Unable to open the camera. Please try again or use Upload QR image."
+          );
+        }
+
+        if (scanner) {
+          try {
+            await scanner.stop();
+          } catch {
+            // Ignore cleanup errors.
+          }
+
+          try {
+            scanner.clear();
+          } catch {
+            // Ignore cleanup errors.
+          }
+        }
+
+        if (scannerRef.current === scanner) {
+          scannerRef.current = null;
+        }
+      }
+    }
+
+    frameOne = window.requestAnimationFrame(() => {
+      frameTwo = window.requestAnimationFrame(() => {
+        void initializeScanner();
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      if (frameOne) window.cancelAnimationFrame(frameOne);
+      if (frameTwo) window.cancelAnimationFrame(frameTwo);
+      if (scanner) void stopScanner(scanner);
+    };
+  }, [scannerOpen]);
 
   async function handleQrImage(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
-
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -2890,7 +2955,7 @@ function QrPayoutScanner({ form, updateForm }) {
       );
     } finally {
       try {
-        await scanner.clear();
+        scanner.clear();
       } catch {
         // Ignore scanner cleanup errors.
       }
@@ -2901,7 +2966,6 @@ function QrPayoutScanner({ form, updateForm }) {
     <div className="form-grid single">
       <div className="input-group">
         <label>UPI QR code</label>
-
         <div
           style={{
             display: "grid",
@@ -2923,19 +2987,12 @@ function QrPayoutScanner({ form, updateForm }) {
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              type="button"
-              className="primary-btn"
-              onClick={startScanner}
-            >
+            <button type="button" className="primary-btn" onClick={startScanner}>
               <Icon name="qr" />
               Scan with camera
             </button>
 
-            <label
-              className="soft-btn"
-              style={{ cursor: "pointer" }}
-            >
+            <label className="soft-btn" style={{ cursor: "pointer" }}>
               Upload QR image
               <input
                 type="file"
@@ -2967,11 +3024,7 @@ function QrPayoutScanner({ form, updateForm }) {
             </div>
           )}
 
-          {scannerError && (
-            <small style={{ color: "#ff8d8d" }}>
-              {scannerError}
-            </small>
-          )}
+          {scannerError && <small style={{ color: "#ff8d8d" }}>{scannerError}</small>}
         </div>
 
         <div id="upi-qr-file-reader" style={{ display: "none" }} />
@@ -3010,19 +3063,15 @@ function QrPayoutScanner({ form, updateForm }) {
               }}
             >
               <div>
-                <strong style={{ display: "block" }}>
-                  Scan UPI QR
-                </strong>
-                <small>
-                  Camera ko QR code ke saamne rakhein.
-                </small>
+                <strong style={{ display: "block" }}>Scan UPI QR</strong>
+                <small>Camera ko QR code ke saamne rakhein.</small>
               </div>
 
               <button
                 type="button"
                 className="soft-btn"
                 onClick={() => {
-                  stopScanner();
+                  void stopScanner();
                   setScannerOpen(false);
                 }}
               >
@@ -3034,8 +3083,10 @@ function QrPayoutScanner({ form, updateForm }) {
               id="upi-qr-reader"
               style={{
                 width: "100%",
+                minHeight: "280px",
                 overflow: "hidden",
                 borderRadius: "16px",
+                background: "#050914",
               }}
             />
 
@@ -3046,7 +3097,9 @@ function QrPayoutScanner({ form, updateForm }) {
             )}
 
             {scannerError && (
-              <small style={{ display: "block", marginTop: "10px", color: "#ff8d8d" }}>
+              <small
+                style={{ display: "block", marginTop: "10px", color: "#ff8d8d" }}
+              >
                 {scannerError}
               </small>
             )}
@@ -4780,4 +4833,5 @@ function Icon({
 }
 
 export default App;
+
 
