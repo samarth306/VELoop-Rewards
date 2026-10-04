@@ -2980,10 +2980,6 @@ function QrPayoutScanner({ form, updateForm }) {
             <strong style={{ display: "block", marginBottom: "5px" }}>
               Scan your UPI QR
             </strong>
-            <small>
-              Camera se QR scan karein. UPI ID automatically detect ho jayegi;
-              manually type karne ki zarurat nahi hai.
-            </small>
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
