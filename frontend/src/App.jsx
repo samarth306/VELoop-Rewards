@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Html5Qrcode } from "html5-qrcode";
 import "./App.css";
 
 const API_URL = "https://veloop-rewards-jj94.onrender.com";
@@ -1057,16 +1058,13 @@ function App() {
       };
     }
 
-    if (
-      method === "UPI" ||
-      method === "QR"
-    ) {
-      if (
-        !withdrawForm.upiId.trim()
-      ) {
+    if (method === "UPI" || method === "QR") {
+      if (!withdrawForm.upiId.trim()) {
         return {
           error:
-            "Please enter your UPI ID.",
+            method === "QR"
+              ? "Please scan a UPI QR code first."
+              : "Please enter your UPI ID.",
         };
       }
 
@@ -1077,7 +1075,7 @@ function App() {
       ) {
         return {
           error:
-            "Please enter a valid UPI ID, for example name@upi.",
+            "Please use a valid UPI ID, for example name@upi.",
         };
       }
     }
@@ -2743,6 +2741,322 @@ function TransactionList({
   );
 }
 
+function QrPayoutScanner({ form, updateForm }) {
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scannerError, setScannerError] = useState("");
+  const [scanSource, setScanSource] = useState("");
+
+  useEffect(() => {
+    return () => {
+      stopScanner();
+    };
+  }, []);
+
+  function extractUpiId(decodedText) {
+    const value = String(decodedText || "").trim();
+    if (!value) return "";
+
+    if (/^[^\s@]+@[^\s@]+$/.test(value)) {
+      return value;
+    }
+
+    try {
+      const parsed = new URL(value);
+      const upiId =
+        parsed.searchParams.get("pa") ||
+        parsed.searchParams.get("upi_id") ||
+        parsed.searchParams.get("vpa");
+
+      if (upiId && /^[^\s@]+@[^\s@]+$/.test(upiId.trim())) {
+        return upiId.trim();
+      }
+    } catch {
+      // Some QR scanners return non-URL text; fall through to regex parsing.
+    }
+
+    const match = value.match(/(?:^|[?&])(?:pa|upi_id|vpa)=([^&\s]+)/i);
+    return match?.[1] && /^[^\s@]+@[^\s@]+$/.test(match[1])
+      ? decodeURIComponent(match[1])
+      : "";
+  }
+
+  async function startScanner() {
+    setScannerError("");
+    setScannerOpen(true);
+    setScanning(true);
+
+    const scanner = new Html5Qrcode("upi-qr-reader");
+
+    try {
+      await scanner.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1,
+        },
+        async (decodedText) => {
+          const upiId = extractUpiId(decodedText);
+
+          if (!upiId) {
+            setScannerError(
+              "This QR code does not contain a valid UPI payment address."
+            );
+            return;
+          }
+
+          updateForm("upiId", upiId);
+          setScanSource("Camera scan");
+          await stopScanner(scanner);
+          setScannerOpen(false);
+        },
+        () => {}
+      );
+
+      window.__veloopQrScanner = scanner;
+    } catch (err) {
+      setScanning(false);
+      setScannerError(
+        err?.message?.includes("Permission")
+          ? "Camera permission was denied. Please allow camera access and try again."
+          : "Unable to open the camera. Please use HTTPS/localhost and allow camera access."
+      );
+      try {
+        await scanner.clear();
+      } catch {
+        // Ignore scanner cleanup errors.
+      }
+    }
+  }
+
+  async function stopScanner(scannerInstance = window.__veloopQrScanner) {
+    const scanner = scannerInstance;
+    setScanning(false);
+
+    if (!scanner) return;
+
+    try {
+      const state = scanner.getState?.();
+      if (state === 2 || state === 3) {
+        await scanner.stop();
+      }
+    } catch {
+      // Ignore scanner stop errors.
+    }
+
+    try {
+      await scanner.clear();
+    } catch {
+      // Ignore scanner cleanup errors.
+    }
+
+    if (window.__veloopQrScanner === scanner) {
+      window.__veloopQrScanner = null;
+    }
+  }
+
+  async function handleQrImage(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setScannerError("Please select a valid QR image.");
+      return;
+    }
+
+    setScannerError("");
+    const scanner = new Html5Qrcode("upi-qr-file-reader");
+
+    try {
+      const decodedText = await scanner.scanFile(file, true);
+      const upiId = extractUpiId(decodedText);
+
+      if (!upiId) {
+        setScannerError(
+          "No valid UPI ID was found in this QR image. Please choose a UPI payment QR."
+        );
+        return;
+      }
+
+      updateForm("upiId", upiId);
+      updateForm("qrFileName", file.name);
+      setScanSource("QR image");
+    } catch {
+      setScannerError(
+        "Unable to read this QR image. Please upload a clear UPI QR code."
+      );
+    } finally {
+      try {
+        await scanner.clear();
+      } catch {
+        // Ignore scanner cleanup errors.
+      }
+    }
+  }
+
+  return (
+    <div className="form-grid single">
+      <div className="input-group">
+        <label>UPI QR code</label>
+
+        <div
+          style={{
+            display: "grid",
+            gap: "12px",
+            padding: "18px",
+            border: "1px solid rgba(255,255,255,0.09)",
+            borderRadius: "16px",
+            background: "rgba(255,255,255,0.025)",
+          }}
+        >
+          <div>
+            <strong style={{ display: "block", marginBottom: "5px" }}>
+              Scan your UPI QR
+            </strong>
+            <small>
+              Camera se QR scan karein. UPI ID automatically detect ho jayegi;
+              manually type karne ki zarurat nahi hai.
+            </small>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="primary-btn"
+              onClick={startScanner}
+            >
+              <Icon name="qr" />
+              Scan with camera
+            </button>
+
+            <label
+              className="soft-btn"
+              style={{ cursor: "pointer" }}
+            >
+              Upload QR image
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleQrImage}
+                style={{ display: "none" }}
+              />
+            </label>
+          </div>
+
+          {form.upiId && (
+            <div
+              style={{
+                padding: "12px 14px",
+                borderRadius: "12px",
+                background: "rgba(34,197,94,0.08)",
+                border: "1px solid rgba(34,197,94,0.18)",
+              }}
+            >
+              <small style={{ display: "block", marginBottom: "4px" }}>
+                Detected UPI ID
+              </small>
+              <strong>{form.upiId}</strong>
+              {scanSource && (
+                <small style={{ display: "block", marginTop: "4px" }}>
+                  Source: {scanSource}
+                </small>
+              )}
+            </div>
+          )}
+
+          {scannerError && (
+            <small style={{ color: "#ff8d8d" }}>
+              {scannerError}
+            </small>
+          )}
+        </div>
+
+        <div id="upi-qr-file-reader" style={{ display: "none" }} />
+      </div>
+
+      {scannerOpen && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 1000,
+            display: "grid",
+            placeItems: "center",
+            padding: "20px",
+            background: "rgba(3,7,18,0.88)",
+            backdropFilter: "blur(10px)",
+          }}
+        >
+          <div
+            style={{
+              width: "min(440px, 100%)",
+              padding: "20px",
+              borderRadius: "22px",
+              background: "#0d1424",
+              border: "1px solid rgba(255,255,255,0.10)",
+              boxShadow: "0 24px 80px rgba(0,0,0,0.45)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: "12px",
+                marginBottom: "14px",
+              }}
+            >
+              <div>
+                <strong style={{ display: "block" }}>
+                  Scan UPI QR
+                </strong>
+                <small>
+                  Camera ko QR code ke saamne rakhein.
+                </small>
+              </div>
+
+              <button
+                type="button"
+                className="soft-btn"
+                onClick={() => {
+                  stopScanner();
+                  setScannerOpen(false);
+                }}
+              >
+                Close
+              </button>
+            </div>
+
+            <div
+              id="upi-qr-reader"
+              style={{
+                width: "100%",
+                overflow: "hidden",
+                borderRadius: "16px",
+              }}
+            />
+
+            {scanning && (
+              <small style={{ display: "block", marginTop: "12px" }}>
+                Searching for a UPI QR code…
+              </small>
+            )}
+
+            {scannerError && (
+              <small style={{ display: "block", marginTop: "10px", color: "#ff8d8d" }}>
+                {scannerError}
+              </small>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function WithdrawalsPage({
   wallet,
   payoutOptions,
@@ -3059,19 +3373,13 @@ function WithdrawalsPage({
               </div>
             </div>
 
-            {form.method ===
-              "BANK" ? (
+            {form.method === "BANK" ? (
               <div className="form-grid">
                 <Field label="Account holder name">
                   <input
-                    value={
-                      form.accountName
-                    }
+                    value={form.accountName}
                     onChange={(e) =>
-                      updateForm(
-                        "accountName",
-                        e.target.value
-                      )
+                      updateForm("accountName", e.target.value)
                     }
                     placeholder="Full name as per bank"
                     autoComplete="name"
@@ -3080,14 +3388,9 @@ function WithdrawalsPage({
 
                 <Field label="Bank name">
                   <input
-                    value={
-                      form.bankName
-                    }
+                    value={form.bankName}
                     onChange={(e) =>
-                      updateForm(
-                        "bankName",
-                        e.target.value
-                      )
+                      updateForm("bankName", e.target.value)
                     }
                     placeholder="Bank name"
                   />
@@ -3095,16 +3398,11 @@ function WithdrawalsPage({
 
                 <Field label="Account number">
                   <input
-                    value={
-                      form.accountNumber
-                    }
+                    value={form.accountNumber}
                     onChange={(e) =>
                       updateForm(
                         "accountNumber",
-                        e.target.value.replace(
-                          /\D/g,
-                          ""
-                        )
+                        e.target.value.replace(/\D/g, "")
                       )
                     }
                     placeholder="Account number"
@@ -3114,9 +3412,7 @@ function WithdrawalsPage({
 
                 <Field label="IFSC code">
                   <input
-                    value={
-                      form.ifsc
-                    }
+                    value={form.ifsc}
                     onChange={(e) =>
                       updateForm(
                         "ifsc",
@@ -3124,70 +3420,32 @@ function WithdrawalsPage({
                       )
                     }
                     placeholder="ABCD0123456"
-                    maxLength={
-                      11
-                    }
+                    maxLength={11}
                   />
                 </Field>
               </div>
-            ) : (
+            ) : form.method === "UPI" ? (
               <div className="form-grid single">
                 <Field label="UPI ID">
                   <input
-                    value={
-                      form.upiId
-                    }
+                    value={form.upiId}
                     onChange={(e) =>
-                      updateForm(
-                        "upiId",
-                        e.target.value
-                      )
+                      updateForm("upiId", e.target.value)
                     }
                     placeholder="example@upi"
                     autoComplete="off"
                   />
 
                   <small>
-                    Use the UPI ID linked to your payout account.
+                    Enter the UPI ID linked to your payout account.
                   </small>
                 </Field>
-
-                {form.method ===
-                  "QR" && (
-                    <Field label="QR image (reference)">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(
-                          e
-                        ) => {
-                          const file =
-                            e.target.files?.[0];
-
-                          if (
-                            file &&
-                            file.type.startsWith(
-                              "image/"
-                            )
-                          ) {
-                            updateForm(
-                              "qrFileName",
-                              file.name
-                            );
-                          }
-                        }}
-                      />
-
-                      <small>
-                        {
-                          form.qrFileName
-                            ? `Selected: ${form.qrFileName}`
-                            : "Optional image reference for the UPI QR flow."
-                        }
-                      </small>
-                    </Field>
-                  )}
               </div>
+            ) : (
+              <QrPayoutScanner
+                form={form}
+                updateForm={updateForm}
+              />
             )}
           </div>
 
@@ -4522,3 +4780,4 @@ function Icon({
 }
 
 export default App;
+
