@@ -445,15 +445,15 @@ updated_at
 The currently configured payout mapping is:
 
 | Payout Value | Required VEs |
-|---:|---:|
-| â‚¹10 | 2,400 VEs |
-| â‚¹25 | 5,800 VEs |
-| â‚¹50 | 10,000 VEs |
-| â‚¹100 | 19,500 VEs |
-| â‚¹150 | 28,500 VEs |
-| â‚¹300 | 52,500 VEs |
-| â‚¹500 | 80,500 VEs |
-| â‚¹1,000 | 150,000 VEs |
+| -----------: | -----------: |
+|        â‚¹10 |    2,400 VEs |
+|        â‚¹25 |    5,800 VEs |
+|        â‚¹50 |   10,000 VEs |
+|       â‚¹100 |   19,500 VEs |
+|       â‚¹150 |   28,500 VEs |
+|       â‚¹300 |   52,500 VEs |
+|       â‚¹500 |   80,500 VEs |
+|     â‚¹1,000 |  150,000 VEs |
 
 These values are part of the backend payout configuration. The frontend uses the payout-option response instead of treating these values as the authoritative business rule.
 
@@ -840,15 +840,15 @@ VELOop Project/
 
 # API Summary
 
-| Category | Main Endpoints |
-|---|---|
+| Category       | Main Endpoints                                                                                                        |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Authentication | `/auth/register`, `/auth/login`, `/auth/me`, `/auth/change-password`, `/auth/forgot-password`, `/auth/reset-password` |
-| Profile | `/auth/me` |
-| Health | `/`, `/health` |
-| Payout | `/payout-options`, `/payout-options/{option_id}` |
-| Wallet | `/wallet/me` |
-| Transactions | `/wallet/me/transactions` |
-| Withdrawals | `/wallet/me/withdrawal`, `/wallet/me/withdrawals` |
+| Profile        | `/auth/me`                                                                                                            |
+| Health         | `/`, `/health`                                                                                                        |
+| Payout         | `/payout-options`, `/payout-options/{option_id}`                                                                      |
+| Wallet         | `/wallet/me`                                                                                                          |
+| Transactions   | `/wallet/me/transactions`                                                                                             |
+| Withdrawals    | `/wallet/me/withdrawal`, `/wallet/me/withdrawals`                                                                     |
 
 The backend also contains demonstration/admin endpoints used for project maintenance and testing. Sensitive maintenance credentials must remain outside source control.
 
@@ -981,5 +981,3 @@ The implementation focuses on:
 - idempotent withdrawal handling
 - persistent MongoDB records
 - a polished demonstration frontend
-
-

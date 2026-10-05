@@ -34,6 +34,7 @@ const DEFAULT_PAYOUT_OPTIONS = [
 
 const NAV_ITEMS = [
   { key: "Wallet", icon: "wallet", label: "Wallet" },
+  { key: "Rewards", icon: "plus", label: "Rewards" },
   { key: "Transactions", icon: "activity", label: "Transactions" },
   { key: "Withdrawals", icon: "arrow-up", label: "Withdrawals" },
 ];
@@ -112,6 +113,9 @@ function App() {
   const [wallet, setWallet] = useState(EMPTY_WALLET);
   const [transactions, setTransactions] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [dailyReward, setDailyReward] = useState(null);
+  const [rewardConfig, setRewardConfig] = useState(null);
+  const [rewardBusy, setRewardBusy] = useState(false);
 
   const [profile, setProfile] = useState({
     name: "VELOOP User",
@@ -560,6 +564,7 @@ function App() {
         loadWallet(),
         loadTransactions(),
         loadWithdrawals(),
+        loadRewards(),
         loadProfile(),
         loadPayoutOptions(),
       ]);
@@ -614,6 +619,68 @@ function App() {
         ? data.withdrawals
         : []
     );
+  }
+
+  async function loadRewards() {
+    const [status, config] = await Promise.all([
+      apiRequest("/rewards/daily/status"),
+      apiRequest("/rewards/config"),
+    ]);
+    setDailyReward(status);
+    setRewardConfig(config);
+  }
+
+  async function claimDailyReward() {
+    setError("");
+    setSuccess("");
+    setRewardBusy(true);
+    try {
+      const data = await apiRequest("/rewards/daily", { method: "POST" });
+      await loadRewards();
+      await loadWallet();
+      await loadTransactions();
+      if (data.already_claimed) {
+        setError("Today's reward has already been claimed.");
+      } else {
+        setSuccess(`Day ${data.claim.day} reward claimed successfully.`);
+      }
+    } catch (err) {
+      setError(err.message || "Unable to claim daily reward.");
+    } finally {
+      setRewardBusy(false);
+    }
+  }
+
+  async function spinForReward() {
+    setError("");
+    setSuccess("");
+    setRewardBusy(true);
+    try {
+      const data = await apiRequest("/rewards/spin", { method: "POST" });
+      await loadWallet();
+      await loadTransactions();
+      setSuccess(`Spin complete: +${formatNumber(data.reward_ves)} VEs. ${formatNumber(data.spins_remaining)} spins left.`);
+    } catch (err) {
+      setError(err.message || "Unable to complete spin.");
+    } finally {
+      setRewardBusy(false);
+    }
+  }
+
+  async function convertRewards() {
+    setError("");
+    setSuccess("");
+    setRewardBusy(true);
+    try {
+      const data = await apiRequest("/rewards/convert", { method: "POST" });
+      await loadWallet();
+      await loadTransactions();
+      setSuccess(`${formatNumber(data.converted_ves)} VEs added from reward conversion.`);
+    } catch (err) {
+      setError(err.message || "No convertible rewards available.");
+    } finally {
+      setRewardBusy(false);
+    }
   }
 
   async function loadProfile() {
@@ -1794,6 +1861,19 @@ function App() {
         )}
 
         {activeTab ===
+          "Rewards" && (
+            <RewardsPage
+              wallet={wallet}
+              dailyReward={dailyReward}
+              rewardConfig={rewardConfig}
+              busy={rewardBusy}
+              onDailyReward={claimDailyReward}
+              onSpin={spinForReward}
+              onConvert={convertRewards}
+            />
+          )}
+
+        {activeTab ===
           "Wallet" && (
             <WalletPage
               wallet={
@@ -2150,6 +2230,102 @@ function ProfileDropdown({
         <Icon name="logout" />
         Logout
       </button>
+    </div>
+  );
+}
+
+function RewardsPage({
+  wallet,
+  dailyReward,
+  rewardConfig,
+  busy,
+  onDailyReward,
+  onSpin,
+  onConvert,
+}) {
+  const nextReward = dailyReward?.reward || {};
+  const conversionRates = rewardConfig?.conversion_rates || {
+    sves: 500,
+    tokens: 2000,
+    gems: 5000,
+  };
+
+  return (
+    <div className="content-stack">
+      <section className="reward-hero">
+        <div>
+          <div className="section-kicker">REWARD CENTER</div>
+          <h2>Earn more. Convert more. Withdraw VEs.</h2>
+          <p>Daily rewards, backend-controlled spins and one-tap conversion keep every balance server-authoritative.</p>
+        </div>
+        <div className="reward-hero-orb">✦</div>
+      </section>
+
+      <section className="reward-grid">
+        <article className="reward-card daily-card">
+          <div className="reward-card-head">
+            <div>
+              <span className="reward-kicker">DAILY STREAK</span>
+              <h3>Day {dailyReward?.day || 1} reward</h3>
+            </div>
+            <span className="reward-day-badge">10 DAY</span>
+          </div>
+          <div className="reward-amount-row">
+            <strong>+{formatAmount(nextReward.ves || 0)} VEs</strong>
+            <span>{dailyReward?.claimed_today ? "Claimed today" : "Ready to claim"}</span>
+          </div>
+          <div className="reward-mini-assets">
+            {Object.entries(nextReward).filter(([key]) => key !== "ves").map(([key, value]) => (
+              <span key={key}>{`+${value} ${key.toUpperCase()}`}</span>
+            ))}
+          </div>
+          <button className="reward-btn primary" onClick={onDailyReward} disabled={busy || dailyReward?.claimed_today}>
+            {dailyReward?.claimed_today ? "Claimed Today" : busy ? "Claiming..." : "Claim Daily Reward"}
+          </button>
+        </article>
+
+        <article className="reward-card spin-card">
+          <div className="reward-card-head">
+            <div>
+              <span className="reward-kicker">LUCKY SPIN</span>
+              <h3>Use a spin</h3>
+            </div>
+            <span className="spin-count">{formatAmount(wallet.spins)} SPINS</span>
+          </div>
+          <p className="reward-description">Each spin consumes exactly one server-side spin and awards {formatAmount(rewardConfig?.spin_reward_ves || 100)} VEs.</p>
+          <button className="reward-btn" onClick={onSpin} disabled={busy || Number(wallet.spins || 0) < 1}>
+            {busy ? "Processing..." : "Spin for VEs"}
+          </button>
+        </article>
+      </section>
+
+      <section className="reward-card conversion-card">
+        <div className="reward-card-head">
+          <div>
+            <span className="reward-kicker">REWARD CONVERTER</span>
+            <h3>Convert utility rewards to VEs</h3>
+          </div>
+          <span className="conversion-total">{formatAmount(wallet.ves)} VEs</span>
+        </div>
+        <div className="conversion-list">
+          {Object.entries(conversionRates).map(([currency, rate]) => (
+            <div className="conversion-row" key={currency}>
+              <span>{currency.toUpperCase()}</span>
+              <strong>{formatAmount(wallet[currency])}</strong>
+              <span>× {formatAmount(rate)}</span>
+              <b>= {formatAmount(Number(wallet[currency] || 0) * Number(rate || 0))} VEs</b>
+            </div>
+          ))}
+        </div>
+        <button className="reward-btn primary" onClick={onConvert} disabled={busy || !Object.keys(conversionRates).some((key) => Number(wallet[key] || 0) > 0)}>
+          {busy ? "Converting..." : "Convert All to VEs"}
+        </button>
+      </section>
+
+      <section className="reward-rules">
+        <div><strong>Daily cycle</strong><span>Day 1–4: 100 VEs · Day 5: 100 VEs + 1 SVE + 1 Spin · Day 6–9: 100 VEs · Day 10: 200 VEs + 1 SVE + 1 Token + 1 Gem + 1 Spin.</span></div>
+        <div><strong>Conversion</strong><span>1 SVE = 500 VEs · 1 Token = 2,000 VEs · 1 Gem = 5,000 VEs.</span></div>
+      </section>
     </div>
   );
 }
@@ -2980,6 +3156,10 @@ function QrPayoutScanner({ form, updateForm }) {
             <strong style={{ display: "block", marginBottom: "5px" }}>
               Scan your UPI QR
             </strong>
+            <small>
+              Camera se QR scan karein. UPI ID automatically detect ho jayegi;
+              manually type karne ki zarurat nahi hai.
+            </small>
           </div>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -4829,5 +5009,4 @@ function Icon({
 }
 
 export default App;
-
 

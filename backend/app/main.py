@@ -80,6 +80,14 @@ from backend.app.collections import (
 
 from backend.app.wallet_service import credit_wallet
 
+from backend.app.reward_service import (
+    get_daily_status,
+    claim_daily_reward,
+    spin_reward,
+    convert_all_to_ves,
+)
+
+
 from backend.app.models.auth import (
 
     RegisterRequest,
@@ -3320,7 +3328,11 @@ def get_my_wallet(
 
 class AdminRewardCreditRequest(BaseModel):
     email: EmailStr
-    amount: int = Field(gt=0)
+
+    sves: int = Field(default=0, ge=0)
+    tokens: int = Field(default=0, ge=0)
+    spins: int = Field(default=0, ge=0)
+
     description: str = Field(
         default="Manual reward credit",
         max_length=200,
@@ -3391,78 +3403,122 @@ def admin_reset_password(
         "email": email,
     }
 
-
 @app.post("/admin/rewards/credit")
-
 def admin_reward_credit(
-
     request: AdminRewardCreditRequest,
-
 ):
-
     user = users_collection.find_one(
-
         {"email": request.email.lower().strip()},
-
         {"_id": 0},
-
     )
 
-
-
     if not user:
-
         raise HTTPException(
-
             status_code=404,
-
             detail="User not found",
-
         )
-
-
 
     try:
+        credits = {
+            "sves": request.sves,
+            "tokens": request.tokens,
+            "spins": request.spins,
+        }
 
-        return credit_wallet(
+        credits = {
+            currency: amount
+            for currency, amount in credits.items()
+            if amount > 0
+        }
 
-            user_id=user["user_id"],
+        if not credits:
+            raise HTTPException(
+                status_code=400,
+                detail="At least one reward amount must be greater than zero",
+            )
 
-            currency="ves",
+        results = []
 
-            amount=request.amount,
+        for currency, amount in credits.items():
+            results.append(
+                credit_wallet(
+                    user_id=user["user_id"],
+                    currency=currency,
+                    amount=amount,
+                    source="ADMIN_REWARD",
+                    description=request.description,
+                    transaction_type="REWARD",
+                )
+            )
 
-            source="ADMIN_REWARD",
-
-            description=request.description,
-
-            transaction_type="REWARD",
-
-        )
+        return {
+            "message": "Rewards credited successfully",
+            "email": str(request.email).lower().strip(),
+            "credits": credits,
+            "transactions": results,
+        }
 
     except HTTPException:
-
         raise
 
     except Exception as exc:
-
         print(
-
             "ADMIN REWARD CREDIT ERROR:",
-
             type(exc).__name__,
-
             str(exc),
-
         )
 
         raise HTTPException(
-
             status_code=500,
-
-            detail=f"Reward credit failed: {type(exc).__name__}: {exc}",
-
+            detail="Reward credit failed",
         )
+
+# ---------------------------------------------------------------------------
+# REWARDS
+# ---------------------------------------------------------------------------
+
+@app.get("/rewards/daily")
+def get_my_daily_reward(
+    current_user: dict = Depends(
+        get_current_user
+    ),
+):
+    return get_daily_status(
+        current_user["user_id"]
+    )
+
+
+@app.post("/rewards/daily/claim")
+def claim_my_daily_reward(
+    current_user: dict = Depends(
+        get_current_user
+    ),
+):
+    return claim_daily_reward(
+        current_user["user_id"]
+    )
+
+
+@app.post("/rewards/spin")
+def use_my_spin(
+    current_user: dict = Depends(
+        get_current_user
+    ),
+):
+    return spin_reward(
+        current_user["user_id"]
+    )
+
+
+@app.post("/rewards/convert")
+def convert_my_rewards(
+    current_user: dict = Depends(
+        get_current_user
+    ),
+):
+    return convert_all_to_ves(
+        current_user["user_id"]
+    )
 
 @app.get("/wallet/me/transactions")
 
