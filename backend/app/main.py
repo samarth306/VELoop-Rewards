@@ -3328,8 +3328,9 @@ def get_my_wallet(
 
 class AdminRewardCreditRequest(BaseModel):
     email: EmailStr
-
+    
     sves: int = Field(default=0, ge=0)
+    gems: int = Field(default=0, ge=0)
     tokens: int = Field(default=0, ge=0)
     spins: int = Field(default=0, ge=0)
 
@@ -3420,10 +3421,11 @@ def admin_reward_credit(
 
     try:
         credits = {
-            "sves": request.sves,
-            "tokens": request.tokens,
-            "spins": request.spins,
-        }
+    "sves": request.sves,
+    "gems": request.gems,
+    "tokens": request.tokens,
+    "spins": request.spins,
+}
 
         credits = {
             currency: amount
