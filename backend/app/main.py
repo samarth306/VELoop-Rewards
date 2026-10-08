@@ -1,41 +1,3 @@
-"""
-
-VELOOP Rewards API
-
-------------------
-
-Backend-driven FastAPI backend for the VELOOP Rewards Wallet & Payout System.
-
-
-
-Core guarantees:
-
-- JWT-protected user wallet endpoints
-
-- Backend-owned balances
-
-- Server-authoritative payout calculations
-
-- Multiple wallet currencies
-
-- Wallet transaction ledger
-
-- Safe withdrawal flow
-
-- Withdrawal idempotency
-
-- Concurrent balance protection
-
-- Payout detail validation and masking
-
-- Password change/reset support
-
-- API health and metadata
-
-"""
-
-
-
 import hashlib
 
 import os
@@ -52,8 +14,6 @@ from typing import Any, Optional
 
 from uuid import uuid4
 
-
-
 from fastapi import Depends, FastAPI, HTTPException
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -61,9 +21,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from pydantic import BaseModel, EmailStr, Field
-
-
-
+from pymongo import ReturnDocument
+from backend.database import client
 from backend.app.collections import (
 
     users_collection,
@@ -76,17 +35,7 @@ from backend.app.collections import (
 
 )
 
-
-
 from backend.app.wallet_service import credit_wallet
-
-from backend.app.reward_service import (
-    get_daily_status,
-    claim_daily_reward,
-    spin_reward,
-    convert_all_to_ves,
-)
-
 
 from backend.app.models.auth import (
 
@@ -98,8 +47,6 @@ from backend.app.models.auth import (
 
 )
 
-
-
 from backend.app.auth_service import (
 
     hash_password,
@@ -107,8 +54,6 @@ from backend.app.auth_service import (
     verify_password,
 
 )
-
-
 
 from backend.app.jwt_service import (
 
@@ -118,27 +63,25 @@ from backend.app.jwt_service import (
 
 )
 
+from backend.app.reward_service import (
 
+    DAILY_REWARDS,
 
+    claim_daily_reward,
 
+    get_daily_status,
 
-# ---------------------------------------------------------------------------
+)
 
-# APP CONFIGURATION
+from backend.app import collections as app_collections
 
-# ---------------------------------------------------------------------------
+audit_logs_collection = getattr(app_collections, "audit_logs_collection", None)
 
-
-
-APP_VERSION = "2.1.0"
-
-
+APP_VERSION = "2.3.0"
 
 MIN_WITHDRAWAL_VES = 100
 
 RESET_TOKEN_MINUTES = 30
-
-
 
 ALLOWED_CURRENCIES = {
 
@@ -153,52 +96,6 @@ ALLOWED_CURRENCIES = {
     "spins",
 
 }
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# PAYOUT CONFIGURATION
-
-# ---------------------------------------------------------------------------
-
-
-
-# Server-side payout configuration.
-
-#
-
-# payout_value = actual payout value in INR
-
-# required_amount = VEs required for that payout
-
-#
-
-# The frontend must never decide the required VEs.
-
-
-
-      # ---------------------------------------------------------------------------
-
-# PAYOUT CONFIGURATION
-
-# ---------------------------------------------------------------------------
-
-
-
-# Server-side payout configuration.
-
-#
-
-# payout_value = actual payout value in INR
-
-# required_amount = VEs required for that payout
-
-#
-
-# The frontend must never decide the required VEs.
 
 PAYOUT_OPTIONS = [
 
@@ -216,21 +113,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -252,21 +149,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -288,21 +185,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -311,10 +208,6 @@ PAYOUT_OPTIONS = [
     },
 
 ]
-
-
-
-
 
 app = FastAPI(
 
@@ -336,18 +229,6 @@ app = FastAPI(
 
 )
 
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# CORS
-
-# ---------------------------------------------------------------------------
-
-
-
 _default_origins = [
 
     "http://localhost:5173",
@@ -368,8 +249,6 @@ _default_origins = [
 
 ]
 
-
-
 _env_origins = [
 
     item.strip()
@@ -380,15 +259,11 @@ _env_origins = [
 
 ]
 
-
-
 allowed_origins = list(
 
     dict.fromkeys(_default_origins + _env_origins)
 
 )
-
-
 
 app.add_middleware(
 
@@ -404,31 +279,11 @@ app.add_middleware(
 
 )
 
-
-
-
-
 security = HTTPBearer()
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# COMMON HELPERS
-
-# ---------------------------------------------------------------------------
-
-
 
 def now_utc() -> datetime:
 
     return datetime.now(timezone.utc)
-
-
-
-
 
 def public_document(document: Optional[dict]) -> dict:
 
@@ -436,11 +291,7 @@ def public_document(document: Optional[dict]) -> dict:
 
         return {}
 
-
-
     result = dict(document)
-
-
 
     result.pop("_id", None)
 
@@ -448,13 +299,7 @@ def public_document(document: Optional[dict]) -> dict:
 
     result.pop("reset_token_hash", None)
 
-
-
     return result
-
-
-
-
 
 def get_user_by_email(email: str) -> Optional[dict]:
 
@@ -464,10 +309,6 @@ def get_user_by_email(email: str) -> Optional[dict]:
 
     )
 
-
-
-
-
 def get_user_wallet(user_id: str) -> dict:
 
     wallet = wallets_collection.find_one(
@@ -475,8 +316,6 @@ def get_user_wallet(user_id: str) -> dict:
         {"user_id": user_id}
 
     )
-
-
 
     if not wallet:
 
@@ -488,19 +327,11 @@ def get_user_wallet(user_id: str) -> dict:
 
         )
 
-
-
     return wallet
-
-
-
-
 
 def validate_currency(currency: str) -> str:
 
     currency = currency.strip().lower()
-
-
 
     if currency not in ALLOWED_CURRENCIES:
 
@@ -512,29 +343,39 @@ def validate_currency(currency: str) -> str:
 
         )
 
-
-
     return currency
 
+def write_audit(user_id: str, action: str, metadata: Optional[dict] = None):
 
+    if audit_logs_collection is None:
 
+        return
 
+    try:
 
-# ---------------------------------------------------------------------------
+        audit_logs_collection.insert_one({
 
-# PAYOUT HELPERS
+            "audit_id": str(uuid4()),
 
-# ---------------------------------------------------------------------------
+            "user_id": user_id,
 
+            "action": action,
 
+            "metadata": metadata or {},
+
+            "created_at": now_utc(),
+
+        })
+
+    except Exception:
+
+        pass
 
 def get_payout_option(option_id: str) -> dict:
 
     """
 
     Find an active payout method.
-
-
 
     The backend owns this configuration.
 
@@ -552,8 +393,6 @@ def get_payout_option(option_id: str) -> dict:
 
             return option
 
-
-
     raise HTTPException(
 
         status_code=400,
@@ -561,10 +400,6 @@ def get_payout_option(option_id: str) -> dict:
         detail="Invalid or inactive payout option",
 
     )
-
-
-
-
 
 def get_payout_denomination(
 
@@ -578,13 +413,11 @@ def get_payout_denomination(
 
     Find the server-authoritative payout denomination.
 
-
-
     Example:
 
-        ₹10 -> 2400 VEs
+        ₹10 -> 1000 VEs
 
-        ₹100 -> 19500 VEs
+        ₹100 -> 10000 VEs
 
     """
 
@@ -594,8 +427,6 @@ def get_payout_denomination(
 
             return denomination
 
-
-
     raise HTTPException(
 
         status_code=400,
@@ -603,18 +434,6 @@ def get_payout_denomination(
         detail="Invalid or unavailable payout denomination",
 
     )
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# PAYOUT DETAIL SECURITY
-
-# ---------------------------------------------------------------------------
-
-
 
 def mask_payout_details(details: dict) -> dict:
 
@@ -626,35 +445,23 @@ def mask_payout_details(details: dict) -> dict:
 
     """
 
-
-
     safe = {}
-
-
 
     for key, value in (details or {}).items():
 
         text = str(value) if value is not None else ""
 
-
-
         if key in {"account_number", "upi_id"}:
-
-
 
             if "@" in text:
 
                 name, domain = text.split("@", 1)
-
-
 
                 safe[key] = (
 
                     f"{name[:2]}***@{domain}"
 
                 )
-
-
 
             elif len(text) > 4:
 
@@ -664,13 +471,9 @@ def mask_payout_details(details: dict) -> dict:
 
                 )
 
-
-
             else:
 
                 safe[key] = "••••"
-
-
 
         elif key in {
 
@@ -686,25 +489,15 @@ def mask_payout_details(details: dict) -> dict:
 
             safe[key] = text
 
-
-
         else:
 
             safe[key] = text
 
-
-
     return safe
-
-
-
-
 
 def sanitize_withdrawal(document: dict) -> dict:
 
     result = public_document(document)
-
-
 
     result["payout_details"] = mask_payout_details(
 
@@ -712,21 +505,7 @@ def sanitize_withdrawal(document: dict) -> dict:
 
     )
 
-
-
     return result
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# PAYOUT DETAIL VALIDATION
-
-# ---------------------------------------------------------------------------
-
-
 
 def validate_payout_details(
 
@@ -735,8 +514,6 @@ def validate_payout_details(
     details: dict,
 
 ) -> dict:
-
-
 
     if not isinstance(details, dict):
 
@@ -748,15 +525,9 @@ def validate_payout_details(
 
         )
 
-
-
     option = get_payout_option(option_id)
 
-
-
     payout_type = option["type"]
-
-
 
     normalized = {
 
@@ -766,23 +537,13 @@ def validate_payout_details(
 
     }
 
-
-
-    # ---------------- UPI ----------------
-
-
-
     if payout_type == "UPI":
-
-
 
         upi_id = str(
 
             normalized.get("upi_id", "")
 
         ).strip()
-
-
 
         if (
 
@@ -808,8 +569,6 @@ def validate_payout_details(
 
             )
 
-
-
         normalized = {
 
             "upi_id": upi_id,
@@ -818,15 +577,7 @@ def validate_payout_details(
 
         }
 
-
-
-    # ---------------- BANK TRANSFER ----------------
-
-
-
     elif payout_type == "BANK_TRANSFER":
-
-
 
         account_name = str(
 
@@ -834,15 +585,11 @@ def validate_payout_details(
 
         ).strip()
 
-
-
         account_number = str(
 
             normalized.get("account_number", "")
 
         ).strip()
-
-
 
         ifsc = str(
 
@@ -850,15 +597,11 @@ def validate_payout_details(
 
         ).strip().upper()
 
-
-
         bank_name = str(
 
             normalized.get("bank_name", "")
 
         ).strip()
-
-
 
         if len(account_name) < 2:
 
@@ -873,8 +616,6 @@ def validate_payout_details(
                 ),
 
             )
-
-
 
         if (
 
@@ -896,8 +637,6 @@ def validate_payout_details(
 
             )
 
-
-
         if not (
 
             len(ifsc) == 11
@@ -918,8 +657,6 @@ def validate_payout_details(
 
             )
 
-
-
         if len(bank_name) < 2:
 
             raise HTTPException(
@@ -929,8 +666,6 @@ def validate_payout_details(
                 detail="Bank name is required",
 
             )
-
-
 
         normalized = {
 
@@ -944,15 +679,7 @@ def validate_payout_details(
 
         }
 
-
-
-    # ---------------- UPI QR ----------------
-
-
-
     elif payout_type == "UPI_QR":
-
-
 
         upi_id = str(
 
@@ -960,15 +687,11 @@ def validate_payout_details(
 
         ).strip()
 
-
-
         qr_file_name = str(
 
             normalized.get("qr_file_name", "")
 
         ).strip()
-
-
 
         if not upi_id and not qr_file_name:
 
@@ -986,8 +709,6 @@ def validate_payout_details(
 
             )
 
-
-
         if upi_id and (
 
             "@" not in upi_id
@@ -1004,8 +725,6 @@ def validate_payout_details(
 
             )
 
-
-
         normalized = {
 
             "upi_id": upi_id or None,
@@ -1015,8 +734,6 @@ def validate_payout_details(
             "qr_file_name": qr_file_name or None,
 
         }
-
-
 
     else:
 
@@ -1028,21 +745,7 @@ def validate_payout_details(
 
         )
 
-
-
     return normalized
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# WALLET TRANSACTION HELPER
-
-# ---------------------------------------------------------------------------
-
-
 
 def create_wallet_transaction(
 
@@ -1070,8 +773,6 @@ def create_wallet_transaction(
 
 ) -> dict:
 
-
-
     if amount <= 0:
 
         raise HTTPException(
@@ -1081,8 +782,6 @@ def create_wallet_transaction(
             detail="Transaction amount must be greater than zero",
 
         )
-
-
 
     transaction = {
 
@@ -1116,29 +815,13 @@ def create_wallet_transaction(
 
     }
 
-
-
     transactions_collection.insert_one(
 
         transaction
 
     )
 
-
-
     return public_document(transaction)
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# PASSWORD RESET EMAIL
-
-# ---------------------------------------------------------------------------
-
-
 
 def send_reset_email(
 
@@ -1148,8 +831,6 @@ def send_reset_email(
 
 ) -> bool:
 
-
-
     smtp_host = os.getenv(
 
         "SMTP_HOST",
@@ -1157,8 +838,6 @@ def send_reset_email(
         "",
 
     ).strip()
-
-
 
     smtp_port = int(
 
@@ -1172,8 +851,6 @@ def send_reset_email(
 
     )
 
-
-
     smtp_user = os.getenv(
 
         "SMTP_USER",
@@ -1181,8 +858,6 @@ def send_reset_email(
         "",
 
     ).strip()
-
-
 
     smtp_password = os.getenv(
 
@@ -1192,8 +867,6 @@ def send_reset_email(
 
     )
 
-
-
     smtp_from = os.getenv(
 
         "SMTP_FROM",
@@ -1202,8 +875,6 @@ def send_reset_email(
 
     ).strip()
 
-
-
     frontend_url = os.getenv(
 
         "FRONTEND_URL",
@@ -1211,8 +882,6 @@ def send_reset_email(
         "http://localhost:5173",
 
     ).rstrip("/")
-
-
 
     if (
 
@@ -1228,8 +897,6 @@ def send_reset_email(
 
         return False
 
-
-
     reset_link = (
 
         f"{frontend_url}/reset-password"
@@ -1238,11 +905,7 @@ def send_reset_email(
 
     )
 
-
-
     message = EmailMessage()
-
-
 
     message["Subject"] = (
 
@@ -1250,13 +913,9 @@ def send_reset_email(
 
     )
 
-
-
     message["From"] = smtp_from
 
     message["To"] = email
-
-
 
     message.set_content(
 
@@ -1276,8 +935,6 @@ def send_reset_email(
 
     )
 
-
-
     with smtplib.SMTP(
 
         smtp_host,
@@ -1288,11 +945,7 @@ def send_reset_email(
 
     ) as server:
 
-
-
         server.starttls()
-
-
 
         server.login(
 
@@ -1302,25 +955,9 @@ def send_reset_email(
 
         )
 
-
-
         server.send_message(message)
 
-
-
     return True
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# REQUEST MODELS
-
-# ---------------------------------------------------------------------------
-
-
 
 class TransactionRequest(BaseModel):
 
@@ -1332,15 +969,11 @@ class TransactionRequest(BaseModel):
 
     )
 
-
-
     amount: int = Field(
 
         gt=0,
 
     )
-
-
 
     source: str = Field(
 
@@ -1350,8 +983,6 @@ class TransactionRequest(BaseModel):
 
     )
 
-
-
     description: str = Field(
 
         default="",
@@ -1360,31 +991,13 @@ class TransactionRequest(BaseModel):
 
     )
 
-
-
-
-
 class WithdrawalRequest(BaseModel):
-
-    # This is the INR payout denomination.
-
-    #
-
-    # Example:
-
-    # amount=10 means ₹10 payout.
-
-    #
-
-    # Backend calculates required VEs.
 
     amount: int = Field(
 
         gt=0,
 
     )
-
-
 
     payout_option_id: str = Field(
 
@@ -1394,11 +1007,7 @@ class WithdrawalRequest(BaseModel):
 
     )
 
-
-
     payout_details: dict
-
-
 
     request_id: Optional[str] = Field(
 
@@ -1407,10 +1016,6 @@ class WithdrawalRequest(BaseModel):
         max_length=100,
 
     )
-
-
-
-
 
 class ProfileUpdateRequest(BaseModel):
 
@@ -1422,10 +1027,6 @@ class ProfileUpdateRequest(BaseModel):
 
     )
 
-
-
-
-
 class ChangePasswordRequest(BaseModel):
 
     current_password: str = Field(
@@ -1433,8 +1034,6 @@ class ChangePasswordRequest(BaseModel):
         min_length=1,
 
     )
-
-
 
     new_password: str = Field(
 
@@ -1444,17 +1043,9 @@ class ChangePasswordRequest(BaseModel):
 
     )
 
-
-
-
-
 class ForgotPasswordRequest(BaseModel):
 
     email: EmailStr
-
-
-
-
 
 class ResetPasswordRequest(BaseModel):
 
@@ -1464,8 +1055,6 @@ class ResetPasswordRequest(BaseModel):
 
     )
 
-
-
     new_password: str = Field(
 
         min_length=8,
@@ -1473,18 +1062,6 @@ class ResetPasswordRequest(BaseModel):
         max_length=128,
 
     )
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# AUTHENTICATION
-
-# ---------------------------------------------------------------------------
-
-
 
 def get_current_user(
 
@@ -1496,8 +1073,6 @@ def get_current_user(
 
 ):
 
-
-
     try:
 
         payload = decode_access_token(
@@ -1505,8 +1080,6 @@ def get_current_user(
             credentials.credentials
 
         )
-
-
 
     except Exception:
 
@@ -1518,11 +1091,7 @@ def get_current_user(
 
         )
 
-
-
     user_id = payload.get("sub")
-
-
 
     if not user_id:
 
@@ -1533,8 +1102,6 @@ def get_current_user(
             detail="Invalid token",
 
         )
-
-
 
     user = users_collection.find_one(
 
@@ -1552,8 +1119,6 @@ def get_current_user(
 
     )
 
-
-
     if not user:
 
         raise HTTPException(
@@ -1563,8 +1128,6 @@ def get_current_user(
             detail="User not found",
 
         )
-
-
 
     if user.get("account_status") != "ACTIVE":
 
@@ -1576,13 +1139,7 @@ def get_current_user(
 
         )
 
-
-
     return user
-
-
-
-
 
 @app.post(
 
@@ -1598,11 +1155,7 @@ def register(
 
 ):
 
-
-
     email = request.email.strip().lower()
-
-
 
     if get_user_by_email(email):
 
@@ -1614,17 +1167,11 @@ def register(
 
         )
 
-
-
     user_id = str(uuid4())
 
     wallet_id = str(uuid4())
 
-
-
     timestamp = now_utc()
-
-
 
     user = {
 
@@ -1650,8 +1197,6 @@ def register(
 
     }
 
-
-
     wallet = {
 
         "wallet_id": wallet_id,
@@ -1674,17 +1219,11 @@ def register(
 
     }
 
-
-
     try:
 
         users_collection.insert_one(user)
 
-
-
         wallets_collection.insert_one(wallet)
-
-
 
     except Exception:
 
@@ -1694,15 +1233,11 @@ def register(
 
         )
 
-
-
         wallets_collection.delete_one(
 
             {"wallet_id": wallet_id}
 
         )
-
-
 
         raise HTTPException(
 
@@ -1711,8 +1246,6 @@ def register(
             detail="Unable to create account",
 
         )
-
-
 
     return {
 
@@ -1725,10 +1258,6 @@ def register(
         "token_type": "bearer",
 
     }
-
-
-
-
 
 @app.post(
 
@@ -1744,15 +1273,9 @@ def login(
 
 ):
 
-
-
     email = request.email.strip().lower()
 
-
-
     user = get_user_by_email(email)
-
-
 
     if (
 
@@ -1776,8 +1299,6 @@ def login(
 
         )
 
-
-
     if user.get("account_status") != "ACTIVE":
 
         raise HTTPException(
@@ -1788,11 +1309,7 @@ def login(
 
         )
 
-
-
     timestamp = now_utc()
-
-
 
     users_collection.update_one(
 
@@ -1812,8 +1329,6 @@ def login(
 
     )
 
-
-
     return {
 
         "access_token": create_access_token(
@@ -1825,10 +1340,6 @@ def login(
         "token_type": "bearer",
 
     }
-
-
-
-
 
 @app.get("/auth/me")
 
@@ -1848,10 +1359,6 @@ def auth_me(
 
     )
 
-
-
-
-
 @app.patch("/auth/me")
 
 def update_profile(
@@ -1866,11 +1373,7 @@ def update_profile(
 
 ):
 
-
-
     name = request.name.strip()
-
-
 
     users_collection.update_one(
 
@@ -1890,8 +1393,6 @@ def update_profile(
 
     )
 
-
-
     updated = users_collection.find_one(
 
         {"user_id": current_user["user_id"]},
@@ -1908,13 +1409,7 @@ def update_profile(
 
     )
 
-
-
     return updated
-
-
-
-
 
 @app.post("/auth/change-password")
 
@@ -1930,8 +1425,6 @@ def change_password(
 
 ):
 
-
-
     stored_user = users_collection.find_one(
 
         {
@@ -1941,8 +1434,6 @@ def change_password(
         }
 
     )
-
-
 
     if (
 
@@ -1966,8 +1457,6 @@ def change_password(
 
         )
 
-
-
     if (
 
         request.current_password
@@ -1990,11 +1479,7 @@ def change_password(
 
         )
 
-
-
     timestamp = now_utc()
-
-
 
     users_collection.update_one(
 
@@ -2024,17 +1509,11 @@ def change_password(
 
     )
 
-
-
     return {
 
         "message": "Password changed successfully"
 
     }
-
-
-
-
 
 @app.post("/auth/forgot-password")
 
@@ -2044,15 +1523,11 @@ def forgot_password(
 
 ):
 
-
-
     """
 
     Generic response prevents email enumeration.
 
     """
-
-
 
     user = get_user_by_email(
 
@@ -2060,11 +1535,7 @@ def forgot_password(
 
     )
 
-
-
     if user:
-
-
 
         raw_token = secrets.token_urlsafe(
 
@@ -2072,15 +1543,11 @@ def forgot_password(
 
         )
 
-
-
         token_hash = hashlib.sha256(
 
             raw_token.encode("utf-8")
 
         ).hexdigest()
-
-
 
         expires_at = (
 
@@ -2093,8 +1560,6 @@ def forgot_password(
             )
 
         )
-
-
 
         users_collection.update_one(
 
@@ -2120,8 +1585,6 @@ def forgot_password(
 
         )
 
-
-
         try:
 
             send_reset_email(
@@ -2132,15 +1595,9 @@ def forgot_password(
 
             )
 
-
-
         except Exception:
 
-            # Do not expose SMTP errors.
-
             pass
-
-
 
     return {
 
@@ -2154,10 +1611,6 @@ def forgot_password(
 
     }
 
-
-
-
-
 @app.post("/auth/reset-password")
 
 def reset_password(
@@ -2166,15 +1619,11 @@ def reset_password(
 
 ):
 
-
-
     token_hash = hashlib.sha256(
 
         request.token.encode("utf-8")
 
     ).hexdigest()
-
-
 
     user = users_collection.find_one(
 
@@ -2192,8 +1641,6 @@ def reset_password(
 
     )
 
-
-
     if not user:
 
         raise HTTPException(
@@ -2204,11 +1651,7 @@ def reset_password(
 
         )
 
-
-
     timestamp = now_utc()
-
-
 
     users_collection.update_one(
 
@@ -2246,31 +1689,15 @@ def reset_password(
 
     )
 
-
-
     return {
 
         "message": "Password reset successfully"
 
     }
 
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# BASIC / HEALTH
-
-# ---------------------------------------------------------------------------
-
-
-
 @app.get("/")
 
 def home():
-
-
 
     return {
 
@@ -2284,25 +1711,14 @@ def home():
 
     }
 
-
-
-
-
 @app.get("/health")
 
 def health():
 
-
-
-    from backend.app.database import db
-
-
-
+    from backend.database import db
     try:
 
         db.command("ping")
-
-
 
     except Exception:
 
@@ -2313,8 +1729,6 @@ def health():
             detail="Database unavailable",
 
         )
-
-
 
     return {
 
@@ -2328,23 +1742,9 @@ def health():
 
     }
 
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# PAYOUT CONFIGURATION
-
-# ---------------------------------------------------------------------------
-
-
-
 @app.get("/payout-options")
 
 def get_payout_options():
-
-
 
     return {
 
@@ -2354,10 +1754,6 @@ def get_payout_options():
 
     }
 
-
-
-
-
 @app.get("/payout-options/{option_id}")
 
 def get_single_payout_option(
@@ -2366,35 +1762,17 @@ def get_single_payout_option(
 
 ):
 
-
-
     option = get_payout_option(
 
         option_id
 
     )
 
-
-
     return option
-
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# DEMO WALLET
-
-# ---------------------------------------------------------------------------
-
-
 
 @app.get("/wallet/demo")
 
 def get_demo_wallet():
-
-
 
     user = users_collection.find_one(
 
@@ -2403,8 +1781,6 @@ def get_demo_wallet():
         {"_id": 0},
 
     )
-
-
 
     if not user:
 
@@ -2416,8 +1792,6 @@ def get_demo_wallet():
 
         )
 
-
-
     wallet = wallets_collection.find_one(
 
         {"user_id": user["user_id"]},
@@ -2425,8 +1799,6 @@ def get_demo_wallet():
         {"_id": 0},
 
     )
-
-
 
     if not wallet:
 
@@ -2438,13 +1810,7 @@ def get_demo_wallet():
 
         )
 
-
-
     return wallet
-
-
-
-
 
 @app.post("/wallet/demo/transaction")
 
@@ -2454,8 +1820,6 @@ def create_demo_transaction(
 
 ):
 
-
-
     user = users_collection.find_one(
 
         {"email": "demo@veloop.test"},
@@ -2463,8 +1827,6 @@ def create_demo_transaction(
         {"_id": 0},
 
     )
-
-
 
     if not user:
 
@@ -2476,15 +1838,11 @@ def create_demo_transaction(
 
         )
 
-
-
     currency = validate_currency(
 
         request.currency
 
     )
-
-
 
     wallet = get_user_wallet(
 
@@ -2492,15 +1850,11 @@ def create_demo_transaction(
 
     )
 
-
-
     balance_before = int(
 
         wallet.get(currency, 0)
 
     )
-
-
 
     balance_after = (
 
@@ -2509,8 +1863,6 @@ def create_demo_transaction(
         + request.amount
 
     )
-
-
 
     result = wallets_collection.update_one(
 
@@ -2538,8 +1890,6 @@ def create_demo_transaction(
 
     )
 
-
-
     if result.modified_count != 1:
 
         raise HTTPException(
@@ -2549,8 +1899,6 @@ def create_demo_transaction(
             detail="Unable to update demo wallet",
 
         )
-
-
 
     return create_wallet_transaction(
 
@@ -2580,15 +1928,9 @@ def create_demo_transaction(
 
     )
 
-
-
-
-
 @app.get("/wallet/demo/transactions")
 
 def get_demo_transactions():
-
-
 
     user = users_collection.find_one(
 
@@ -2597,8 +1939,6 @@ def get_demo_transactions():
         {"_id": 0},
 
     )
-
-
 
     if not user:
 
@@ -2609,8 +1949,6 @@ def get_demo_transactions():
             detail="Demo user not found",
 
         )
-
-
 
     transactions = list(
 
@@ -2638,8 +1976,6 @@ def get_demo_transactions():
 
     )
 
-
-
     return {
 
         "user_id": user["user_id"],
@@ -2650,18 +1986,6 @@ def get_demo_transactions():
 
     }
 
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# WITHDRAWAL CORE
-
-# ---------------------------------------------------------------------------
-
-
-
 def _create_withdrawal(
 
     user: dict,
@@ -2670,37 +1994,11 @@ def _create_withdrawal(
 
 ) -> dict:
 
-
-
-    # ---------------------------------------------------------
-
-    # 1. Validate payout method
-
-    # ---------------------------------------------------------
-
-
-
     option = get_payout_option(
 
         request.payout_option_id
 
     )
-
-
-
-    # ---------------------------------------------------------
-
-    # 2. Validate denomination
-
-    #
-
-    # request.amount = INR payout value.
-
-    # required_ves = backend-controlled VEs cost.
-
-    # ---------------------------------------------------------
-
-
 
     denomination = get_payout_denomination(
 
@@ -2710,23 +2008,11 @@ def _create_withdrawal(
 
     )
 
-
-
     required_ves = int(
 
         denomination["required_amount"]
 
     )
-
-
-
-    # ---------------------------------------------------------
-
-    # 3. Validate payout destination
-
-    # ---------------------------------------------------------
-
-
 
     normalized_details = (
 
@@ -2740,19 +2026,7 @@ def _create_withdrawal(
 
     )
 
-
-
-    # ---------------------------------------------------------
-
-    # 4. Idempotency
-
-    # ---------------------------------------------------------
-
-
-
     if request.request_id:
-
-
 
         existing = withdrawals_collection.find_one(
 
@@ -2766,8 +2040,6 @@ def _create_withdrawal(
 
         )
 
-
-
         if existing:
 
             return sanitize_withdrawal(
@@ -2776,45 +2048,17 @@ def _create_withdrawal(
 
             )
 
-
-
-    # ---------------------------------------------------------
-
-    # 5. Read current wallet
-
-    # ---------------------------------------------------------
-
-
-
     wallet = get_user_wallet(
 
         user["user_id"]
 
     )
 
-
-
     balance_before = int(
 
         wallet.get("ves", 0)
 
     )
-
-
-
-    # ---------------------------------------------------------
-
-    # 6. Atomic conditional deduction
-
-    #
-
-    # The wallet is deducted only when the server confirms
-
-    # that sufficient VEs exist.
-
-    # ---------------------------------------------------------
-
-
 
     result = wallets_collection.update_one(
 
@@ -2848,8 +2092,6 @@ def _create_withdrawal(
 
     )
 
-
-
     if result.modified_count != 1:
 
         raise HTTPException(
@@ -2860,8 +2102,6 @@ def _create_withdrawal(
 
         )
 
-
-
     balance_after = (
 
         balance_before
@@ -2870,23 +2110,11 @@ def _create_withdrawal(
 
     )
 
-
-
-    # ---------------------------------------------------------
-
-    # 7. Create IDs
-
-    # ---------------------------------------------------------
-
-
-
     withdrawal_id = str(
 
         uuid4()
 
     )
-
-
 
     transaction_id = str(
 
@@ -2894,19 +2122,7 @@ def _create_withdrawal(
 
     )
 
-
-
     timestamp = now_utc()
-
-
-
-    # ---------------------------------------------------------
-
-    # 8. Withdrawal record
-
-    # ---------------------------------------------------------
-
-
 
     withdrawal = {
 
@@ -2918,19 +2134,9 @@ def _create_withdrawal(
 
         "currency": "ves",
 
-
-
-        # VEs actually deducted
-
         "amount": required_ves,
 
-
-
-        # Actual INR payout value
-
         "payout_value": request.amount,
-
-
 
         "payout_option_id": (
 
@@ -2938,43 +2144,23 @@ def _create_withdrawal(
 
         ),
 
-
-
         "payout_details": (
 
             normalized_details
 
         ),
 
-
-
         "status": "PENDING",
-
-
 
         "transaction_id": transaction_id,
 
-
-
         "failure_reason": None,
-
-
 
         "created_at": timestamp,
 
         "updated_at": timestamp,
 
     }
-
-
-
-    # ---------------------------------------------------------
-
-    # 9. Ledger transaction
-
-    # ---------------------------------------------------------
-
-
 
     transaction = {
 
@@ -2986,31 +2172,17 @@ def _create_withdrawal(
 
         "type": "WITHDRAWAL",
 
-
-
-        # VEs deducted
-
         "amount": required_ves,
-
-
 
         "balance_before": balance_before,
 
         "balance_after": balance_after,
 
-
-
         "source": "withdrawal",
-
-
 
         "reference_id": withdrawal_id,
 
-
-
         "status": "PENDING",
-
-
 
         "description": (
 
@@ -3019,8 +2191,6 @@ def _create_withdrawal(
             f"via {option['name']}"
 
         ),
-
-
 
         "metadata": {
 
@@ -3038,27 +2208,13 @@ def _create_withdrawal(
 
         },
 
-
-
         "created_at": timestamp,
 
         "updated_at": timestamp,
 
     }
 
-
-
-    # ---------------------------------------------------------
-
-    # 10. Persist withdrawal + ledger
-
-    # ---------------------------------------------------------
-
-
-
     try:
-
-
 
         withdrawals_collection.insert_one(
 
@@ -3066,27 +2222,13 @@ def _create_withdrawal(
 
         )
 
-
-
         transactions_collection.insert_one(
 
             transaction
 
         )
 
-
-
     except Exception:
-
-
-
-        # -----------------------------------------------------
-
-        # Compensation if persistence fails.
-
-        # -----------------------------------------------------
-
-
 
         wallets_collection.update_one(
 
@@ -3114,8 +2256,6 @@ def _create_withdrawal(
 
         )
 
-
-
         withdrawals_collection.delete_one(
 
             {
@@ -3126,8 +2266,6 @@ def _create_withdrawal(
 
         )
 
-
-
         transactions_collection.delete_one(
 
             {
@@ -3137,8 +2275,6 @@ def _create_withdrawal(
             }
 
         )
-
-
 
         raise HTTPException(
 
@@ -3154,25 +2290,27 @@ def _create_withdrawal(
 
         )
 
+    write_audit(
 
+        user["user_id"],
 
-    return sanitize_withdrawal(
+        "WITHDRAWAL_CREATED",
 
-        withdrawal
+        {
+
+            "withdrawal_id": withdrawal_id,
+
+            "payout_value": request.amount,
+
+            "required_ves": required_ves,
+
+            "payout_option_id": request.payout_option_id,
+
+        },
 
     )
 
-
-
-
-
-# ---------------------------------------------------------------------------
-
-# DEMO WITHDRAWAL
-
-# ---------------------------------------------------------------------------
-
-
+    return sanitize_withdrawal(withdrawal)
 
 @app.post("/wallet/demo/withdrawal")
 
@@ -3182,8 +2320,6 @@ def create_demo_withdrawal(
 
 ):
 
-
-
     user = users_collection.find_one(
 
         {"email": "demo@veloop.test"},
@@ -3191,8 +2327,6 @@ def create_demo_withdrawal(
         {"_id": 0},
 
     )
-
-
 
     if not user:
 
@@ -3203,8 +2337,6 @@ def create_demo_withdrawal(
             detail="Demo user not found",
 
         )
-
-
 
     return _create_withdrawal(
 
@@ -3214,15 +2346,9 @@ def create_demo_withdrawal(
 
     )
 
-
-
-
-
 @app.get("/wallet/demo/withdrawals")
 
 def get_demo_withdrawals():
-
-
 
     user = users_collection.find_one(
 
@@ -3231,8 +2357,6 @@ def get_demo_withdrawals():
         {"_id": 0},
 
     )
-
-
 
     if not user:
 
@@ -3243,8 +2367,6 @@ def get_demo_withdrawals():
             detail="Demo user not found",
 
         )
-
-
 
     withdrawals = list(
 
@@ -3272,8 +2394,6 @@ def get_demo_withdrawals():
 
     )
 
-
-
     return {
 
         "user_id": user["user_id"],
@@ -3290,17 +2410,155 @@ def get_demo_withdrawals():
 
     }
 
+@app.get("/rewards/config")
+
+def get_reward_config():
+
+    return {
+
+        "daily_rewards": DAILY_REWARDS,
+
+    }
+
+@app.get("/rewards/daily")
+
+def get_daily_reward_status(current_user: dict = Depends(get_current_user)):
+
+    return get_daily_status(current_user["user_id"])
+
+@app.post("/rewards/daily/claim")
+
+def claim_my_daily_reward(current_user: dict = Depends(get_current_user)):
+
+    result = claim_daily_reward(current_user["user_id"])
+
+    if not result.get("already_claimed"):
+
+        write_audit(
+
+            current_user["user_id"],
+
+            "DAILY_REWARD_CLAIM",
+
+            {"day": result.get("claim", {}).get("day")},
+
+        )
+
+    return result
+
+CONVERSION_RATES = {
+    "sves": 500,
+    "tokens": 2000,
+    "gems": 5000,
+}
 
 
+@app.post("/rewards/convert")
+def convert_my_reward(
+    request: ConversionRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    currency = request.currency.lower().strip()
+    amount = int(request.amount)
 
+    if currency not in CONVERSION_RATES:
+        raise HTTPException(
+            status_code=400,
+            detail="Unsupported conversion currency",
+        )
 
-# ---------------------------------------------------------------------------
+    if amount <= 0:
+        raise HTTPException(
+            status_code=400,
+            detail="Conversion amount must be greater than zero",
+        )
 
-# AUTHENTICATED WALLET
+    rate = CONVERSION_RATES[currency]
+    converted_ves = amount * rate
+    user_id = current_user["user_id"]
+    now = datetime.now(timezone.utc)
 
-# ---------------------------------------------------------------------------
+    with client.start_session() as session:
+        with session.start_transaction():
+            wallet = wallets_collection.find_one(
+                {"user_id": user_id},
+                session=session,
+            )
 
+            if not wallet:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Wallet not found",
+                )
 
+            current_balance = int(wallet.get(currency, 0) or 0)
+
+            if current_balance < amount:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Insufficient {currency.upper()} balance",
+                )
+
+            result = wallets_collection.update_one(
+                {
+                    "user_id": user_id,
+                    currency: {"$gte": amount},
+                },
+                {
+                    "$inc": {
+                        currency: -amount,
+                        "ves": converted_ves,
+                    },
+                    "$set": {
+                        "updated_at": now,
+                    },
+                },
+                session=session,
+            )
+
+            if result.modified_count != 1:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Wallet changed during conversion. Please try again.",
+                )
+
+            transaction = {
+                "transaction_id": str(uuid4()),
+                "user_id": user_id,
+                "currency": currency,
+                "type": "CONVERSION",
+                "amount": amount,
+                "converted_ves": converted_ves,
+                "conversion_rate": rate,
+                "balance_before": current_balance,
+                "balance_after": current_balance - amount,
+                "ves_credit": converted_ves,
+                "status": "COMPLETED",
+                "source": "REWARD_CONVERSION",
+                "description": (
+                    f"Converted {amount} {currency.upper()} "
+                    f"to {converted_ves:,} VEs"
+                ),
+                "created_at": now,
+                "updated_at": now,
+            }
+
+            transactions_collection.insert_one(
+                transaction,
+                session=session,
+            )
+
+    return {
+        "success": True,
+        "currency": currency,
+        "amount": amount,
+        "conversion_rate": rate,
+        "converted_ves": converted_ves,
+        "message": (
+            f"{amount:,} {currency.upper()} converted "
+            f"to {converted_ves:,} VEs successfully"
+        ),
+    }
 
 @app.get("/wallet/me")
 
@@ -3314,8 +2572,6 @@ def get_my_wallet(
 
 ):
 
-
-
     return public_document(
 
         get_user_wallet(
@@ -3325,202 +2581,255 @@ def get_my_wallet(
         )
 
     )
-
-class AdminRewardCreditRequest(BaseModel):
-    email: EmailStr
+class ConversionRequest(BaseModel):
+    currency: str = Field(..., pattern="^(sves|gems|tokens)$")
+    amount: int = Field(..., gt=0)
     
+class AdminRewardCreditRequest(BaseModel):
+
+    email: EmailStr
+
     sves: int = Field(default=0, ge=0)
+
     gems: int = Field(default=0, ge=0)
+
     tokens: int = Field(default=0, ge=0)
+
     spins: int = Field(default=0, ge=0)
 
     description: str = Field(
+
         default="Manual reward credit",
+
         max_length=200,
+
     )
 
-
 class AdminPasswordResetRequest(BaseModel):
+
     email: EmailStr
+
     new_password: str = Field(min_length=8, max_length=128)
+
     admin_secret: str = Field(min_length=16, max_length=256)
 
-
 @app.post("/admin/auth/reset-password")
+
 def admin_reset_password(
+
     request: AdminPasswordResetRequest,
+
 ):
+
     admin_secret = os.getenv("ADMIN_RESET_SECRET", "").strip()
 
     if not admin_secret:
+
         raise HTTPException(
+
             status_code=503,
+
             detail="Password reset maintenance is not configured",
+
         )
 
     if not secrets.compare_digest(
+
         request.admin_secret,
+
         admin_secret,
+
     ):
+
         raise HTTPException(
+
             status_code=403,
+
             detail="Invalid admin reset secret",
+
         )
 
     email = request.email.strip().lower()
 
     user = users_collection.find_one(
+
         {"email": email},
+
         {"_id": 0},
+
     )
 
     if not user:
+
         raise HTTPException(
+
             status_code=404,
+
             detail="User not found",
+
         )
 
     result = users_collection.update_one(
+
         {"user_id": user["user_id"]},
+
         {
+
             "$set": {
+
                 "password_hash": hash_password(
+
                     request.new_password
+
                 ),
+
                 "updated_at": now_utc(),
+
                 "password_changed_at": now_utc(),
+
             }
+
         },
+
     )
 
     if result.modified_count != 1:
+
         raise HTTPException(
+
             status_code=500,
+
             detail="Password update failed",
+
         )
 
     return {
+
         "message": "Password reset successfully",
+
         "email": email,
+
     }
 
 @app.post("/admin/rewards/credit")
+
 def admin_reward_credit(
+
     request: AdminRewardCreditRequest,
+
 ):
+
     user = users_collection.find_one(
+
         {"email": request.email.lower().strip()},
+
         {"_id": 0},
+
     )
 
     if not user:
+
         raise HTTPException(
+
             status_code=404,
+
             detail="User not found",
+
         )
 
     try:
+
         credits = {
+
     "sves": request.sves,
+
     "gems": request.gems,
+
     "tokens": request.tokens,
+
     "spins": request.spins,
+
 }
 
         credits = {
+
             currency: amount
+
             for currency, amount in credits.items()
+
             if amount > 0
+
         }
 
         if not credits:
+
             raise HTTPException(
+
                 status_code=400,
+
                 detail="At least one reward amount must be greater than zero",
+
             )
 
         results = []
 
         for currency, amount in credits.items():
+
             results.append(
+
                 credit_wallet(
+
                     user_id=user["user_id"],
+
                     currency=currency,
+
                     amount=amount,
+
                     source="ADMIN_REWARD",
+
                     description=request.description,
+
                     transaction_type="REWARD",
+
                 )
+
             )
 
         return {
+
             "message": "Rewards credited successfully",
+
             "email": str(request.email).lower().strip(),
+
             "credits": credits,
+
             "transactions": results,
+
         }
 
     except HTTPException:
+
         raise
 
     except Exception as exc:
+
         print(
+
             "ADMIN REWARD CREDIT ERROR:",
+
             type(exc).__name__,
+
             str(exc),
+
         )
 
         raise HTTPException(
+
             status_code=500,
+
             detail="Reward credit failed",
+
         )
-
-# ---------------------------------------------------------------------------
-# REWARDS
-# ---------------------------------------------------------------------------
-
-@app.get("/rewards/daily")
-def get_my_daily_reward(
-    current_user: dict = Depends(
-        get_current_user
-    ),
-):
-    return get_daily_status(
-        current_user["user_id"]
-    )
-
-
-@app.post("/rewards/daily/claim")
-def claim_my_daily_reward(
-    current_user: dict = Depends(
-        get_current_user
-    ),
-):
-    return claim_daily_reward(
-        current_user["user_id"]
-    )
-
-
-@app.post("/rewards/spin")
-def use_my_spin(
-    current_user: dict = Depends(
-        get_current_user
-    ),
-):
-    return spin_reward(
-        current_user["user_id"]
-    )
-
-
-@app.post("/rewards/convert")
-def convert_my_rewards(
-    current_user: dict = Depends(
-        get_current_user
-    ),
-):
-    return convert_all_to_ves(
-        current_user["user_id"]
-    )
 
 @app.get("/wallet/me/transactions")
 
@@ -3533,8 +2842,6 @@ def get_my_transactions(
     ),
 
 ):
-
-
 
     transactions = list(
 
@@ -3566,8 +2873,6 @@ def get_my_transactions(
 
     )
 
-
-
     return {
 
         "user_id": current_user[
@@ -3581,10 +2886,6 @@ def get_my_transactions(
         "transactions": transactions,
 
     }
-
-
-
-
 
 @app.post("/wallet/me/withdrawal")
 
@@ -3600,8 +2901,6 @@ def create_my_withdrawal(
 
 ):
 
-
-
     return _create_withdrawal(
 
         current_user,
@@ -3609,10 +2908,6 @@ def create_my_withdrawal(
         request,
 
     )
-
-
-
-
 
 @app.get("/wallet/me/withdrawals")
 
@@ -3625,8 +2920,6 @@ def get_my_withdrawals(
     ),
 
 ):
-
-
 
     withdrawals = list(
 
@@ -3658,8 +2951,6 @@ def get_my_withdrawals(
 
     )
 
-
-
     return {
 
         "user_id": current_user[
@@ -3679,4 +2970,3 @@ def get_my_withdrawals(
         ],
 
     }
-    
