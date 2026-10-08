@@ -1,42 +1,34 @@
-import { useEffect, useMemo, useRef , useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import "./App.css";
 
-const API_URL = "https://veloop-rewards-jj94.onrender.com";
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://127.0.0.1:8000"
+    : "https://veloop-rewards-jj94.onrender.com");
 
 const EMPTY_WALLET = {
   ves: 0,
   sves: 0,
   gems: 0,
   tokens: 0,
-  spins: 0,
 };
 
-const DEFAULT_PAYOUT_OPTIONS = [
-  {
-    method_id: "upi",
-    name: "UPI",
-    type: "UPI",
-    currency: "ves",
-    active: true,
-    denominations: [
-      { payout_value: 10, required_amount: 2400 },
-      { payout_value: 25, required_amount: 5800 },
-      { payout_value: 50, required_amount: 10000 },
-      { payout_value: 100, required_amount: 19500 },
-      { payout_value: 150, required_amount: 28500 },
-      { payout_value: 300, required_amount: 52500 },
-      { payout_value: 500, required_amount: 80500 },
-      { payout_value: 1000, required_amount: 150000 },
-    ],
-  },
-];
+const PAYOUT_OPTIONS_EMPTY = [];
 
 const NAV_ITEMS = [
   { key: "Wallet", icon: "wallet", label: "Wallet" },
   { key: "Rewards", icon: "plus", label: "Rewards" },
   { key: "Transactions", icon: "activity", label: "Transactions" },
   { key: "Withdrawals", icon: "arrow-up", label: "Withdrawals" },
+  { key: "About", icon: "info", label: "About VELOOP" },
+];
+
+const AVATAR_PRESETS = [
+  "🦊", "🐼", "🦁", "🐯", "🐺", "🦅", "🐱", "🐶", "🐸", "🐨",
+  "🐙", "🦉", "🦋", "🐬", "🤖", "👽", "👑", "🎮", "🏆", "🚀",
+  "🔥", "⭐", "🎯", "⚡", "🦄", "🐲", "🧙", "🥷", "🦸", "🧑‍🚀"
 ];
 
 const CURRENCY_META = {
@@ -64,13 +56,10 @@ const CURRENCY_META = {
     icon: "T",
     accent: "green",
   },
-  spins: {
-    name: "Spins",
-    label: "Game Spins",
-    icon: "S",
-    accent: "pink",
-  },
 };
+
+const SUPPORT_EMAIL = "testuser.veloop@gmail.com";
+const APP_VERSION_LABEL = "2.4.0";
 
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
@@ -115,16 +104,31 @@ function App() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [dailyReward, setDailyReward] = useState(null);
   const [rewardConfig, setRewardConfig] = useState(null);
+  const [conversionAmounts, setConversionAmounts] = useState({
+    sves: "",
+    gems: "",
+    tokens: "",
+  });
   const [rewardBusy, setRewardBusy] = useState(false);
+
+  const [avatar, setAvatar] = useState(
+    () => localStorage.getItem("veloop_avatar") || "emoji:🦊"
+  );
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("veloop_read_notifications") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   const [profile, setProfile] = useState({
     name: "VELOOP User",
     email: "",
   });
 
-  const [payoutOptions, setPayoutOptions] = useState(
-    DEFAULT_PAYOUT_OPTIONS
-  );
+  const [payoutOptions, setPayoutOptions] = useState(PAYOUT_OPTIONS_EMPTY);
 
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -168,9 +172,11 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (token) {
-      loadAllData();
+    if (!token) {
+      fetch(`${API_URL}/health`, { cache: "no-store" }).catch(() => {});
+      return;
     }
+    loadAllData();
   }, [token]);
 
   async function apiRequest(endpoint, options = {}) {
@@ -285,9 +291,9 @@ function App() {
       return;
     }
 
-    if (resetPassword.length < 6) {
+    if (resetPassword.length < 8) {
       setError(
-        "Password must contain at least 6 characters."
+        "Password must contain at least 8 characters."
       );
       return;
     }
@@ -471,9 +477,9 @@ function App() {
       return;
     }
 
-    if (registerPassword.length < 6) {
+    if (registerPassword.length < 8) {
       setError(
-        "Password must contain at least 6 characters."
+        "Password must contain at least 8 characters."
       );
       return;
     }
@@ -549,18 +555,18 @@ function App() {
   }
 
   async function loadAllData(
-    showSpinner = false
+    showRefreshIndicator = false
   ) {
     if (!token) return;
 
-    if (showSpinner) {
+    if (showRefreshIndicator) {
       setRefreshing(true);
     }
 
     setError("");
 
     try {
-      await Promise.all([
+      const results = await Promise.allSettled([
         loadWallet(),
         loadTransactions(),
         loadWithdrawals(),
@@ -568,13 +574,20 @@ function App() {
         loadProfile(),
         loadPayoutOptions(),
       ]);
+
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed) {
+        throw failed.reason instanceof Error
+          ? failed.reason
+          : new Error("Unable to refresh all wallet data.");
+      }
     } catch (err) {
       setError(
         err.message ||
         "Unable to refresh wallet data."
       );
     } finally {
-      if (showSpinner) {
+      if (showRefreshIndicator) {
         setRefreshing(false);
       }
     }
@@ -591,7 +604,6 @@ function App() {
       sves: Number(data.sves || 0),
       gems: Number(data.gems || 0),
       tokens: Number(data.tokens || 0),
-      spins: Number(data.spins || 0),
     });
   }
 
@@ -623,11 +635,44 @@ function App() {
 
   async function loadRewards() {
     const [status, config] = await Promise.all([
-      apiRequest("/rewards/daily/status"),
+      apiRequest("/rewards/daily"),
       apiRequest("/rewards/config"),
     ]);
     setDailyReward(status);
     setRewardConfig(config);
+  }
+
+  async function convertReward(currency) {
+    const amount = Number(conversionAmounts[currency]);
+    const available = Number(wallet[currency] || 0);
+
+    setError("");
+    setSuccess("");
+
+    if (!Number.isInteger(amount) || amount <= 0) {
+      setError(`Enter a whole number of ${currency.toUpperCase()} to convert.`);
+      return;
+    }
+
+    if (amount > available) {
+      setError(`You can convert up to ${formatAmount(available)} ${currency.toUpperCase()}.`);
+      return;
+    }
+
+    setRewardBusy(true);
+    try {
+      const data = await apiRequest("/rewards/convert", {
+        method: "POST",
+        body: JSON.stringify({ currency, amount }),
+      });
+      setConversionAmounts((prev) => ({ ...prev, [currency]: "" }));
+      await Promise.all([loadWallet(), loadTransactions(), loadRewards()]);
+      setSuccess(`${formatAmount(amount)} ${currency.toUpperCase()} converted to ${formatAmount(data.converted_ves)} VEs.`);
+    } catch (err) {
+      setError(err.message || "Unable to convert rewards.");
+    } finally {
+      setRewardBusy(false);
+    }
   }
 
   async function claimDailyReward() {
@@ -635,7 +680,7 @@ function App() {
     setSuccess("");
     setRewardBusy(true);
     try {
-      const data = await apiRequest("/rewards/daily", { method: "POST" });
+      const data = await apiRequest("/rewards/daily/claim", { method: "POST" });
       await loadRewards();
       await loadWallet();
       await loadTransactions();
@@ -646,38 +691,6 @@ function App() {
       }
     } catch (err) {
       setError(err.message || "Unable to claim daily reward.");
-    } finally {
-      setRewardBusy(false);
-    }
-  }
-
-  async function spinForReward() {
-    setError("");
-    setSuccess("");
-    setRewardBusy(true);
-    try {
-      const data = await apiRequest("/rewards/spin", { method: "POST" });
-      await loadWallet();
-      await loadTransactions();
-      setSuccess(`Spin complete: +${formatNumber(data.reward_ves)} VEs. ${formatNumber(data.spins_remaining)} spins left.`);
-    } catch (err) {
-      setError(err.message || "Unable to complete spin.");
-    } finally {
-      setRewardBusy(false);
-    }
-  }
-
-  async function convertRewards() {
-    setError("");
-    setSuccess("");
-    setRewardBusy(true);
-    try {
-      const data = await apiRequest("/rewards/convert", { method: "POST" });
-      await loadWallet();
-      await loadTransactions();
-      setSuccess(`${formatNumber(data.converted_ves)} VEs added from reward conversion.`);
-    } catch (err) {
-      setError(err.message || "No convertible rewards available.");
     } finally {
       setRewardBusy(false);
     }
@@ -716,14 +729,15 @@ function App() {
         ? data.options
         : [];
 
-    setPayoutOptions(
-      options.length
-        ? options.filter(
-          (option) =>
-            option?.active !== false
-        )
-        : DEFAULT_PAYOUT_OPTIONS
+    const activeOptions = options.filter(
+      (option) => option?.active !== false
     );
+
+    setPayoutOptions(activeOptions);
+
+    if (!activeOptions.length) {
+      throw new Error("No payout options are currently available.");
+    }
   }
 
   function getPayoutOptionForMethod(
@@ -929,6 +943,47 @@ function App() {
     setError("");
     setSuccess("");
     setProfileOpen(false);
+    setNotificationsOpen(false);
+  }
+
+  function handleAvatarChange(value) {
+    setAvatar(value);
+    try {
+      localStorage.setItem("veloop_avatar", value);
+    } catch {
+      setError("Profile photo could not be saved in this browser.");
+    }
+  }
+
+  const notifications = useMemo(() => {
+    const items = [];
+    if (dailyReward?.claimed_today) {
+      items.push({ id: "daily", icon: "gift", title: "Daily reward claimed", text: `Day ${dailyReward.day || 1} reward is active today.` });
+    }
+    transactions.slice(0, 4).forEach((tx, index) => {
+      const type = String(tx?.type || "").toUpperCase();
+      if (type.includes("REWARD") || type === "CREDIT" || type === "CONVERSION_CREDIT") {
+        items.push({ id: `tx-${tx.transaction_id || index}`, icon: "plus", title: "Reward activity", text: `+${formatAmount(tx.amount || 0)} ${String(tx.currency || "VEs").toUpperCase()} recorded in your wallet.` });
+      }
+    });
+    withdrawals.slice(0, 3).forEach((item, index) => {
+      items.push({ id: `wd-${item.withdrawal_id || index}`, icon: "arrow-up", title: "Withdrawal update", text: `₹${formatAmount(item.payout_value || item.amount || 0)} · ${item.status || "PENDING"}.` });
+    });
+    return items.slice(0, 7);
+  }, [dailyReward, transactions, withdrawals]);
+
+  const unreadNotifications = useMemo(
+    () => notifications.filter((item) => !readNotificationIds.includes(item.id)),
+    [notifications, readNotificationIds]
+  );
+
+  function markAllNotificationsRead() {
+    const ids = notifications.map((item) => item.id);
+    setReadNotificationIds((prev) => {
+      const next = Array.from(new Set([...prev, ...ids])).slice(-100);
+      localStorage.setItem("veloop_read_notifications", JSON.stringify(next));
+      return next;
+    });
   }
 
   function updateWithdrawForm(
@@ -1000,9 +1055,7 @@ function App() {
       email: "",
     });
 
-    setPayoutOptions(
-      DEFAULT_PAYOUT_OPTIONS
-    );
+    setPayoutOptions(PAYOUT_OPTIONS_EMPTY);
 
     setProfileOpen(false);
     setProfileModalOpen(false);
@@ -1738,6 +1791,8 @@ function App() {
         getInitial={
           getInitial(email)
         }
+        avatar={avatar}
+        onAbout={() => setTab("About")}
         onLogout={
           handleLogout
         }
@@ -1758,24 +1813,33 @@ function App() {
           </div>
 
           <div className="topbar-actions">
-            <button
-              className="icon-btn"
-              onClick={() =>
-                setError(
-                  "No new notifications."
-                )
-              }
-              aria-label="Notifications"
-              title="Notifications"
-            >
-              <Icon name="bell" />
-              <span className="notification-dot" />
-            </button>
+            <div className="notification-wrap">
+              <button
+                className="icon-btn notification-trigger"
+                onClick={() => setNotificationsOpen((value) => !value)}
+                aria-label="Notifications"
+                title="Notifications"
+                aria-expanded={notificationsOpen}
+              >
+                <Icon name="bell" />
+                {unreadNotifications.length > 0 && (
+                  <span className="notification-badge">{Math.min(unreadNotifications.length, 9)}</span>
+                )}
+              </button>
+              {notificationsOpen && (
+                <NotificationPanel
+                  notifications={unreadNotifications}
+                  totalNotifications={notifications.length}
+                  onMarkAllRead={markAllNotificationsRead}
+                  onClose={() => setNotificationsOpen(false)}
+                />
+              )}
+            </div>
 
             <button
               className={
                 refreshing
-                  ? "icon-btn is-spinning"
+                  ? "icon-btn is-refreshing"
                   : "icon-btn"
               }
               onClick={() =>
@@ -1806,7 +1870,7 @@ function App() {
                   profileOpen
                 }
               >
-                {getInitial(email)}
+                <AvatarDisplay avatar={avatar} fallback={getInitial(email)} />
               </button>
 
               {profileOpen && (
@@ -1822,6 +1886,7 @@ function App() {
                       email
                     )
                   }
+                  avatar={avatar}
                   onViewProfile={() => {
                     setProfileOpen(
                       false
@@ -1866,10 +1931,22 @@ function App() {
               wallet={wallet}
               dailyReward={dailyReward}
               rewardConfig={rewardConfig}
+              conversionAmounts={conversionAmounts}
+              setConversionAmounts={setConversionAmounts}
               busy={rewardBusy}
               onDailyReward={claimDailyReward}
-              onSpin={spinForReward}
-              onConvert={convertRewards}
+              onConvert={convertReward}
+            />
+          )}
+
+        {activeTab ===
+          "About" && (
+            <AboutPage
+              payoutOptions={payoutOptions}
+              rewardConfig={rewardConfig}
+              onRewards={() => setTab("Rewards")}
+              onWallet={() => setTab("Wallet")}
+              onWithdraw={() => setTab("Withdrawals")}
             />
           )}
 
@@ -1983,6 +2060,8 @@ function App() {
           getInitial={
             getInitial(email)
           }
+          avatar={avatar}
+          onAvatarChange={handleAvatarChange}
           onClose={() =>
             setProfileModalOpen(
               false
@@ -2030,9 +2109,7 @@ function AuthShell({
 
       <div className="auth-card">
         <div className="brand-lockup">
-          <div className="brand-mark">
-            V
-          </div>
+          <VeloopLogo size={48} />
 
           <div>
             <strong>
@@ -2065,266 +2142,332 @@ function AuthShell({
   );
 }
 
+function VeloopLogo({ size = 42 }) {
+  return (
+    <span className="velo-logo" style={{ width: size, height: size }} aria-hidden="true">
+      <svg viewBox="0 0 64 64" fill="none">
+        <defs>
+          <linearGradient id="veloLogoGradient" x1="8" y1="10" x2="55" y2="56" gradientUnits="userSpaceOnUse">
+            <stop stopColor="#7DEBFF" />
+            <stop offset="0.5" stopColor="#5C7CFF" />
+            <stop offset="1" stopColor="#A06BFF" />
+          </linearGradient>
+        </defs>
+        <path d="M13 17.5C18.4 10.8 25.7 8 32 8c6.4 0 13.7 2.8 19 9.5" stroke="url(#veloLogoGradient)" strokeWidth="4.2" strokeLinecap="round" />
+        <path d="M11.5 24.5 21 44.7c1.1 2.4 4.5 2.5 5.9.3L32 36l5.1 9c1.4 2.2 4.8 2.1 5.9-.3l9.5-20.2" stroke="url(#veloLogoGradient)" strokeWidth="5.4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M20.8 24.5 32 43.8l11.2-19.3" stroke="#E9FDFF" strokeWidth="2.9" strokeLinecap="round" strokeLinejoin="round" opacity=".96" />
+        <circle cx="13" cy="17.5" r="2.1" fill="#7DEBFF" />
+        <circle cx="51" cy="17.5" r="2.1" fill="#A06BFF" />
+      </svg>
+    </span>
+  );
+}
+
 function Sidebar({
   activeTab,
   setTab,
   profile,
   email,
   getInitial,
+  avatar,
+  onAbout,
   onLogout,
 }) {
   return (
     <aside className="sidebar">
       <div className="sidebar-main">
-        <div className="brand-row">
-          <div className="brand-mark">
-            V
-          </div>
-
-          <div className="brand-copy">
-            <strong>
-              VELOOP
-            </strong>
-
-            <span>
-              Rewards
-            </span>
-          </div>
-        </div>
-
+        <button type="button" className="brand-row brand-button" onClick={onAbout} aria-label="About VELOOP">
+          <VeloopLogo size={42} />
+          <div className="brand-copy"><strong>VELOOP</strong><span>Rewards</span></div>
+        </button>
         <div className="sidebar-divider" />
-
         <nav className="nav-list">
-          {NAV_ITEMS.map(
-            (item) => (
-              <button
-                key={
-                  item.key
-                }
-                className={
-                  activeTab ===
-                    item.key
-                    ? "nav-item active"
-                    : "nav-item"
-                }
-                onClick={() =>
-                  setTab(
-                    item.key
-                  )
-                }
-              >
-                <span className="nav-icon">
-                  <Icon
-                    name={
-                      item.icon
-                    }
-                  />
-                </span>
-
-                <span>
-                  {
-                    item.label
-                  }
-                </span>
-
-                {activeTab ===
-                  item.key && (
-                    <span className="nav-indicator" />
-                  )}
-              </button>
-            )
-          )}
+          {NAV_ITEMS.map((item) => (
+            <button key={item.key} className={activeTab === item.key ? "nav-item active" : "nav-item"} onClick={() => setTab(item.key)}>
+              <span className="nav-icon"><Icon name={item.icon} /></span>
+              <span>{item.label}</span>
+              {activeTab === item.key && <span className="nav-indicator" />}
+            </button>
+          ))}
         </nav>
       </div>
-
       <div className="sidebar-footer">
         <div className="sidebar-user">
-          <div className="avatar">
-            {
-              getInitial
-            }
-          </div>
-
+          <div className="avatar"><AvatarDisplay avatar={avatar} fallback={getInitial} /></div>
           <div className="sidebar-user-copy">
-            <strong>
-              {
-                profile.name ||
-                "VELOOP User"
-              }
-            </strong>
-
-            <span
-              title={
-                email
-              }
-            >
-              {
-                email
-              }
-            </span>
+            <strong>{profile.name || "VELOOP User"}</strong>
+            <span title={email}>{email}</span>
           </div>
         </div>
-
-        <button
-          className="logout-btn"
-          onClick={
-            onLogout
-          }
-        >
-          <Icon name="logout" />
-          Logout
-        </button>
+        <button className="logout-btn" onClick={onLogout}><Icon name="logout" />Logout</button>
       </div>
     </aside>
   );
 }
 
-function ProfileDropdown({
-  profile,
-  email,
-  getInitial,
-  onViewProfile,
-  onLogout,
-}) {
+function ProfileDropdown({ profile, email, getInitial, avatar, onViewProfile, onLogout }) {
   return (
     <div className="profile-dropdown">
       <div className="profile-summary">
-        <div className="avatar large">
-          {
-            getInitial
-          }
-        </div>
-
-        <div>
-          <strong>
-            {
-              profile.name ||
-              "VELOOP User"
-            }
-          </strong>
-
-          <span>
-            {
-              email
-            }
-          </span>
-        </div>
+        <div className="avatar large"><AvatarDisplay avatar={avatar} fallback={getInitial} /></div>
+        <div><strong>{profile.name || "VELOOP User"}</strong><span>{email}</span></div>
       </div>
-
-      <button
-        className="dropdown-primary"
-        onClick={
-          onViewProfile
-        }
-      >
-        <Icon name="user" />
-        View profile
-      </button>
-
-      <button
-        className="dropdown-danger"
-        onClick={
-          onLogout
-        }
-      >
-        <Icon name="logout" />
-        Logout
-      </button>
+      <button className="dropdown-primary" onClick={onViewProfile}><Icon name="user" />View profile</button>
+      <button className="dropdown-danger" onClick={onLogout}><Icon name="logout" />Logout</button>
     </div>
   );
 }
 
-function RewardsPage({
-  wallet,
-  dailyReward,
-  rewardConfig,
-  busy,
-  onDailyReward,
-  onSpin,
-  onConvert,
-}) {
-  const nextReward = dailyReward?.reward || {};
-  const conversionRates = rewardConfig?.conversion_rates || {
-    sves: 500,
-    tokens: 2000,
-    gems: 5000,
-  };
+function NotificationPanel({ notifications, totalNotifications, onMarkAllRead, onClose }) {
+  return (
+    <div className="notification-panel">
+      <div className="notification-head">
+        <div>
+          <span className="section-kicker">ACTIVITY</span>
+          <strong>Notifications</strong>
+        </div>
+        <div className="notification-head-actions">
+          {notifications.length > 0 && (
+            <button type="button" className="notification-read-btn" onClick={onMarkAllRead}>
+              Mark all read
+            </button>
+          )}
+          <button type="button" className="notification-close-btn" onClick={onClose} aria-label="Close notifications">×</button>
+        </div>
+      </div>
+      {notifications.length ? notifications.map((item) => (
+        <div className="notification-item" key={item.id}>
+          <div className="notification-icon"><Icon name={item.icon} /></div>
+          <div><strong>{item.title}</strong><span>{item.text}</span></div>
+        </div>
+      )) : (
+        <div className="notification-empty">
+          <div className="notification-empty-icon"><Icon name="check" /></div>
+          <div><strong>All caught up</strong><span>No unread notifications right now.</span></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AvatarDisplay({ avatar, fallback }) {
+  if (avatar?.startsWith?.("data:")) return <img src={avatar} alt="Profile" />;
+  if (avatar?.startsWith?.("emoji:")) return <span className="avatar-emoji">{avatar.slice(6)}</span>;
+  return <span>{fallback || "V"}</span>;
+}
+
+function RewardsPage({ wallet, dailyReward, rewardConfig, busy, conversionAmounts, setConversionAmounts, onDailyReward, onConvert }) {
+  const reward = dailyReward?.reward || {};
+  const conversionRates = rewardConfig?.conversion_rates || {};
+  const currentDay = Math.max(1, Math.min(10, Number(dailyReward?.day || 1)));
+  const streakDay = Number(dailyReward?.streak_day || 0);
+  const claimed = Boolean(dailyReward?.claimed_today);
+  const conversionCurrencies = ["sves", "gems", "tokens"];
 
   return (
-    <div className="content-stack">
-      <section className="reward-hero">
-        <div>
-          <div className="section-kicker">REWARD CENTER</div>
-          <h2>Earn more. Convert more. Withdraw VEs.</h2>
-          <p>Daily rewards, backend-controlled spins and one-tap conversion keep every balance server-authoritative.</p>
+    <div className="content-stack rewards-experience">
+      <section className="rewards-hero-pro">
+        <div className="rewards-hero-copy">
+          <span className="hero-overline">VELOOP DAILY REWARDS</span>
+          <h2>Keep your streak. Keep earning.</h2>
+          <p>Daily rewards and reward conversions are validated by the backend. Every wallet change is recorded in the ledger.</p>
+          <div className="hero-chip-row">
+            <span><Icon name="shield" /> Backend verified</span>
+            <span><Icon name="clock" /> 24h reward cycle</span>
+            <span><Icon name="refresh" /> Server conversion rates</span>
+          </div>
         </div>
-        <div className="reward-hero-orb">✦</div>
+        <div className="reward-hero-stat"><strong>{formatAmount(wallet.ves)}</strong><span>VEs balance</span><small>100 VEs = ₹1</small></div>
       </section>
 
-      <section className="reward-grid">
-        <article className="reward-card daily-card">
-          <div className="reward-card-head">
-            <div>
-              <span className="reward-kicker">DAILY STREAK</span>
-              <h3>Day {dailyReward?.day || 1} reward</h3>
-            </div>
-            <span className="reward-day-badge">10 DAY</span>
-          </div>
-          <div className="reward-amount-row">
-            <strong>+{formatAmount(nextReward.ves || 0)} VEs</strong>
-            <span>{dailyReward?.claimed_today ? "Claimed today" : "Ready to claim"}</span>
-          </div>
-          <div className="reward-mini-assets">
-            {Object.entries(nextReward).filter(([key]) => key !== "ves").map(([key, value]) => (
-              <span key={key}>{`+${value} ${key.toUpperCase()}`}</span>
-            ))}
-          </div>
-          <button className="reward-btn primary" onClick={onDailyReward} disabled={busy || dailyReward?.claimed_today}>
-            {dailyReward?.claimed_today ? "Claimed Today" : busy ? "Claiming..." : "Claim Daily Reward"}
-          </button>
-        </article>
-
-        <article className="reward-card spin-card">
-          <div className="reward-card-head">
-            <div>
-              <span className="reward-kicker">LUCKY SPIN</span>
-              <h3>Use a spin</h3>
-            </div>
-            <span className="spin-count">{formatAmount(wallet.spins)} SPINS</span>
-          </div>
-          <p className="reward-description">Each spin consumes exactly one server-side spin and awards {formatAmount(rewardConfig?.spin_reward_ves || 100)} VEs.</p>
-          <button className="reward-btn" onClick={onSpin} disabled={busy || Number(wallet.spins || 0) < 1}>
-            {busy ? "Processing..." : "Spin for VEs"}
-          </button>
-        </article>
+      <section className="streak-dashboard-card">
+        <div className="streak-headline">
+          <div><span className="section-kicker">DAILY CHECK-IN</span><h3>{currentDay} day reward cycle</h3><p>Claim once every 24 hours. The server records the claim and updates the wallet ledger.</p></div>
+          <div className="streak-summary"><strong>{streakDay || 0}</strong><span>completed</span></div>
+        </div>
+        <div className="streak-days-pro">
+          {Array.from({ length: 10 }, (_, i) => {
+            const day = i + 1;
+            const done = claimed ? day <= currentDay : day < currentDay;
+            const active = day === currentDay;
+            const serverReward = rewardConfig?.daily_rewards?.[day];
+            const dayReward = Number(serverReward?.ves || 0);
+            return <div key={day} className={`streak-node ${done ? "done" : ""} ${active ? "active" : ""}`}><span>DAY {day}</span><strong>{done ? "✓" : dayReward ? `+${formatAmount(dayReward)}` : "—"}</strong><small>VEs</small></div>;
+          })}
+        </div>
+        <div className="streak-footer"><span><Icon name="calendar" /> Daily reward resets every 24 hours</span><span>Milestone: <b>Day 10</b> · +{formatAmount(Number(rewardConfig?.daily_rewards?.[10]?.ves || 0))} VEs</span></div>
       </section>
 
-      <section className="reward-card conversion-card">
-        <div className="reward-card-head">
+      <section className="reward-card daily-card reward-feature-card">
+        <div className="feature-card-top"><div><span className="reward-kicker">TODAY'S REWARD</span><h3>Day {currentDay} check-in</h3></div><span className="status-pill">{claimed ? "CLAIMED" : "AVAILABLE"}</span></div>
+        <div className="daily-prize"><div className="prize-orb">VEs</div><div><strong>{Number(reward.ves || 0) > 0 ? `+${formatAmount(reward.ves)} VEs` : "Reward unavailable"}</strong><span>{claimed ? "Reward secured to your wallet" : "Claim today's server-validated reward"}</span></div></div>
+        <div className="reward-mini-assets">{Object.entries(reward).filter(([key]) => key !== "ves").map(([key, value]) => <span key={key}>+{value} {key.toUpperCase()}</span>)}</div>
+        <button className="reward-btn primary reward-wide-btn" onClick={onDailyReward} disabled={busy || claimed}>{claimed ? "Today's reward claimed" : busy ? "Claiming reward…" : "Claim Daily Reward"}</button>
+      </section>
+
+      <section className="reward-card conversion-pro conversion-feature-card">
+        <div className="feature-card-top">
           <div>
             <span className="reward-kicker">REWARD CONVERTER</span>
-            <h3>Convert utility rewards to VEs</h3>
+            <h3>Convert SVEs, Gems and Tokens into VEs</h3>
+            <p className="conversion-description">Choose the amount you want to convert. The backend validates the balance, applies the server rate and records the conversion in the ledger.</p>
           </div>
-          <span className="conversion-total">{formatAmount(wallet.ves)} VEs</span>
+          <div className="conversion-total"><strong>{formatAmount(wallet.ves)}</strong><span>VEs available</span></div>
         </div>
         <div className="conversion-list">
-          {Object.entries(conversionRates).map(([currency, rate]) => (
-            <div className="conversion-row" key={currency}>
-              <span>{currency.toUpperCase()}</span>
-              <strong>{formatAmount(wallet[currency])}</strong>
-              <span>× {formatAmount(rate)}</span>
-              <b>= {formatAmount(Number(wallet[currency] || 0) * Number(rate || 0))} VEs</b>
-            </div>
-          ))}
+          {conversionCurrencies.map((currency) => {
+            const balance = Number(wallet[currency] || 0);
+            const rate = Number(conversionRates[currency] || 0);
+            const amount = Number(conversionAmounts[currency] || 0);
+            const preview = Number.isFinite(amount) && amount > 0 ? amount * rate : 0;
+            return (
+              <div className="conversion-row conversion-row-selectable" key={currency}>
+                <span className={`currency-dot ${currency}`}>{CURRENCY_META[currency]?.icon || currency[0].toUpperCase()}</span>
+                <div className="conversion-source"><strong>{currency.toUpperCase()}</strong><small>Available · {formatAmount(balance)}</small></div>
+                <div className="conversion-rate"><span>1 {currency.toUpperCase()}</span><b>{formatAmount(rate)} VEs</b></div>
+                <div className="conversion-input-wrap"><input type="number" min="0" step="1" max={balance} value={conversionAmounts[currency] || ""} onChange={(e) => setConversionAmounts((prev) => ({ ...prev, [currency]: e.target.value }))} placeholder="Amount" aria-label={`Amount of ${currency.toUpperCase()} to convert`} /><button type="button" className="conversion-max" onClick={() => setConversionAmounts((prev) => ({ ...prev, [currency]: String(balance) }))} disabled={!balance}>MAX</button></div>
+                <div className="conversion-preview"><span>You receive</span><strong>{formatAmount(preview)} VEs</strong></div>
+                <button type="button" className="reward-btn primary conversion-action" onClick={() => onConvert(currency)} disabled={busy || !balance || !amount || amount > balance}>{busy ? "Converting…" : `Convert ${currency.toUpperCase()}`}</button>
+              </div>
+            );
+          })}
         </div>
-        <button className="reward-btn primary" onClick={onConvert} disabled={busy || !Object.keys(conversionRates).some((key) => Number(wallet[key] || 0) > 0)}>
-          {busy ? "Converting..." : "Convert All to VEs"}
-        </button>
+        <div className="conversion-bottom"><small>Server rates: 1 SVE = {formatAmount(Number(conversionRates.sves || 0))} VEs · 1 Token = {formatAmount(Number(conversionRates.tokens || 0))} VEs · 1 Gem = {formatAmount(Number(conversionRates.gems || 0))} VEs.</small><span className="conversion-secure"><Icon name="shield" /> Backend validated</span></div>
+      </section>
+    </div>
+  );
+}
+
+function AboutPage({ payoutOptions, rewardConfig, onRewards, onWallet, onWithdraw }) {
+  const payoutRules = (payoutOptions || []).flatMap((option) =>
+    (Array.isArray(option?.denominations) ? option.denominations : []).map((item) => [
+      Number(item?.payout_value || 0),
+      Number(item?.required_amount || 0),
+    ])
+  ).filter(([rupees, ves]) => rupees > 0 && ves > 0)
+   .sort((a, b) => a[0] - b[0])
+   .filter((rule, index, rows) => index === 0 || rule[0] !== rows[index - 1][0]);
+  const conversionRates = rewardConfig?.conversion_rates || {};
+
+  return (
+    <div className="content-stack about-experience">
+      <section className="about-hero-pro">
+        <div className="about-hero-copy">
+          <span className="hero-overline">ABOUT VELOOP REWARDS</span>
+          <h2>A backend-first rewards wallet with a clear, secure redemption flow.</h2>
+          <p>
+            VELOOP Rewards is a demonstration wallet application built around a server-authoritative
+            ledger. The authenticated backend owns wallet balances, reward rules, conversion rates,
+            payout denominations and withdrawal validation; the React interface only presents data and submits requests.
+          </p>
+          <div className="about-metrics">
+            <span><b>100 VEs</b><small>₹1 wallet value</small></span>
+            <span><b>10 Days</b><small>Daily reward cycle</small></span>
+            <span><b>3 Types</b><small>Convertible rewards</small></span>
+            <span><b>{payoutRules.length || 0} Options</b><small>Configured payouts</small></span>
+          </div>
+        </div>
+        <div className="about-brand-stack">
+          <div className="about-logo-pro"><VeloopLogo size={68} /></div>
+          <div><strong>VELOOP</strong><span>Rewards Wallet</span></div>
+        </div>
       </section>
 
-      <section className="reward-rules">
-        <div><strong>Daily cycle</strong><span>Day 1–4: 100 VEs · Day 5: 100 VEs + 1 SVE + 1 Spin · Day 6–9: 100 VEs · Day 10: 200 VEs + 1 SVE + 1 Token + 1 Gem + 1 Spin.</span></div>
-        <div><strong>Conversion</strong><span>1 SVE = 500 VEs · 1 Token = 2,000 VEs · 1 Gem = 5,000 VEs.</span></div>
+      <section className="about-grid-pro">
+        <article className="about-card-pro">
+          <span className="about-number">01</span>
+          <div className="about-icon"><Icon name="gift" /></div>
+          <h3>Rewards & ledger</h3>
+          <p>Daily rewards are server-validated and each wallet mutation is recorded as an auditable transaction.</p>
+          <button type="button" onClick={onRewards}>Open Rewards <Icon name="arrow-right" /></button>
+        </article>
+
+        <article className="about-card-pro">
+          <span className="about-number">02</span>
+          <div className="about-icon"><Icon name="wallet" /></div>
+          <h3>Wallet source of truth</h3>
+          <p>VEs, SVEs, Gems and Tokens are read from the authenticated wallet; the frontend never sets the real balance.</p>
+          <button type="button" onClick={onWallet}>Open Wallet <Icon name="arrow-right" /></button>
+        </article>
+
+        <article className="about-card-pro">
+          <span className="about-number">03</span>
+          <div className="about-icon"><Icon name="refresh" /></div>
+          <h3>Reward conversion</h3>
+          <p>Convert only the amount you choose. Server-controlled rates are applied and the conversion is recorded in the ledger.</p>
+          <div className="about-rule-list">
+            <span>1 SVE <b>500 VEs</b></span>
+            <span>1 Token <b>2,000 VEs</b></span>
+            <span>1 Gem <b>5,000 VEs</b></span>
+          </div>
+        </article>
+
+        <article className="about-card-pro">
+          <span className="about-number">04</span>
+          <div className="about-icon"><Icon name="arrow-up" /></div>
+          <h3>Withdrawal rules</h3>
+          <p>Supported denominations are backend-controlled. The wallet value shown in the app is based on 100 VEs = ₹1.</p>
+          <div className="about-payout-grid">
+            {payoutRules.map(([rupees, ves]) => (
+              <span key={rupees}><b>₹{formatAmount(rupees)}</b><small>{formatAmount(ves)} VEs</small></span>
+            ))}
+          </div>
+          <button type="button" onClick={onWithdraw}>Open Withdrawals <Icon name="arrow-right" /></button>
+        </article>
+      </section>
+
+      <section className="about-tech-card">
+        <div className="about-tech-head">
+          <div><span className="section-kicker">STACK</span><h3>Built for a practical backend demonstration</h3></div>
+          <span className="version-pill">v{APP_VERSION_LABEL}</span>
+        </div>
+        <div className="tech-chip-grid">
+          {[
+            ["Python", "Backend runtime"],
+            ["FastAPI", "REST API"],
+            ["MongoDB", "Persistent wallet data"],
+            ["React + Vite", "Demonstration UI"],
+            ["JWT", "Authentication"],
+            ["Mongo transactions", "Atomic wallet changes"],
+          ].map(([name, detail]) => (
+            <div className="tech-chip" key={name}><strong>{name}</strong><span>{detail}</span></div>
+          ))}
+        </div>
+      </section>
+
+      <section className="about-how">
+        <div className="about-how-head">
+          <span className="section-kicker">SECURE FLOW</span>
+          <h3>Authenticate → fetch → validate → record</h3>
+        </div>
+        <div className="about-flow">
+          <span><b>01</b>Login</span><i>→</i>
+          <span><b>02</b>Load wallet</span><i>→</i>
+          <span><b>03</b>Server validation</span><i>→</i>
+          <span><b>04</b>Ledger update</span>
+        </div>
+      </section>
+
+      <section className="about-security">
+        <div className="about-security-icon"><Icon name="shield" /></div>
+        <div>
+          <span className="section-kicker">SECURITY PRINCIPLE</span>
+          <h3>The backend owns the reward logic</h3>
+          <p>
+            Client-side balance changes are not trusted. Withdrawal denominations, required VEs,
+            wallet ownership and reward conversion are validated on the API before database changes are committed.
+          </p>
+        </div>
+      </section>
+
+      <section className="about-contact">
+        <div className="about-contact-icon"><Icon name="mail" /></div>
+        <div>
+          <span className="section-kicker">PROJECT SUPPORT</span>
+          <h3>Need help with the demonstration?</h3>
+          <p>For project questions, testing support or review feedback, use the project contact email.</p>
+        </div>
+        <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
       </section>
     </div>
   );
@@ -2360,7 +2503,7 @@ function WalletPage({
           </h2>
 
           <p>
-            VEs ready for supported rewards
+            100 VEs = ₹1 · VEs ready for supported rewards
             and withdrawals.
           </p>
 
@@ -2378,11 +2521,11 @@ function WalletPage({
         </div>
 
         <div className="hero-side">
-          <div className="hero-token">
-            <span>
-              VE
-            </span>
+          <div className="hero-brand-lockup">
+            <div className="hero-brand-orb"><VeloopLogo size={88} /></div>
+            <div className="hero-brand-caption"><strong>VELOOP</strong><span>Rewards Wallet</span></div>
           </div>
+          <div className="hero-inr-card"><span>ESTIMATED VALUE</span><strong>₹{formatAmount(Math.floor(Number(wallet.ves || 0) / 100))}</strong><small>100 VEs = ₹1</small></div>
 
           <button
             className="hero-cta"
@@ -2423,7 +2566,7 @@ function WalletPage({
             }
           >
             {refreshing ? (
-              <span className="btn-spinner" />
+              <span className="btn-loader" />
             ) : (
               <Icon name="refresh" />
             )}
@@ -2754,7 +2897,7 @@ function TransactionsPage({
             }
           >
             {refreshing ? (
-              <span className="btn-spinner" />
+              <span className="btn-loader" />
             ) : (
               <Icon name="refresh" />
             )}
@@ -2940,7 +3083,6 @@ function QrPayoutScanner({ form, updateForm }) {
         return upiId.trim();
       }
     } catch {
-      // Some QR scanners return non-URL text.
     }
 
     const match = value.match(/(?:^|[?&])(?:pa|upi_id|vpa)=([^&\s]+)/i);
@@ -2957,13 +3099,11 @@ function QrPayoutScanner({ form, updateForm }) {
     try {
       await scanner.stop();
     } catch {
-      // Scanner may already be stopped or may not have started.
     }
 
     try {
       scanner.clear();
     } catch {
-      // Ignore scanner cleanup errors.
     }
 
     if (scannerRef.current === scanner) {
@@ -2995,9 +3135,12 @@ function QrPayoutScanner({ form, updateForm }) {
         if (!navigator.mediaDevices?.getUserMedia) {
           throw new Error("Camera access is not supported in this browser.");
         }
+        const permissionStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
+        });
+        permissionStream.getTracks().forEach((track) => track.stop());
 
-        // Ask for camera access first and select a real camera device.
-        // This is more reliable than forcing facingMode on laptops/desktops.
         const cameras = await Html5Qrcode.getCameras();
         if (cancelled) return;
 
@@ -3068,13 +3211,11 @@ function QrPayoutScanner({ form, updateForm }) {
           try {
             await scanner.stop();
           } catch {
-            // Ignore cleanup errors.
           }
 
           try {
             scanner.clear();
           } catch {
-            // Ignore cleanup errors.
           }
         }
 
@@ -3133,7 +3274,6 @@ function QrPayoutScanner({ form, updateForm }) {
       try {
         scanner.clear();
       } catch {
-        // Ignore scanner cleanup errors.
       }
     }
   }
@@ -4036,110 +4176,102 @@ function ConfirmationModal({
   );
 }
 
-function ProfileModal({
-  profile,
-  email,
-  wallet,
-  getInitial,
-  onClose,
-}) {
-  return (
-    <div
-      className="modal-backdrop"
-      onMouseDown={
-        onClose
-      }
-    >
-      <div
-        className="profile-modal"
-        onMouseDown={(e) =>
-          e.stopPropagation()
+function ProfileCameraCapture({ onCapture, onClose }) {
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    async function openCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "user" }, width: { ideal: 720 }, height: { ideal: 720 } },
+          audio: false,
+        });
+        if (!active) { stream.getTracks().forEach((track) => track.stop()); return; }
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
         }
-      >
-        <div className="profile-modal-head">
-          <div className="avatar xl">
-            {
-              getInitial
-            }
-          </div>
+      } catch (err) {
+        setError(String(err?.message || "Unable to access the camera. Please allow camera permission."));
+      }
+    }
+    openCamera();
+    return () => {
+      active = false;
+      streamRef.current?.getTracks?.().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
+  }, []);
 
-          <div>
-            <div className="section-kicker">
-              ACCOUNT PROFILE
-            </div>
+  function capture() {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth) return;
+    const canvas = document.createElement("canvas");
+    const size = Math.min(video.videoWidth, video.videoHeight);
+    canvas.width = 720; canvas.height = 720;
+    const ctx = canvas.getContext("2d");
+    const sx = (video.videoWidth - size) / 2;
+    const sy = (video.videoHeight - size) / 2;
+    ctx.drawImage(video, sx, sy, size, size, 0, 0, 720, 720);
+    onCapture(canvas.toDataURL("image/jpeg", 0.88));
+    onClose();
+  }
 
-            <h2>
-              {
-                profile.name ||
-                "VELOOP User"
-              }
-            </h2>
-
-            <span>
-              {
-                email
-              }
-            </span>
-          </div>
-
-          <button
-            className="modal-close"
-            onClick={
-              onClose
-            }
-          >
-            ×
-          </button>
-        </div>
-
-        <div className="profile-details">
-          <ProfileRow
-            label="Email address"
-            value={
-              email
-            }
-          />
-
-          <ProfileRow
-            label="Account access"
-            value="Authenticated"
-          />
-
-          <ProfileRow
-            label="Wallet VEs"
-            value={`${formatAmount(
-              wallet.ves
-            )} VEs`}
-          />
-
-          <ProfileRow
-            label="Security"
-            value="JWT protected session"
-          />
-        </div>
-
-        <div className="profile-note">
-          <Icon name="shield" />
-
-          <span>
-            Your password is never
-            displayed here. Wallet
-            balances are loaded from
-            the authenticated backend.
-          </span>
-        </div>
-
-        <button
-          className="primary-btn full-btn"
-          onClick={
-            onClose
-          }
-        >
-          Done
-        </button>
-      </div>
+  return <div className="camera-modal-backdrop" onMouseDown={(e) => { e.stopPropagation(); if (e.target === e.currentTarget) onClose(); }}>
+    <div className="camera-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="camera-modal-head"><div><span className="section-kicker">PROFILE CAMERA</span><h3>Take a profile photo</h3></div><button onClick={onClose}>×</button></div>
+      <div className="camera-preview"><video ref={videoRef} playsInline muted autoPlay /></div>
+      {error && <div className="camera-error">{error}</div>}
+      <div className="camera-modal-actions"><button className="soft-btn" onClick={onClose}>Cancel</button><button className="primary-btn" onClick={capture} disabled={Boolean(error)}><Icon name="camera" />Capture photo</button></div>
     </div>
-  );
+  </div>;
+}
+
+function ProfileModal({ profile, email, wallet, getInitial, avatar, onAvatarChange, onClose }) {
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  function handleImage(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !file.type.startsWith("image/")) return;
+    if (file.size > 12 * 1024 * 1024) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const image = new Image();
+      image.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxSize = 512;
+        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        canvas.width = Math.max(1, Math.round(image.width * scale));
+        canvas.height = Math.max(1, Math.round(image.height * scale));
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        onAvatarChange(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return <div className="modal-backdrop" onMouseDown={onClose}>
+    <div className="profile-modal profile-editor-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <button className="modal-close" onClick={onClose}>×</button>
+      <div className="profile-editor-head"><div className="profile-photo-large"><AvatarDisplay avatar={avatar} fallback={getInitial} /></div><div><span className="section-kicker">ACCOUNT PROFILE</span><h2>{profile.name || "VELOOP User"}</h2><span>{email}</span></div></div>
+      <div className="profile-photo-tools"><button className="avatar-action primary" type="button" onClick={() => setCameraOpen(true)}><Icon name="camera" />Use camera</button><label className="avatar-action"><Icon name="upload" />Upload from device<input type="file" accept="image/*" onChange={handleImage} /></label><button className="avatar-action" type="button" onClick={() => setAvatarPickerOpen((v) => !v)}><Icon name="spark" />Illustrated avatar</button></div>
+      {avatarPickerOpen && <div className="avatar-picker"><div className="avatar-picker-title">Choose your VELOOP avatar</div><div className="avatar-grid">{AVATAR_PRESETS.map((item) => <button key={item} type="button" className={avatar === `emoji:${item}` ? "preset-avatar selected" : "preset-avatar"} onClick={() => onAvatarChange(`emoji:${item}`)}>{item}</button>)}</div></div>}
+      <div className="profile-details"><ProfileRow label="Full name" value={profile.name || "VELOOP User"} /><ProfileRow label="Email address" value={email} /><ProfileRow label="Account access" value="Authenticated" /><ProfileRow label="Wallet VEs" value={`${formatAmount(wallet.ves)} VEs`} /></div>
+      <div className="profile-note"><Icon name="shield" /><span>Photos are stored locally in this browser. Your password is never displayed here.</span></div>
+      <button className="primary-btn full-btn" onClick={onClose}>Done</button>
+    </div>
+    {cameraOpen && <ProfileCameraCapture onCapture={onAvatarChange} onClose={() => setCameraOpen(false)} />}
+  </div>;
 }
 
 function ProfileRow({
@@ -4925,6 +5057,13 @@ function Icon({
       </>
     ),
 
+    mail: (
+      <>
+        <rect x="3.5" y="5.5" width="17" height="13" rx="2" />
+        <path d="m5 7 7 5 7-5" />
+      </>
+    ),
+
     user: (
       <>
         <circle
@@ -4935,6 +5074,19 @@ function Icon({
         <path d="M5 20a7 7 0 0 1 14 0" />
       </>
     ),
+
+    info: (<><circle cx="12" cy="12" r="9" /><path d="M12 10v6" /><path d="M12 7h.01" /></>),
+    check: (<><path d="m5 12 4 4L19 6" /></>),
+    fire: (<><path d="M12 21c4.4 0 7-2.7 7-6.4 0-3.2-2-5.1-4.4-7.4.1 2.1-.8 3.3-1.8 4.1.1-3.8-1.6-6.1-4.1-8.3.2 3.2-2.7 5.3-2.7 9.1C6 17.7 8.5 21 12 21Z" /></>),
+    clock: (<><circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3 2" /></>),
+    calendar: (<><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M8 3v4M16 3v4M4 9h16" /></>),
+    target: (<><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><circle cx="12" cy="12" r="1" /></>),
+    trophy: (<><path d="M8 4h8v5a4 4 0 0 1-8 0V4Z" /><path d="M8 6H4v2a4 4 0 0 0 4 4M16 6h4v2a4 4 0 0 1-4 4M12 13v4M8 20h8M9 17h6" /></>),
+    users: (<><circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0M14 19a4.5 4.5 0 0 1 6.5 1" /></>),
+    gift: (<><rect x="3" y="8" width="18" height="12" rx="2" /><path d="M12 8v12M3 12h18" /><path d="M12 8H8.5a2.5 2.5 0 1 1 2.2-3.7L12 8ZM12 8h3.5a2.5 2.5 0 1 0-2.2-3.7L12 8Z" /></>),
+    spark: (<><path d="m12 3 1.5 6.5L20 11l-6.5 1.5L12 19l-1.5-6.5L4 11l6.5-1.5L12 3Z" /></>),
+    camera: (<><path d="M4 8h3l1.5-2h7L17 8h3v11H4z" /><circle cx="12" cy="13" r="3.2" /></>),
+    upload: (<><path d="M12 16V4" /><path d="m7 9 5-5 5 5" /><path d="M5 20h14" /></>),
 
     logout: (
       <>
