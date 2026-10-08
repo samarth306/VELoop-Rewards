@@ -14,14 +14,15 @@ from typing import Any, Optional
 
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from pydantic import BaseModel, EmailStr, Field
-from pymongo import ReturnDocument
+from pymongo.errors import DuplicateKeyError
+from pymongo.collection import ReturnDocument
 from backend.database import client
 from backend.app.collections import (
 
@@ -35,7 +36,7 @@ from backend.app.collections import (
 
 )
 
-from backend.app.wallet_service import credit_wallet
+from backend.app.wallet_service import credit_wallet, get_transactions
 
 from backend.app.models.auth import (
 
@@ -67,7 +68,11 @@ from backend.app.reward_service import (
 
     DAILY_REWARDS,
 
+    CONVERSION_RATES,
+
     claim_daily_reward,
+
+    convert_reward_to_ves,
 
     get_daily_status,
 
@@ -77,7 +82,7 @@ from backend.app import collections as app_collections
 
 audit_logs_collection = getattr(app_collections, "audit_logs_collection", None)
 
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.4.0"
 
 MIN_WITHDRAWAL_VES = 100
 
@@ -92,8 +97,6 @@ ALLOWED_CURRENCIES = {
     "gems",
 
     "tokens",
-
-    "spins",
 
 }
 
@@ -239,6 +242,10 @@ _default_origins = [
 
     "http://localhost:5176",
 
+    "http://localhost:5177",
+
+    "http://localhost:5178",
+
     "http://127.0.0.1:5173",
 
     "http://127.0.0.1:5174",
@@ -246,6 +253,12 @@ _default_origins = [
     "http://127.0.0.1:5175",
 
     "http://127.0.0.1:5176",
+
+    "http://127.0.0.1:5177",
+
+    "http://127.0.0.1:5178",
+
+    "https://veloop-rewards-frontend-ggzf.onrender.com",
 
 ]
 
@@ -298,6 +311,9 @@ def public_document(document: Optional[dict]) -> dict:
     result.pop("password_hash", None)
 
     result.pop("reset_token_hash", None)
+    # Legacy wallet documents may still contain the old game-field; keep it
+    # out of the public API while the feature remains removed from the app.
+    result.pop("spins", None)
 
     return result
 
@@ -959,38 +975,6 @@ def send_reset_email(
 
     return True
 
-class TransactionRequest(BaseModel):
-
-    currency: str = Field(
-
-        min_length=1,
-
-        max_length=20,
-
-    )
-
-    amount: int = Field(
-
-        gt=0,
-
-    )
-
-    source: str = Field(
-
-        min_length=1,
-
-        max_length=80,
-
-    )
-
-    description: str = Field(
-
-        default="",
-
-        max_length=250,
-
-    )
-
 class WithdrawalRequest(BaseModel):
 
     amount: int = Field(
@@ -1046,8 +1030,24 @@ class ChangePasswordRequest(BaseModel):
 class ForgotPasswordRequest(BaseModel):
 
     email: EmailStr
+    
+class ConversionRequest(BaseModel):
+    currency: str = Field(..., pattern="^(sves|gems|tokens)$")
+    amount: int = Field(..., gt=0)
+
+
+ConversionRequest.model_rebuild()
+
 
 class ResetPasswordRequest(BaseModel):
+    token: str = Field(
+        min_length=20,
+    )
+
+    new_password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
 
     token: str = Field(
 
@@ -1210,8 +1210,6 @@ def register(
         "gems": 0,
 
         "tokens": 0,
-
-        "spins": 0,
 
         "created_at": timestamp,
 
@@ -1770,645 +1768,217 @@ def get_single_payout_option(
 
     return option
 
-@app.get("/wallet/demo")
-
-def get_demo_wallet():
-
-    user = users_collection.find_one(
-
-        {"email": "demo@veloop.test"},
-
-        {"_id": 0},
-
-    )
-
-    if not user:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Demo user not found",
-
-        )
-
-    wallet = wallets_collection.find_one(
-
-        {"user_id": user["user_id"]},
-
-        {"_id": 0},
-
-    )
-
-    if not wallet:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Wallet not found",
-
-        )
-
-    return wallet
-
-@app.post("/wallet/demo/transaction")
-
-def create_demo_transaction(
-
-    request: TransactionRequest,
-
-):
-
-    user = users_collection.find_one(
-
-        {"email": "demo@veloop.test"},
-
-        {"_id": 0},
-
-    )
-
-    if not user:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Demo user not found",
-
-        )
-
-    currency = validate_currency(
-
-        request.currency
-
-    )
-
-    wallet = get_user_wallet(
-
-        user["user_id"]
-
-    )
-
-    balance_before = int(
-
-        wallet.get(currency, 0)
-
-    )
-
-    balance_after = (
-
-        balance_before
-
-        + request.amount
-
-    )
-
-    result = wallets_collection.update_one(
-
-        {
-
-            "user_id": user["user_id"]
-
-        },
-
-        {
-
-            "$inc": {
-
-                currency: request.amount
-
-            },
-
-            "$set": {
-
-                "updated_at": now_utc()
-
-            },
-
-        },
-
-    )
-
-    if result.modified_count != 1:
-
-        raise HTTPException(
-
-            status_code=500,
-
-            detail="Unable to update demo wallet",
-
-        )
-
-    return create_wallet_transaction(
-
-        user_id=user["user_id"],
-
-        transaction_type="REWARD",
-
-        amount=request.amount,
-
-        balance_before=balance_before,
-
-        balance_after=balance_after,
-
-        source=request.source,
-
-        reference_id=None,
-
-        status="COMPLETED",
-
-        description=request.description,
-
-        metadata={
-
-            "demo": True
-
-        },
-
-    )
-
-@app.get("/wallet/demo/transactions")
-
-def get_demo_transactions():
-
-    user = users_collection.find_one(
-
-        {"email": "demo@veloop.test"},
-
-        {"_id": 0},
-
-    )
-
-    if not user:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Demo user not found",
-
-        )
-
-    transactions = list(
-
-        transactions_collection.find(
-
-            {
-
-                "user_id": user["user_id"]
-
-            },
-
-            {
-
-                "_id": 0
-
-            },
-
-        ).sort(
-
-            "created_at",
-
-            -1,
-
-        )
-
-    )
-
-    return {
-
-        "user_id": user["user_id"],
-
-        "count": len(transactions),
-
-        "transactions": transactions,
-
-    }
-
 def _create_withdrawal(
-
     user: dict,
-
     request: WithdrawalRequest,
-
 ) -> dict:
-
-    option = get_payout_option(
-
-        request.payout_option_id
-
+    option = get_payout_option(request.payout_option_id)
+    denomination = get_payout_denomination(option, request.amount)
+    required_ves = int(denomination["required_amount"])
+    normalized_details = validate_payout_details(
+        request.payout_option_id,
+        request.payout_details,
     )
 
-    denomination = get_payout_denomination(
-
-        option,
-
-        request.amount,
-
-    )
-
-    required_ves = int(
-
-        denomination["required_amount"]
-
-    )
-
-    normalized_details = (
-
-        validate_payout_details(
-
-            request.payout_option_id,
-
-            request.payout_details,
-
-        )
-
-    )
-
-    if request.request_id:
-
-        existing = withdrawals_collection.find_one(
-
-            {
-
-                "user_id": user["user_id"],
-
-                "request_id": request.request_id,
-
-            }
-
-        )
-
-        if existing:
-
-            return sanitize_withdrawal(
-
-                existing
-
-            )
-
-    wallet = get_user_wallet(
-
-        user["user_id"]
-
-    )
-
-    balance_before = int(
-
-        wallet.get("ves", 0)
-
-    )
-
-    result = wallets_collection.update_one(
-
-        {
-
-            "user_id": user["user_id"],
-
-            "ves": {
-
-                "$gte": required_ves
-
-            },
-
-        },
-
-        {
-
-            "$inc": {
-
-                "ves": -required_ves
-
-            },
-
-            "$set": {
-
-                "updated_at": now_utc()
-
-            },
-
-        },
-
-    )
-
-    if result.modified_count != 1:
-
-        raise HTTPException(
-
-            status_code=400,
-
-            detail="Insufficient VEs balance",
-
-        )
-
-    balance_after = (
-
-        balance_before
-
-        - required_ves
-
-    )
-
-    withdrawal_id = str(
-
-        uuid4()
-
-    )
-
-    transaction_id = str(
-
-        uuid4()
-
-    )
-
-    timestamp = now_utc()
-
-    withdrawal = {
-
-        "withdrawal_id": withdrawal_id,
-
-        "request_id": request.request_id,
-
-        "user_id": user["user_id"],
-
-        "currency": "ves",
-
-        "amount": required_ves,
-
-        "payout_value": request.amount,
-
-        "payout_option_id": (
-
-            request.payout_option_id
-
-        ),
-
-        "payout_details": (
-
-            normalized_details
-
-        ),
-
-        "status": "PENDING",
-
-        "transaction_id": transaction_id,
-
-        "failure_reason": None,
-
-        "created_at": timestamp,
-
-        "updated_at": timestamp,
-
-    }
-
-    transaction = {
-
-        "transaction_id": transaction_id,
-
-        "user_id": user["user_id"],
-
-        "currency": "ves",
-
-        "type": "WITHDRAWAL",
-
-        "amount": required_ves,
-
-        "balance_before": balance_before,
-
-        "balance_after": balance_after,
-
-        "source": "withdrawal",
-
-        "reference_id": withdrawal_id,
-
-        "status": "PENDING",
-
-        "description": (
-
-            f"Withdrawal of ₹{request.amount} "
-
-            f"via {option['name']}"
-
-        ),
-
-        "metadata": {
-
-            "payout_option_id": (
-
-                request.payout_option_id
-
-            ),
-
-            "payout_type": option["type"],
-
-            "payout_value": request.amount,
-
-            "required_ves": required_ves,
-
-        },
-
-        "created_at": timestamp,
-
-        "updated_at": timestamp,
-
-    }
+    withdrawal = None
+    transaction = None
 
     try:
+        with client.start_session() as session:
+            with session.start_transaction():
+                # Idempotency is checked inside the transaction so concurrent
+                # requests observe a consistent state. The unique database
+                # index is the final guard against duplicate request IDs.
+                if request.request_id:
+                    existing = withdrawals_collection.find_one(
+                        {
+                            "user_id": user["user_id"],
+                            "request_id": request.request_id,
+                        },
+                        {"_id": 0},
+                        session=session,
+                    )
+                    if existing:
+                        withdrawal = existing
+                    else:
+                        wallet = wallets_collection.find_one(
+                            {"user_id": user["user_id"]},
+                            {"_id": 0},
+                            session=session,
+                        )
+                        if not wallet:
+                            raise HTTPException(status_code=404, detail="Wallet not found")
 
-        withdrawals_collection.insert_one(
+                        balance_before = int(wallet.get("ves", 0) or 0)
+                        timestamp = now_utc()
+                        withdrawal_id = str(uuid4())
+                        transaction_id = str(uuid4())
+                        balance_after = balance_before - required_ves
 
-            withdrawal
+                        if balance_before < required_ves:
+                            raise HTTPException(status_code=400, detail="Insufficient VEs balance")
 
-        )
+                        debit_result = wallets_collection.update_one(
+                            {
+                                "user_id": user["user_id"],
+                                "ves": {"$gte": required_ves},
+                            },
+                            {
+                                "$inc": {"ves": -required_ves},
+                                "$set": {"updated_at": timestamp},
+                            },
+                            session=session,
+                        )
 
-        transactions_collection.insert_one(
+                        if debit_result.modified_count != 1:
+                            raise HTTPException(status_code=400, detail="Insufficient VEs balance")
 
-            transaction
+                        withdrawal = {
+                            "withdrawal_id": withdrawal_id,
+                            "request_id": request.request_id,
+                            "user_id": user["user_id"],
+                            "currency": "ves",
+                            "amount": required_ves,
+                            "payout_value": request.amount,
+                            "payout_option_id": request.payout_option_id,
+                            "payout_details": normalized_details,
+                            "status": "PENDING",
+                            "transaction_id": transaction_id,
+                            "failure_reason": None,
+                            "created_at": timestamp,
+                            "updated_at": timestamp,
+                        }
 
-        )
+                        transaction = {
+                            "transaction_id": transaction_id,
+                            "user_id": user["user_id"],
+                            "currency": "ves",
+                            "type": "WITHDRAWAL",
+                            "amount": required_ves,
+                            "balance_before": balance_before,
+                            "balance_after": balance_after,
+                            "source": "withdrawal",
+                            "reference_id": withdrawal_id,
+                            "status": "PENDING",
+                            "description": f"Withdrawal of ₹{request.amount} via {option['name']}",
+                            "metadata": {
+                                "payout_option_id": request.payout_option_id,
+                                "payout_type": option["type"],
+                                "payout_value": request.amount,
+                                "required_ves": required_ves,
+                            },
+                            "created_at": timestamp,
+                            "updated_at": timestamp,
+                        }
 
-    except Exception:
+                        withdrawals_collection.insert_one(withdrawal, session=session)
+                        transactions_collection.insert_one(transaction, session=session)
+                else:
+                    wallet = wallets_collection.find_one(
+                        {"user_id": user["user_id"]},
+                        {"_id": 0},
+                        session=session,
+                    )
+                    if not wallet:
+                        raise HTTPException(status_code=404, detail="Wallet not found")
 
-        wallets_collection.update_one(
+                    balance_before = int(wallet.get("ves", 0) or 0)
+                    timestamp = now_utc()
+                    withdrawal_id = str(uuid4())
+                    transaction_id = str(uuid4())
+                    balance_after = balance_before - required_ves
 
-            {
+                    if balance_before < required_ves:
+                        raise HTTPException(status_code=400, detail="Insufficient VEs balance")
 
-                "user_id": user["user_id"]
+                    debit_result = wallets_collection.update_one(
+                        {
+                            "user_id": user["user_id"],
+                            "ves": {"$gte": required_ves},
+                        },
+                        {
+                            "$inc": {"ves": -required_ves},
+                            "$set": {"updated_at": timestamp},
+                        },
+                        session=session,
+                    )
 
-            },
+                    if debit_result.modified_count != 1:
+                        raise HTTPException(status_code=400, detail="Insufficient VEs balance")
 
-            {
+                    withdrawal = {
+                        "withdrawal_id": withdrawal_id,
+                        "request_id": None,
+                        "user_id": user["user_id"],
+                        "currency": "ves",
+                        "amount": required_ves,
+                        "payout_value": request.amount,
+                        "payout_option_id": request.payout_option_id,
+                        "payout_details": normalized_details,
+                        "status": "PENDING",
+                        "transaction_id": transaction_id,
+                        "failure_reason": None,
+                        "created_at": timestamp,
+                        "updated_at": timestamp,
+                    }
 
-                "$inc": {
+                    transaction = {
+                        "transaction_id": transaction_id,
+                        "user_id": user["user_id"],
+                        "currency": "ves",
+                        "type": "WITHDRAWAL",
+                        "amount": required_ves,
+                        "balance_before": balance_before,
+                        "balance_after": balance_after,
+                        "source": "withdrawal",
+                        "reference_id": withdrawal_id,
+                        "status": "PENDING",
+                        "description": f"Withdrawal of ₹{request.amount} via {option['name']}",
+                        "metadata": {
+                            "payout_option_id": request.payout_option_id,
+                            "payout_type": option["type"],
+                            "payout_value": request.amount,
+                            "required_ves": required_ves,
+                        },
+                        "created_at": timestamp,
+                        "updated_at": timestamp,
+                    }
 
-                    "ves": required_ves
-
+                    withdrawals_collection.insert_one(withdrawal, session=session)
+                    transactions_collection.insert_one(transaction, session=session)
+    except DuplicateKeyError:
+        # Another concurrent request with the same idempotency key won the race.
+        if request.request_id:
+            existing = withdrawals_collection.find_one(
+                {
+                    "user_id": user["user_id"],
+                    "request_id": request.request_id,
                 },
+                {"_id": 0},
+            )
+            if existing:
+                return sanitize_withdrawal(existing)
+        raise HTTPException(status_code=409, detail="Duplicate withdrawal request")
 
-                "$set": {
+    if withdrawal is None:
+        raise HTTPException(status_code=500, detail="Withdrawal could not be created")
 
-                    "updated_at": now_utc()
+    withdrawal.pop("_id", None)
 
-                },
-
+    if transaction is not None:
+        transaction.pop("_id", None)
+        write_audit(
+            user["user_id"],
+            "WITHDRAWAL_CREATED",
+            {
+                "withdrawal_id": withdrawal["withdrawal_id"],
+                "payout_value": request.amount,
+                "required_ves": required_ves,
+                "payout_option_id": request.payout_option_id,
             },
-
         )
-
-        withdrawals_collection.delete_one(
-
-            {
-
-                "withdrawal_id": withdrawal_id
-
-            }
-
-        )
-
-        transactions_collection.delete_one(
-
-            {
-
-                "transaction_id": transaction_id
-
-            }
-
-        )
-
-        raise HTTPException(
-
-            status_code=500,
-
-            detail=(
-
-                "Withdrawal could not be created; "
-
-                "balance has been restored"
-
-            ),
-
-        )
-
-    write_audit(
-
-        user["user_id"],
-
-        "WITHDRAWAL_CREATED",
-
-        {
-
-            "withdrawal_id": withdrawal_id,
-
-            "payout_value": request.amount,
-
-            "required_ves": required_ves,
-
-            "payout_option_id": request.payout_option_id,
-
-        },
-
-    )
 
     return sanitize_withdrawal(withdrawal)
-
-@app.post("/wallet/demo/withdrawal")
-
-def create_demo_withdrawal(
-
-    request: WithdrawalRequest,
-
-):
-
-    user = users_collection.find_one(
-
-        {"email": "demo@veloop.test"},
-
-        {"_id": 0},
-
-    )
-
-    if not user:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Demo user not found",
-
-        )
-
-    return _create_withdrawal(
-
-        user,
-
-        request,
-
-    )
-
-@app.get("/wallet/demo/withdrawals")
-
-def get_demo_withdrawals():
-
-    user = users_collection.find_one(
-
-        {"email": "demo@veloop.test"},
-
-        {"_id": 0},
-
-    )
-
-    if not user:
-
-        raise HTTPException(
-
-            status_code=404,
-
-            detail="Demo user not found",
-
-        )
-
-    withdrawals = list(
-
-        withdrawals_collection.find(
-
-            {
-
-                "user_id": user["user_id"]
-
-            },
-
-            {
-
-                "_id": 0
-
-            },
-
-        ).sort(
-
-            "created_at",
-
-            -1,
-
-        )
-
-    )
-
-    return {
-
-        "user_id": user["user_id"],
-
-        "count": len(withdrawals),
-
-        "withdrawals": [
-
-            sanitize_withdrawal(item)
-
-            for item in withdrawals
-
-        ],
-
-    }
 
 @app.get("/rewards/config")
 
@@ -2417,6 +1987,8 @@ def get_reward_config():
     return {
 
         "daily_rewards": DAILY_REWARDS,
+
+        "conversion_rates": CONVERSION_RATES,
 
     }
 
@@ -2446,119 +2018,16 @@ def claim_my_daily_reward(current_user: dict = Depends(get_current_user)):
 
     return result
 
-CONVERSION_RATES = {
-    "sves": 500,
-    "tokens": 2000,
-    "gems": 5000,
-}
-
-
 @app.post("/rewards/convert")
 def convert_my_reward(
     request: ConversionRequest,
     current_user: dict = Depends(get_current_user),
 ):
-    currency = request.currency.lower().strip()
-    amount = int(request.amount)
-
-    if currency not in CONVERSION_RATES:
-        raise HTTPException(
-            status_code=400,
-            detail="Unsupported conversion currency",
-        )
-
-    if amount <= 0:
-        raise HTTPException(
-            status_code=400,
-            detail="Conversion amount must be greater than zero",
-        )
-
-    rate = CONVERSION_RATES[currency]
-    converted_ves = amount * rate
-    user_id = current_user["user_id"]
-    now = datetime.now(timezone.utc)
-
-    with client.start_session() as session:
-        with session.start_transaction():
-            wallet = wallets_collection.find_one(
-                {"user_id": user_id},
-                session=session,
-            )
-
-            if not wallet:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Wallet not found",
-                )
-
-            current_balance = int(wallet.get(currency, 0) or 0)
-
-            if current_balance < amount:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Insufficient {currency.upper()} balance",
-                )
-
-            result = wallets_collection.update_one(
-                {
-                    "user_id": user_id,
-                    currency: {"$gte": amount},
-                },
-                {
-                    "$inc": {
-                        currency: -amount,
-                        "ves": converted_ves,
-                    },
-                    "$set": {
-                        "updated_at": now,
-                    },
-                },
-                session=session,
-            )
-
-            if result.modified_count != 1:
-                raise HTTPException(
-                    status_code=409,
-                    detail="Wallet changed during conversion. Please try again.",
-                )
-
-            transaction = {
-                "transaction_id": str(uuid4()),
-                "user_id": user_id,
-                "currency": currency,
-                "type": "CONVERSION",
-                "amount": amount,
-                "converted_ves": converted_ves,
-                "conversion_rate": rate,
-                "balance_before": current_balance,
-                "balance_after": current_balance - amount,
-                "ves_credit": converted_ves,
-                "status": "COMPLETED",
-                "source": "REWARD_CONVERSION",
-                "description": (
-                    f"Converted {amount} {currency.upper()} "
-                    f"to {converted_ves:,} VEs"
-                ),
-                "created_at": now,
-                "updated_at": now,
-            }
-
-            transactions_collection.insert_one(
-                transaction,
-                session=session,
-            )
-
-    return {
-        "success": True,
-        "currency": currency,
-        "amount": amount,
-        "conversion_rate": rate,
-        "converted_ves": converted_ves,
-        "message": (
-            f"{amount:,} {currency.upper()} converted "
-            f"to {converted_ves:,} VEs successfully"
-        ),
-    }
+    return convert_reward_to_ves(
+        current_user["user_id"],
+        request.currency,
+        request.amount,
+    )
 
 @app.get("/wallet/me")
 
@@ -2581,10 +2050,6 @@ def get_my_wallet(
         )
 
     )
-class ConversionRequest(BaseModel):
-    currency: str = Field(..., pattern="^(sves|gems|tokens)$")
-    amount: int = Field(..., gt=0)
-    
 class AdminRewardCreditRequest(BaseModel):
 
     email: EmailStr
@@ -2594,8 +2059,6 @@ class AdminRewardCreditRequest(BaseModel):
     gems: int = Field(default=0, ge=0)
 
     tokens: int = Field(default=0, ge=0)
-
-    spins: int = Field(default=0, ge=0)
 
     description: str = Field(
 
@@ -2716,8 +2179,15 @@ def admin_reset_password(
 def admin_reward_credit(
 
     request: AdminRewardCreditRequest,
+    x_admin_key: str = Header(default="", alias="X-Admin-Key"),
 
 ):
+
+    configured_key = os.getenv("ADMIN_REWARD_KEY", "").strip()
+    if not configured_key:
+        raise HTTPException(status_code=503, detail="Reward administration is not configured")
+    if not x_admin_key or not secrets.compare_digest(x_admin_key, configured_key):
+        raise HTTPException(status_code=403, detail="Invalid admin key")
 
     user = users_collection.find_one(
 
@@ -2746,8 +2216,6 @@ def admin_reward_credit(
     "gems": request.gems,
 
     "tokens": request.tokens,
-
-    "spins": request.spins,
 
 }
 
@@ -2840,51 +2308,21 @@ def get_my_transactions(
         get_current_user
 
     ),
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
 
 ):
 
-    transactions = list(
-
-        transactions_collection.find(
-
-            {
-
-                "user_id": current_user[
-
-                    "user_id"
-
-                ]
-
-            },
-
-            {
-
-                "_id": 0
-
-            },
-
-        ).sort(
-
-            "created_at",
-
-            -1,
-
-        )
-
+    result = get_transactions(
+        current_user["user_id"],
+        page=page,
+        limit=limit,
     )
 
     return {
-
-        "user_id": current_user[
-
-            "user_id"
-
-        ],
-
-        "count": len(transactions),
-
-        "transactions": transactions,
-
+        "user_id": current_user["user_id"],
+        "count": len(result["transactions"]),
+        **result,
     }
 
 @app.post("/wallet/me/withdrawal")
