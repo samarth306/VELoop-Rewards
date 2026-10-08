@@ -467,11 +467,18 @@ def convert_reward_to_ves(user_id, currency, amount):
                 reference_id=source_tx["transaction_id"],
                 metadata={"source_currency": currency, "source_amount": amount, "rate": rate},
                 now=now,
+            ) 
+            source_tx["reference_id"] = ves_tx["transaction_id"]
+
+            transactions_collection.insert_one(
+                source_tx,
+                session=session,
             )
 
-            source_tx["reference_id"] = ves_tx["transaction_id"]
-            transactions_collection.insert_one(source_tx, session=session)
-            transactions_collection.insert_one(ves_tx, session=session)
+            transactions_collection.insert_one(
+                ves_tx,
+                session=session,
+            )
 
     return {
         "success": True,
