@@ -1,7 +1,25 @@
-﻿.env
+# Secrets and local environment
+.env
+*.env
+!.env.example
 token.txt
+
+# Python
 venv/
+.venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+
+# Frontend
 node_modules/
 dist/
+coverage/
+.vite/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -59,7 +59,7 @@ const CURRENCY_META = {
 };
 
 const SUPPORT_EMAIL = "testuser.veloop@gmail.com";
-const APP_VERSION_LABEL = "2.4.0";
+const APP_VERSION_LABEL = "2.4.1";
 
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
@@ -2396,9 +2396,9 @@ function AboutPage({ payoutOptions, rewardConfig, onRewards, onWallet, onWithdra
           <h3>Reward conversion</h3>
           <p>Convert only the amount you choose. Server-controlled rates are applied and the conversion is recorded in the ledger.</p>
           <div className="about-rule-list">
-            <span>1 SVE <b>500 VEs</b></span>
-            <span>1 Token <b>2,000 VEs</b></span>
-            <span>1 Gem <b>5,000 VEs</b></span>
+            <span>1 SVE <b>{formatAmount(Number(conversionRates.sves || 0))} VEs</b></span>
+            <span>1 Token <b>{formatAmount(Number(conversionRates.tokens || 0))} VEs</b></span>
+            <span>1 Gem <b>{formatAmount(Number(conversionRates.gems || 0))} VEs</b></span>
           </div>
         </article>
 
@@ -4180,11 +4180,15 @@ function ProfileCameraCapture({ onCapture, onClose }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const [error, setError] = useState("");
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let active = true;
     async function openCamera() {
       try {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera access is not supported in this browser.");
+        }
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "user" }, width: { ideal: 720 }, height: { ideal: 720 } },
           audio: false,
@@ -4194,9 +4198,18 @@ function ProfileCameraCapture({ onCapture, onClose }) {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
+          if (active) setReady(true);
         }
       } catch (err) {
-        setError(String(err?.message || "Unable to access the camera. Please allow camera permission."));
+        const message = String(err?.message || err || "");
+        const lower = message.toLowerCase();
+        if (lower.includes("notallowed") || lower.includes("permission")) {
+          setError("Camera permission was denied. Allow camera access in the browser and try again, or use Upload from device.");
+        } else if (lower.includes("notfound") || lower.includes("no camera")) {
+          setError("No camera was found on this device. You can close this window and use Upload from device instead.");
+        } else {
+          setError("Unable to open the camera. Please try again or use Upload from device.");
+        }
       }
     }
     openCamera();
@@ -4204,12 +4217,13 @@ function ProfileCameraCapture({ onCapture, onClose }) {
       active = false;
       streamRef.current?.getTracks?.().forEach((track) => track.stop());
       streamRef.current = null;
+      setReady(false);
     };
   }, []);
 
   function capture() {
     const video = videoRef.current;
-    if (!video || !video.videoWidth) return;
+    if (!ready || !video || !video.videoWidth) return;
     const canvas = document.createElement("canvas");
     const size = Math.min(video.videoWidth, video.videoHeight);
     canvas.width = 720; canvas.height = 720;
@@ -4226,7 +4240,7 @@ function ProfileCameraCapture({ onCapture, onClose }) {
       <div className="camera-modal-head"><div><span className="section-kicker">PROFILE CAMERA</span><h3>Take a profile photo</h3></div><button onClick={onClose}>×</button></div>
       <div className="camera-preview"><video ref={videoRef} playsInline muted autoPlay /></div>
       {error && <div className="camera-error">{error}</div>}
-      <div className="camera-modal-actions"><button className="soft-btn" onClick={onClose}>Cancel</button><button className="primary-btn" onClick={capture} disabled={Boolean(error)}><Icon name="camera" />Capture photo</button></div>
+      <div className="camera-modal-actions"><button className="soft-btn" onClick={onClose}>Cancel</button><button className="primary-btn" onClick={capture} disabled={Boolean(error) || !ready}><Icon name="camera" />{ready ? "Capture photo" : "Starting camera…"}</button></div>
     </div>
   </div>;
 }

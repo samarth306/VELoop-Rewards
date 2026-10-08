@@ -1,4 +1,4 @@
-from backend.app.database import db
+from backend.database import db
 
 
 # =========================

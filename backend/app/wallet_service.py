@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 
-from backend.app.database import client
+from backend.database import client
 from backend.app.collections import (
     wallets_collection,
     transactions_collection,
@@ -14,7 +14,6 @@ SUPPORTED_CURRENCIES = {
     "sves",
     "gems",
     "tokens",
-    "spins",
 }
 
 

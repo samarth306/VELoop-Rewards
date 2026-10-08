@@ -1,0 +1,12 @@
+$kind: collection
+description: Postman collection for the VELOOP Rewards Wallet System. Covers authentication, wallet, transactions, payout options, withdrawals, password reset, and health checks. No real credentials or secrets are included.
+variables:
+  baseUrl: https://veloop-rewards-jj94.onrender.com
+  email: user@example.com
+  password: change-me
+  newPassword: change-me-new
+  accessToken: ""
+  payoutOptionId: ""
+  requestId: ""
+  resetToken: ""
+  adminSecret: ""

@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/payout-options/{{payoutOptionId}}"
+method: GET
+order: 2000

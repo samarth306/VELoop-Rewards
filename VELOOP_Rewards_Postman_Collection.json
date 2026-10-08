@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "d6f1b2c7-0b55-4b0a-9b1d-veloop-rewards",
     "name": "VELOOP Rewards API",
-    "description": "Postman collection for the VELOOP Rewards Wallet System. Covers authentication, wallet, transactions, payout options, withdrawals, password reset, and health checks. No real credentials or secrets are included.",
+    "description": "Postman collection for the VELOOP Rewards Wallet & Payout System. Backend is the source of truth for wallet balances, payout configuration and withdrawals. No real credentials or secrets are included. Final payout mapping: ₹10=1,000 VEs; ₹25=2,500 VEs; ₹50=5,000 VEs; ₹100=10,000 VEs; ₹150=15,000 VEs; ₹300=30,000 VEs; ₹500=50,000 VEs; ₹1,000=100,000 VEs.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -28,7 +28,7 @@
     },
     {
       "key": "payoutOptionId",
-      "value": ""
+      "value": "upi"
     },
     {
       "key": "requestId",
@@ -73,9 +73,7 @@
               "host": [
                 "{{baseUrl}}"
               ],
-              "path": [
-                ""
-              ]
+              "path": []
             }
           }
         }
@@ -94,10 +92,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Demo User\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
               "host": [
@@ -107,6 +101,15 @@
                 "auth",
                 "register"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Demo User\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
@@ -120,10 +123,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
               "host": [
@@ -133,8 +132,18 @@
                 "auth",
                 "login"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           },
+          "description": "Login and save the returned JWT.",
           "event": [
             {
               "listen": "test",
@@ -173,54 +182,37 @@
           }
         },
         {
-          "name": "POST Forgot Password",
+          "name": "PATCH Auth Me",
           "request": {
-            "method": "POST",
+            "method": "PATCH",
             "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{email}}\"\n}"
-            },
             "url": {
-              "raw": "{{baseUrl}}/auth/forgot-password",
+              "raw": "{{baseUrl}}/auth/me",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "auth",
-                "forgot-password"
+                "me"
               ]
-            }
-          }
-        },
-        {
-          "name": "POST Reset Password",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Demo User\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"new_password\": \"{{newPassword}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/reset-password",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "reset-password"
-              ]
             }
           }
         },
@@ -238,10 +230,6 @@
                 "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"current_password\": \"{{password}}\",\n  \"new_password\": \"{{newPassword}}\"\n}"
-            },
             "url": {
               "raw": "{{baseUrl}}/auth/change-password",
               "host": [
@@ -251,22 +239,93 @@
                 "auth",
                 "change-password"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{password}}\",\n  \"new_password\": \"{{newPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/forgot-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "POST Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{resetToken}}\",\n  \"new_password\": \"{{newPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }
       ]
     },
     {
-      "name": "Wallet",
+      "name": "Wallet / Rewards",
       "item": [
         {
-          "name": "GET My Wallet",
+          "name": "GET Wallet",
           "request": {
             "method": "GET",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{token}}"
               }
             ],
             "url": {
@@ -282,13 +341,13 @@
           }
         },
         {
-          "name": "GET My Transactions",
+          "name": "GET Transactions",
           "request": {
             "method": "GET",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{token}}"
               }
             ],
             "url": {
@@ -305,13 +364,13 @@
           }
         },
         {
-          "name": "GET My Withdrawals",
+          "name": "GET Withdrawals",
           "request": {
             "method": "GET",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{token}}"
               }
             ],
             "url": {
@@ -326,17 +385,17 @@
               ]
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Payout",
-      "item": [
+        },
         {
           "name": "GET Payout Options",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/payout-options",
               "host": [
@@ -346,58 +405,132 @@
                 "payout-options"
               ]
             }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  const data = pm.response.json();",
-                  "  if (Array.isArray(data.options) && data.options.length) {",
-                  "    pm.collectionVariables.set('payoutOptionId', data.options[0].method_id || data.options[0].id || '');",
-                  "  }",
-                  "}"
-                ]
-              }
-            }
-          ]
+          }
         },
         {
-          "name": "GET Single Payout Option",
+          "name": "GET Reward Config",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/payout-options/{{payoutOptionId}}",
+              "raw": "{{baseUrl}}/rewards/config",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "payout-options",
-                "{{payoutOptionId}}"
+                "rewards",
+                "config"
               ]
             }
           }
         },
         {
-          "name": "POST My Withdrawal — manual test",
+          "name": "GET Daily Reward Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rewards/daily",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rewards",
+                "daily"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Claim Daily Reward",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{accessToken}}"
+                "value": "Bearer {{token}}",
+                "type": "text"
               },
               {
                 "key": "Content-Type",
-                "value": "application/json"
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/rewards/daily/claim",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rewards",
+                "daily",
+                "claim"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Convert Reward",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"amount\": 10,\n  \"payout_option_id\": \"{{payoutOptionId}}\",\n  \"payout_details\": {\n    \"upi_id\": \"example@upi\"\n  },\n  \"request_id\": \"{{requestId}}\"\n}"
+              "raw": "{\n  \"currency\": \"gems\",\n  \"amount\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/rewards/convert",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "rewards",
+                "convert"
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST Withdrawal — ₹10 UPI",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payout_option_id\": \"upi\",\n  \"amount\": 10,\n  \"payout_details\": {\n    \"upi_id\": \"demo@upi\"\n  },\n  \"request_id\": \"{{$guid}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/wallet/me/withdrawal",
@@ -410,51 +543,52 @@
                 "withdrawal"
               ]
             }
-          },
-          "description": "Manual test only. Do not execute against a real account unless you intentionally want to create a real withdrawal. Use a fresh unique requestId."
+          }
         }
       ]
     },
     {
-      "name": "Demo / Safe Test Endpoints",
+      "name": "Admin / Maintenance",
+      "description": "Maintenance-only routes. Never commit real secrets.",
       "item": [
         {
-          "name": "GET Demo Wallet",
+          "name": "POST Admin Reward Credit",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Admin-Key",
+                "value": "{{adminRewardKey}}"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/wallet/demo",
+              "raw": "{{baseUrl}}/admin/rewards/credit",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "wallet",
-                "demo"
+                "admin",
+                "rewards",
+                "credit"
               ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"sves\": 500,\n  \"gems\": 25,\n  \"tokens\": 50,\n  \"description\": \"Postman test reward\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         },
         {
-          "name": "GET Demo Transactions",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/wallet/demo/transactions",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "wallet",
-                "demo",
-                "transactions"
-              ]
-            }
-          }
-        },
-        {
-          "name": "POST Demo Transaction",
+          "name": "POST Admin Password Reset",
           "request": {
             "method": "POST",
             "header": [
@@ -463,43 +597,42 @@
                 "value": "application/json"
               }
             ],
+            "url": {
+              "raw": "{{baseUrl}}/admin/auth/reset-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "auth",
+                "reset-password"
+              ]
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currency\": \"ves\",\n  \"amount\": 100,\n  \"source\": \"POSTMAN_TEST\",\n  \"description\": \"Postman demo transaction\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/wallet/demo/transaction",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "wallet",
-                "demo",
-                "transaction"
-              ]
-            }
-          },
-          "description": "Changes the demo wallet. Use only when intentionally testing the demo account."
-        },
-        {
-          "name": "GET Demo Withdrawals",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/wallet/demo/withdrawals",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "wallet",
-                "demo",
-                "withdrawals"
-              ]
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"new_password\": \"{{newPassword}}\",\n  \"admin_secret\": \"{{adminSecret}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             }
           }
         }
       ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (pm.info.requestName && pm.info.requestName.includes('Withdrawal')) {",
+          "  pm.collectionVariables.set('requestId', pm.variables.replaceIn('{{$guid}}'));",
+          "}"
+        ]
+      }
     }
   ]
 }
