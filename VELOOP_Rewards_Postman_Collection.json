@@ -16,11 +16,11 @@
     },
     {
       "key": "password",
-      "value": "change-me"
+      "value": ""
     },
     {
       "key": "newPassword",
-      "value": "change-me-new"
+      "value": ""
     },
     {
       "key": "accessToken",
@@ -40,6 +40,10 @@
     },
     {
       "key": "adminSecret",
+      "value": ""
+    },
+    {
+      "key": "adminRewardKey",
       "value": ""
     }
   ],
@@ -325,7 +329,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -347,7 +351,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -370,7 +374,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -393,7 +397,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -414,7 +418,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -436,7 +440,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
@@ -458,7 +462,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               },
               {
@@ -487,7 +491,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               },
               {
@@ -519,7 +523,7 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{token}}",
+                "value": "Bearer {{accessToken}}",
                 "type": "text"
               },
               {
