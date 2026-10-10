@@ -1,8 +1,12 @@
 import hashlib
 
 import os
+import re
 
 import secrets
+import time
+import threading
+from collections import defaultdict, deque
 
 import smtplib
 
@@ -14,7 +18,7 @@ from typing import Any, Optional
 
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -33,6 +37,8 @@ from backend.app.collections import (
     transactions_collection,
 
     withdrawals_collection,
+
+    payout_options_collection,
 
 )
 
@@ -116,21 +122,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 1000},
+            {"payout_value": 10, "required_amount": 2400},
 
-            {"payout_value": 25, "required_amount": 2500},
+            {"payout_value": 25, "required_amount": 5800},
 
-            {"payout_value": 50, "required_amount": 5000},
+            {"payout_value": 50, "required_amount": 10000},
 
-            {"payout_value": 100, "required_amount": 10000},
+            {"payout_value": 100, "required_amount": 19500},
 
-            {"payout_value": 150, "required_amount": 15000},
+            {"payout_value": 150, "required_amount": 28500},
 
-            {"payout_value": 300, "required_amount": 30000},
+            {"payout_value": 300, "required_amount": 52500},
 
-            {"payout_value": 500, "required_amount": 50000},
+            {"payout_value": 500, "required_amount": 80500},
 
-            {"payout_value": 1000, "required_amount": 100000},
+            {"payout_value": 1000, "required_amount": 150000},
 
         ],
 
@@ -152,21 +158,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 1000},
+            {"payout_value": 10, "required_amount": 2400},
 
-            {"payout_value": 25, "required_amount": 2500},
+            {"payout_value": 25, "required_amount": 5800},
 
-            {"payout_value": 50, "required_amount": 5000},
+            {"payout_value": 50, "required_amount": 10000},
 
-            {"payout_value": 100, "required_amount": 10000},
+            {"payout_value": 100, "required_amount": 19500},
 
-            {"payout_value": 150, "required_amount": 15000},
+            {"payout_value": 150, "required_amount": 28500},
 
-            {"payout_value": 300, "required_amount": 30000},
+            {"payout_value": 300, "required_amount": 52500},
 
-            {"payout_value": 500, "required_amount": 50000},
+            {"payout_value": 500, "required_amount": 80500},
 
-            {"payout_value": 1000, "required_amount": 100000},
+            {"payout_value": 1000, "required_amount": 150000},
 
         ],
 
@@ -188,25 +194,97 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 1000},
+            {"payout_value": 10, "required_amount": 2400},
 
-            {"payout_value": 25, "required_amount": 2500},
+            {"payout_value": 25, "required_amount": 5800},
 
-            {"payout_value": 50, "required_amount": 5000},
+            {"payout_value": 50, "required_amount": 10000},
 
-            {"payout_value": 100, "required_amount": 10000},
+            {"payout_value": 100, "required_amount": 19500},
 
-            {"payout_value": 150, "required_amount": 15000},
+            {"payout_value": 150, "required_amount": 28500},
 
-            {"payout_value": 300, "required_amount": 30000},
+            {"payout_value": 300, "required_amount": 52500},
 
-            {"payout_value": 500, "required_amount": 50000},
+            {"payout_value": 500, "required_amount": 80500},
 
-            {"payout_value": 1000, "required_amount": 100000},
+            {"payout_value": 1000, "required_amount": 150000},
 
         ],
 
         "description": "UPI QR payout using VEs.",
+
+    },
+
+    {
+
+        "method_id": "amazon_gift_card",
+
+        "name": "Amazon Gift Card",
+
+        "type": "AMAZON_GIFT_CARD",
+
+        "currency": "ves",
+
+        "active": True,
+
+        "denominations": [
+
+            {"payout_value": 10, "required_amount": 2400},
+
+            {"payout_value": 25, "required_amount": 5800},
+
+            {"payout_value": 50, "required_amount": 10000},
+
+            {"payout_value": 100, "required_amount": 19500},
+
+            {"payout_value": 150, "required_amount": 28500},
+
+            {"payout_value": 300, "required_amount": 52500},
+
+            {"payout_value": 500, "required_amount": 80500},
+
+            {"payout_value": 1000, "required_amount": 150000},
+
+        ],
+
+        "description": "Amazon Gift Card redemption delivered to the provided email after manual review.",
+
+    },
+
+    {
+
+        "method_id": "google_play_gift_card",
+
+        "name": "Google Play Gift Card",
+
+        "type": "GOOGLE_PLAY_GIFT_CARD",
+
+        "currency": "ves",
+
+        "active": True,
+
+        "denominations": [
+
+            {"payout_value": 10, "required_amount": 2400},
+
+            {"payout_value": 25, "required_amount": 5800},
+
+            {"payout_value": 50, "required_amount": 10000},
+
+            {"payout_value": 100, "required_amount": 19500},
+
+            {"payout_value": 150, "required_amount": 28500},
+
+            {"payout_value": 300, "required_amount": 52500},
+
+            {"payout_value": 500, "required_amount": 80500},
+
+            {"payout_value": 1000, "required_amount": 150000},
+
+        ],
+
+        "description": "Google Play Gift Card redemption delivered to the provided email after manual review.",
 
     },
 
@@ -293,6 +371,42 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
+
+# Lightweight per-process throttling for sensitive endpoints. For multi-instance
+# production deployments, move these counters to Redis or an API gateway.
+_rate_events = defaultdict(deque)
+_rate_lock = threading.Lock()
+_RATE_POLICIES = {
+    "/auth/login": (12, 60),
+    "/auth/register": (8, 3600),
+    "/auth/forgot-password": (4, 900),
+    "/auth/reset-password": (8, 900),
+    "/admin/auth/reset-password": (5, 300),
+    "/admin/rewards/credit": (20, 60),
+    "/wallet/me/withdrawal": (10, 60),
+}
+
+@app.middleware("http")
+async def throttle_sensitive_requests(request: Request, call_next):
+    policy = _RATE_POLICIES.get(request.url.path)
+    if policy:
+        limit, window = policy
+        client_ip = request.client.host if request.client else "unknown"
+        key = (client_ip, request.method, request.url.path)
+        now = time.monotonic()
+        with _rate_lock:
+            events = _rate_events[key]
+            while events and now - events[0] >= window:
+                events.popleft()
+            if len(events) >= limit:
+                from starlette.responses import JSONResponse
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Too many requests. Please try again later."},
+                    headers={"Retry-After": str(max(1, int(window - (now - events[0]))))},
+                )
+            events.append(now)
+    return await call_next(request)
 
 def now_utc() -> datetime:
 
@@ -383,9 +497,9 @@ def write_audit(user_id: str, action: str, metadata: Optional[dict] = None):
 
         })
 
-    except Exception:
-
-        pass
+    except Exception as exc:
+        # Audit failure must not leak data or break user flows; log the event for ops.
+        print("AUDIT_LOG_WRITE_FAILED:", type(exc).__name__)
 
 def get_payout_option(option_id: str) -> dict:
 
@@ -397,17 +511,12 @@ def get_payout_option(option_id: str) -> dict:
 
     """
 
-    for option in PAYOUT_OPTIONS:
-
-        if (
-
-            option["method_id"] == option_id
-
-            and option.get("active", False)
-
-        ):
-
-            return option
+    option = payout_options_collection.find_one(
+        {"method_id": option_id, "active": True},
+        {"_id": 0},
+    )
+    if option:
+        return option
 
     raise HTTPException(
 
@@ -431,9 +540,9 @@ def get_payout_denomination(
 
     Example:
 
-        ₹10 -> 1000 VEs
+        ₹10 -> 2400 VEs
 
-        ₹100 -> 10000 VEs
+        ₹100 -> 19500 VEs
 
     """
 
@@ -467,7 +576,13 @@ def mask_payout_details(details: dict) -> dict:
 
         text = str(value) if value is not None else ""
 
-        if key in {"account_number", "upi_id"}:
+        if key == "email":
+            if "@" in text:
+                local, domain = text.split("@", 1)
+                safe[key] = f"{local[:1]}***@{domain}"
+            else:
+                safe[key] = "***"
+        elif key in {"account_number", "upi_id"}:
 
             if "@" in text:
 
@@ -694,6 +809,22 @@ def validate_payout_details(
             "bank_name": bank_name,
 
         }
+
+    elif payout_type in {"AMAZON_GIFT_CARD", "GOOGLE_PLAY_GIFT_CARD"}:
+
+        email = str(normalized.get("email", "")).strip().lower()
+
+        if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email):
+
+            raise HTTPException(
+
+                status_code=422,
+
+                detail="A valid gift-card delivery email is required",
+
+            )
+
+        normalized = {"email": email}
 
     elif payout_type == "UPI_QR":
 
@@ -993,13 +1124,18 @@ class WithdrawalRequest(BaseModel):
 
     payout_details: dict
 
-    request_id: Optional[str] = Field(
-
-        default=None,
-
+    request_id: str = Field(
+        min_length=8,
         max_length=100,
-
+        pattern=r"^[A-Za-z0-9._:-]+$",
     )
+
+class WithdrawalStatusUpdateRequest(BaseModel):
+    status: str = Field(pattern="^(PROCESSING|APPROVED|REJECTED)$")
+    rejection_reason: Optional[str] = Field(default=None, max_length=500)
+    review_note: Optional[str] = Field(default=None, max_length=500)
+    transaction_id: Optional[str] = Field(default=None, max_length=150)
+
 
 class ProfileUpdateRequest(BaseModel):
 
@@ -1740,17 +1876,66 @@ def health():
 
     }
 
+@app.on_event("startup")
+def initialize_payout_configuration():
+    """Seed missing payout methods and migrate only the exact incorrect defaults from the prior release."""
+    previous_release_default_denominations = {
+        (10, 1000),
+        (25, 2500),
+        (50, 5000),
+        (100, 10000),
+        (150, 15000),
+        (300, 30000),
+        (500, 50000),
+        (1000, 100000),
+    }
+    migratable_methods = {
+        "upi", "bank_transfer", "upi_qr",
+        "amazon_gift_card", "google_play_gift_card",
+    }
+
+    for order, raw in enumerate(PAYOUT_OPTIONS):
+        item = dict(raw)
+        item["sort_order"] = order
+        item["updated_at"] = now_utc()
+        payout_options_collection.update_one(
+            {"method_id": item["method_id"]},
+            {"$setOnInsert": item},
+            upsert=True,
+        )
+
+        # Migrate only the exact incorrect default table from the previous ZIP. Customized DB config is preserved.
+        existing = payout_options_collection.find_one(
+            {"method_id": item["method_id"]},
+            {"_id": 0, "denominations": 1},
+        )
+        if existing and item["method_id"] in migratable_methods:
+            current_pairs = {
+                (int(row.get("payout_value", 0)), int(row.get("required_amount", 0)))
+                for row in existing.get("denominations", [])
+                if isinstance(row, dict)
+            }
+            if current_pairs == previous_release_default_denominations:
+                payout_options_collection.update_one(
+                    {"method_id": item["method_id"]},
+                    {"$set": {
+                        "denominations": item["denominations"],
+                        "updated_at": item["updated_at"],
+                    }},
+                )
+
+    payout_options_collection.create_index(
+        [("method_id", 1)], unique=True, name="unique_payout_method_id"
+    )
+
 @app.get("/payout-options")
 
 def get_payout_options():
 
-    return {
-
-        "currency": "ves",
-
-        "options": PAYOUT_OPTIONS,
-
-    }
+    options = list(payout_options_collection.find(
+        {"active": True}, {"_id": 0}
+    ).sort("sort_order", 1))
+    return {"currency": "ves", "options": options}
 
 @app.get("/payout-options/{option_id}")
 
@@ -1799,6 +1984,16 @@ def _create_withdrawal(
                         session=session,
                     )
                     if existing:
+                        same_request = (
+                            int(existing.get("payout_value", -1)) == request.amount
+                            and existing.get("payout_option_id") == request.payout_option_id
+                            and (existing.get("payout_details") or {}) == normalized_details
+                        )
+                        if not same_request:
+                            raise HTTPException(
+                                status_code=409,
+                                detail="request_id was already used for a different withdrawal payload",
+                            )
                         withdrawal = existing
                     else:
                         wallet = wallets_collection.find_one(
@@ -1946,8 +2141,9 @@ def _create_withdrawal(
 
                     withdrawals_collection.insert_one(withdrawal, session=session)
                     transactions_collection.insert_one(transaction, session=session)
+   
     except DuplicateKeyError:
-        # Another concurrent request with the same idempotency key won the race.
+        # Another concurrent request may have used this idempotency key.
         if request.request_id:
             existing = withdrawals_collection.find_one(
                 {
@@ -1957,8 +2153,21 @@ def _create_withdrawal(
                 {"_id": 0},
             )
             if existing:
-                return sanitize_withdrawal(existing)
+                same_request = (
+                    int(existing.get("payout_value", -1)) == request.amount
+                    and existing.get("payout_option_id") == request.payout_option_id
+                    and (existing.get("payout_details") or {}) == normalized_details
+                )
+                if same_request:
+                    return sanitize_withdrawal(existing)
+
+                raise HTTPException(
+                    status_code=409,
+                    detail="request_id was already used for a different withdrawal payload",
+                )
+
         raise HTTPException(status_code=409, detail="Duplicate withdrawal request")
+
 
     if withdrawal is None:
         raise HTTPException(status_code=500, detail="Withdrawal could not be created")
@@ -2408,3 +2617,86 @@ def get_my_withdrawals(
         ],
 
     }
+
+
+@app.patch("/admin/withdrawals/{withdrawal_id}/status")
+def update_withdrawal_status(
+    withdrawal_id: str,
+    request: WithdrawalStatusUpdateRequest,
+    x_admin_key: str = Header(default="", alias="X-Admin-Key"),
+):
+    """Admin-only review action; rejection refunds the reserved VEs atomically."""
+    configured_key = os.getenv("ADMIN_WITHDRAWAL_KEY", "").strip()
+    if not configured_key:
+        raise HTTPException(status_code=503, detail="Withdrawal administration is not configured")
+    if not x_admin_key or not secrets.compare_digest(x_admin_key, configured_key):
+        raise HTTPException(status_code=403, detail="Invalid admin key")
+    target_status = request.status.upper()
+    if target_status == "REJECTED" and not (request.rejection_reason or "").strip():
+        raise HTTPException(status_code=422, detail="rejection_reason is required when rejecting a withdrawal")
+
+    timestamp = now_utc()
+    result_document = None
+    try:
+        with client.start_session() as session:
+            with session.start_transaction():
+                withdrawal = withdrawals_collection.find_one(
+                    {"withdrawal_id": withdrawal_id}, session=session
+                )
+                if not withdrawal:
+                    raise HTTPException(status_code=404, detail="Withdrawal not found")
+                current_status = str(withdrawal.get("status", "")).upper()
+                if current_status not in {"PENDING", "PROCESSING"}:
+                    if current_status == target_status:
+                        result_document = withdrawal
+                    else:
+                        raise HTTPException(status_code=409, detail=f"Cannot change withdrawal from {current_status} to {target_status}")
+                else:
+                    update_fields = {
+                        "status": target_status,
+                        "updated_at": timestamp,
+                        "review_note": request.review_note,
+                    }
+                    if target_status == "REJECTED":
+                        update_fields["failure_reason"] = request.rejection_reason.strip()
+                    if target_status == "APPROVED" and request.transaction_id:
+                        update_fields["payout_transaction_id"] = request.transaction_id
+                    if target_status == "REJECTED":
+                        user_id = withdrawal["user_id"]
+                        amount = int(withdrawal["amount"])
+                        wallet = wallets_collection.find_one({"user_id": user_id}, session=session)
+                        if not wallet:
+                            raise HTTPException(status_code=404, detail="Wallet not found for refund")
+                        before = int(wallet.get("ves", 0) or 0)
+                        wallets_collection.update_one(
+                            {"user_id": user_id},
+                            {"$inc": {"ves": amount}, "$set": {"updated_at": timestamp}},
+                            session=session,
+                        )
+                        refund = {
+                            "transaction_id": str(uuid4()), "user_id": user_id,
+                            "currency": "ves", "type": "WITHDRAWAL_REFUND", "amount": amount,
+                            "balance_before": before, "balance_after": before + amount,
+                            "source": "withdrawal_rejection", "reference_id": withdrawal_id,
+                            "status": "COMPLETED", "description": f"Refund for rejected withdrawal {withdrawal_id}",
+                            "metadata": {"reason": request.rejection_reason.strip()},
+                            "created_at": timestamp, "updated_at": timestamp,
+                        }
+                        transactions_collection.insert_one(refund, session=session)
+                        update_fields["refund_transaction_id"] = refund["transaction_id"]
+                    updated = withdrawals_collection.find_one_and_update(
+                        {"withdrawal_id": withdrawal_id, "status": current_status},
+                        {"$set": update_fields},
+                        return_document=ReturnDocument.AFTER,
+                        session=session,
+                    )
+                    if not updated:
+                        raise HTTPException(status_code=409, detail="Withdrawal status changed concurrently")
+                    result_document = updated
+    except DuplicateKeyError:
+        raise HTTPException(status_code=409, detail="Withdrawal status update conflict")
+
+    write_audit(withdrawal.get("user_id", "system"), "WITHDRAWAL_STATUS_UPDATED", {
+        "withdrawal_id": withdrawal_id, "status": target_status
+    })
+    return sanitize_withdrawal(result_document or {})

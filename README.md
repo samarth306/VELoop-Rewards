@@ -1,1161 +1,340 @@
 ﻿# VELOOP Rewards — Wallet & Payout System
 
-A backend-driven digital rewards wallet and payout demonstration system built with **Python, FastAPI, MongoDB Atlas, and React**.
+A backend-driven digital rewards wallet and payout demonstration built with **Python, FastAPI, MongoDB Atlas, React, and Vite**.
 
-The project is designed around one core rule:
+The core design principle is simple: **the backend is the source of truth** for wallet balances, payout configuration, withdrawal validation, and transaction records. The frontend displays data returned by the API; it does not determine the authoritative VEs cost of a withdrawal.
 
-> **The backend is the source of truth for wallet balances, transactions, payout configuration, validation, and withdrawal processing.**
+## Live Links
 
-The React frontend is a demonstration layer that consumes the FastAPI backend and displays the authenticated user's wallet, transaction history, payout options, and withdrawal flow.
+- **Frontend:** https://veloop-rewards-frontend-ggzf.onrender.com
+- **Backend API:** https://veloop-rewards-jj94.onrender.com
+- **Swagger API documentation:** https://veloop-rewards-jj94.onrender.com/docs
+- **Health check:** https://veloop-rewards-jj94.onrender.com/health
+- **GitHub repository:** https://github.com/samarth306/VELoop-Rewards
 
----
+> Live services may take time to wake up on a free hosting tier. Do not put passwords, API keys, database credentials, or access tokens in public issues, screenshots, or documentation.
 
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
-2. [Key Features](#key-features)
-3. [Live Links](#live-links)
-4. [Technology Stack](#technology-stack)
-5. [System Architecture](#system-architecture)
-6. [Backend Source of Truth](#backend-source-of-truth)
-7. [Authentication](#authentication)
-8. [Wallet](#wallet)
-9. [Transaction Ledger](#transaction-ledger)
-10. [Payout Configuration](#payout-configuration)
-11. [Current Payout Mapping](#current-payout-mapping)
-12. [Withdrawal Flow](#withdrawal-flow)
-13. [Withdrawal Validation](#withdrawal-validation)
-14. [Idempotency and Duplicate Protection](#idempotency-and-duplicate-protection)
-15. [Concurrency and Balance Protection](#concurrency-and-balance-protection)
-16. [Payout Destination Validation](#payout-destination-validation)
-17. [Database Architecture](#database-architecture)
-18. [Security](#security)
-19. [Password Recovery](#password-recovery)
-20. [Reward Service](#reward-service)
-21. [Frontend](#frontend)
-22. [API Reference](#api-reference)
-23. [Health and Deployment](#health-and-deployment)
-24. [Local Development](#local-development)
-25. [Environment Variables](#environment-variables)
-26. [Project Structure](#project-structure)
-27. [Testing Checklist](#testing-checklist)
-28. [Recommended Demo Flow](#recommended-demo-flow)
-29. [Postman](#postman)
-30. [Scaling Considerations](#scaling-considerations)
-31. [Submission Checklist](#submission-checklist)
-32. [Final Links](#final-links)
+2. [Features](#features)
+3. [Technology Stack](#technology-stack)
+4. [Architecture](#architecture)
+5. [Wallet and Transaction Ledger](#wallet-and-transaction-ledger)
+6. [Payout Configuration](#payout-configuration)
+7. [Payout Methods](#payout-methods)
+8. [Withdrawal Lifecycle](#withdrawal-lifecycle)
+9. [Validation and Safety Controls](#validation-and-safety-controls)
+10. [Authentication and Password Recovery](#authentication-and-password-recovery)
+11. [API Reference](#api-reference)
+12. [Database Overview](#database-overview)
+13. [Local Setup](#local-setup)
+14. [Environment Variables](#environment-variables)
+15. [Project Structure](#project-structure)
+16. [Tests and Build Checks](#tests-and-build-checks)
+17. [Suggested Demo Flow](#suggested-demo-flow)
+18. [Operational Notes and Limitations](#operational-notes-and-limitations)
+19. [Future Production Improvements](#future-production-improvements)
 
----
+## Project Overview
 
-# Project Overview
+VELOOP Rewards is a demonstration application for an authenticated rewards wallet and payout workflow. It focuses on backend-controlled wallet operations, payout configuration, input validation, withdrawal records, and transaction traceability.
 
-VELOOP Rewards is a wallet and payout demonstration application focused primarily on backend architecture, wallet accounting, transaction history, withdrawal validation, authentication, and security.
+The wallet can display these reward balances:
 
-The application provides an authenticated wallet containing:
+- **VEs** — the payout/redemption currency.
+- **SVEs**
+- **Gems**
+- **Tokens**
 
-- VEs
-- SVEs
-- Gems
-- Tokens
+Reward conversion is performed through the backend using configured rules. The backend should validate every request and record applicable wallet changes; client-side display values are not authoritative.
 
-Reward conversion is manual: the user enters the amount of SVE, Token or Gem to convert, and the backend applies the configured server rate.
+## Features
 
-The payout system uses **VEs** as the authoritative redemption currency.
+### Authentication and account management
 
----
+- User registration and login.
+- JWT Bearer authentication for protected endpoints.
+- Password hashing.
+- Current-user profile and supported profile updates.
+- Change-password flow.
+- Forgot-password and reset-password endpoints.
+- User-specific authorization for wallet data.
 
-# Key Features
+### Wallet and transaction history
 
-## Authentication
+- Authenticated wallet retrieval.
+- VEs, SVEs, Gems, and Tokens balance display.
+- Wallet transaction history.
+- Credit/debit records with balance-before and balance-after fields where applicable.
+- Withdrawal history and wallet refresh after a successful withdrawal.
 
-- User registration
-- User login
-- JWT Bearer authentication
-- Password hashing
-- Current-user profile
-- Profile name update
-- Change password
-- Forgot-password flow
-- Reset-password flow
-- Protected wallet APIs
-- User-specific authorization
+### Payout and withdrawals
 
-## Wallet
+- Payout options loaded from the backend.
+- Server-side denomination and VEs-cost configuration.
+- UPI, Bank Transfer, UPI QR, Amazon Gift Card, and Google Play Gift Card options when active in backend configuration.
+- Payout destination validation.
+- Withdrawal confirmation and pending status.
+- Request-ID-based duplicate-submission protection.
+- Insufficient-balance checks and conditional wallet deduction.
+- Withdrawal and wallet-transaction records for traceability.
 
-- Backend-driven wallet balances
-- VEs balance
-- SVEs balance
-- Gems balance
-- Tokens balance
-- Authenticated wallet retrieval
-- Wallet refresh after successful withdrawal
+### Frontend experience
 
-## Transactions
+- Responsive React/Vite interface.
+- Dark dashboard styling.
+- Wallet overview, recent activity, and transaction history.
+- Payout method and denomination selection.
+- Withdrawal details and confirmation.
+- Profile controls, loading states, and error/success feedback.
+- Reward-related interface elements, including manual conversion where configured.
 
-- Wallet transaction history
-- Credit/debit ledger records
-- Balance-before tracking
-- Balance-after tracking
-- Transaction status
-- Transaction source
-- Reference IDs
-- Metadata
-- Timestamped records
+## Technology Stack
 
-## Payout
+| Area            | Technology                             |
+| --------------- | -------------------------------------- |
+| Backend         | Python, FastAPI, Pydantic              |
+| Database access | PyMongo                                |
+| Database        | MongoDB Atlas                          |
+| Authentication  | JWT Bearer tokens and password hashing |
+| Frontend        | React, Vite, JavaScript, CSS           |
+| Hosting         | Render                                 |
+| API exploration | FastAPI Swagger UI                     |
 
-- Backend-controlled payout options
-- UPI payout
-- Bank transfer payout
-- UPI QR payout
-- Backend-controlled payout denominations
-- Server-side VEs calculation
-- Payout destination validation
-- Withdrawal confirmation
-- Pending withdrawal status
-
-## Frontend Experience
-
-- Premium dark-theme dashboard
-- Custom VELOOP logo system
-- Profile photo upload and camera capture
-- 30 illustrated avatar presets
-- In-app notification center with read state
-- About VELOOP project page
-- Refresh controls with loading feedback
-- Manual SVE / Token / Gem conversion
-- Responsive mobile and desktop layouts
-
-## Withdrawal Security
-
-- Server-side balance validation
-- Conditional wallet deduction
-- Idempotency using request IDs
-- Duplicate submission protection
-- User-specific withdrawal ownership
-- Invalid payout option rejection
-- Invalid denomination rejection
-- Invalid destination rejection
-- Insufficient balance protection
-- Transaction ledger creation
-- Withdrawal history
-
-## Deployment
-
-- React frontend deployed on Render
-- FastAPI backend deployed on Render
-- MongoDB Atlas database
-- FastAPI Swagger documentation
-- Health-check endpoint
-- GitHub repository
-
----
-
-# Live Links
-
-## Frontend
-
-https://veloop-rewards-frontend-ggzf.onrender.com
-
-## Backend API
-
-https://veloop-rewards-jj94.onrender.com
-
-## FastAPI Swagger
-
-https://veloop-rewards-jj94.onrender.com/docs
-
-## Health Check
-
-https://veloop-rewards-jj94.onrender.com/health
-
-## GitHub
-
-https://github.com/samarth306/VELoop-Rewards
-
----
-
-# Technology Stack
-
-## Backend
-
-- Python
-- FastAPI
-- Pydantic
-- PyMongo
-- MongoDB Atlas
-- JWT authentication
-- Password hashing
-- Render
-
-## Frontend
-
-- React
-- Vite
-- JavaScript
-- CSS
-- Inline SVG interface icons
-
-## Database
-
-- MongoDB Atlas
-
----
-
-# System Architecture
+## Architecture
 
 ```text
-                         ┌──────────────────────────────┐
-                         │        React Frontend        │
-                         │                              │
-                         │ Login / Register             │
-                         │ Wallet                       │
-                         │ Transactions                 │
-                         │ Withdrawal                   │
-                         │ Profile                      │
-                         └──────────────┬───────────────┘
-                                        │
-                                        │ HTTPS / JSON
-                                        │ Bearer JWT
-                                        ▼
-                         ┌──────────────────────────────┐
-                         │         FastAPI API          │
-                         │                              │
-                         │ Authentication              │
-                         │ Wallet Services              │
-                         │ Transaction Services         │
-                         │ Payout Configuration         │
-                         │ Withdrawal Validation        │
-                         │ Reward Service               │
-                         └──────────────┬───────────────┘
-                                        │
-                                        │ PyMongo
-                                        ▼
-                         ┌──────────────────────────────┐
-                         │        MongoDB Atlas         │
-                         │                              │
-                         │ Users                        │
-                         │ Wallets                      │
-                         │ Transactions                 │
-                         │ Withdrawals                  │
-                         │ Payout Configuration         │
-                         │ Audit Logs                   │
-                         └──────────────────────────────┘
+React + Vite frontend
+        |
+        | HTTPS / JSON / Bearer token
+        v
+FastAPI backend
+  - Authentication and authorization
+  - Wallet and transaction services
+  - Reward operations
+  - Payout configuration
+  - Withdrawal validation and processing
+        |
+        | PyMongo
+        v
+MongoDB Atlas
+  - Users
+  - Wallets
+  - Wallet transactions
+  - Withdrawals
+  - Payout options
+  - Audit records, where configured
 ```
 
----
+The frontend requests data from the API. For wallet-sensitive operations, the backend identifies the user from the authenticated session and reads the stored wallet and payout configuration before processing the request.
 
-# Backend Source of Truth
+## Wallet and Transaction Ledger
 
-The backend is authoritative for all wallet-sensitive operations.
-
-The frontend may display a balance, but it cannot change the authoritative stored balance.
-
-The authenticated wallet is loaded through:
+### Get the authenticated wallet
 
 ```http
 GET /wallet/me
+Authorization: Bearer <access_token>
 ```
 
-The backend identifies the user from the authenticated JWT and loads the corresponding wallet.
+The endpoint returns the wallet associated with the authenticated user. A browser-visible balance is only display data: changing it in the client does not change the balance stored in MongoDB.
 
-The client cannot safely perform a withdrawal by changing a browser-visible balance.
-
-For example, changing a displayed value from:
-
-```text
-1,000 VEs
-```
-
-to:
-
-```text
-999,999 VEs
-```
-
-does not change the actual wallet stored in MongoDB.
-
-The backend independently reads the stored wallet balance before processing a withdrawal.
-
----
-
-# Authentication
-
-JWT Bearer authentication protects authenticated APIs.
-
-## Login Flow
-
-```text
-User enters email and password
-            ↓
-POST /auth/login
-            ↓
-Backend validates credentials
-            ↓
-JWT access token generated
-            ↓
-Frontend stores the authenticated session
-            ↓
-Bearer token sent with protected requests
-            ↓
-Backend identifies authenticated user
-```
-
-Invalid credentials are rejected.
-
-Inactive accounts are rejected.
-
-Passwords are stored as hashes rather than plain-text passwords.
-
----
-
-# Authentication Endpoints
-
-## Register
-
-```http
-POST /auth/register
-```
-
-Creates a user account.
-
-## Login
-
-```http
-POST /auth/login
-```
-
-Authenticates a user and returns an access token.
-
-## Current User
-
-```http
-GET /auth/me
-```
-
-Returns the authenticated user's public account information.
-
-Authentication is required.
-
-## Update Profile
-
-```http
-PATCH /auth/me
-```
-
-Updates supported profile information for the authenticated user.
-
-## Change Password
-
-```http
-POST /auth/change-password
-```
-
-Authentication is required.
-
-The current password is verified before the new password is stored.
-
-The new password must differ from the current password.
-
-## Forgot Password
-
-```http
-POST /auth/forgot-password
-```
-
-Starts the password-reset process.
-
-The endpoint uses a generic response so an attacker cannot use the response to determine whether an email address exists.
-
-For a valid account, a reset-token hash and expiry are stored.
-
-## Reset Password
-
-```http
-POST /auth/reset-password
-```
-
-Uses a valid and unexpired reset token to update the password.
-
-The reset-token hash is removed after successful password reset.
-
----
-
-# Wallet
-
-## Get My Wallet
-
-```http
-GET /wallet/me
-```
-
-Authentication is required.
-
-The backend returns the wallet belonging to the authenticated user.
-
-Supported wallet fields:
-
-```text
-ves
-sves
-gems
-tokens
-```
-
----
-
-# Wallet Data Principles
-
-The frontend must treat backend wallet values as read-only display data.
-
-The authoritative balance is stored in MongoDB.
-
-For VEs:
-
-```text
-Stored MongoDB balance
-        ↓
-Backend wallet endpoint
-        ↓
-Frontend display
-```
-
-For withdrawal:
-
-```text
-Frontend selection
-        ↓
-Backend receives request
-        ↓
-Backend loads payout configuration
-        ↓
-Backend resolves required VEs
-        ↓
-Backend loads stored wallet balance
-        ↓
-Backend conditionally deducts VEs
-```
-
-The client does not determine the final VEs cost.
-
----
-
-# Transaction Ledger
-
-## Get My Transactions
+### Get transaction history
 
 ```http
 GET /wallet/me/transactions
+Authorization: Bearer <access_token>
 ```
 
-Authentication is required.
+Transaction records may include fields such as transaction ID, currency, type, amount, balance before/after, source, reference ID, status, metadata, and timestamps.
 
-The endpoint returns transaction records belonging to the authenticated user.
+The ledger helps explain wallet movements and connect a withdrawal to its corresponding transaction.
 
-Transactions are ordered by `created_at` descending.
+## Payout Configuration
 
-A transaction can contain:
+The frontend loads payout choices from the backend instead of treating its own UI values as authoritative.
 
-```text
-transaction_id
-user_id
-currency
-type
-amount
-balance_before
-balance_after
-source
-reference_id
-status
-description
-metadata
-created_at
-updated_at
-```
-
-The ledger provides traceability for wallet changes.
-
-For a withdrawal, the transaction records the VEs movement and withdrawal context.
-
----
-
-# Payout Configuration
-
-Payout configuration is backend-controlled.
-
-The frontend obtains available payout options from:
+### List payout options
 
 ```http
 GET /payout-options
 ```
 
-The frontend does not hard-code the authoritative VEs cost.
-
-A single payout option can be retrieved using:
+### Get one payout option
 
 ```http
 GET /payout-options/{option_id}
 ```
 
-The backend configuration controls:
+The backend configuration determines the payout method, denomination, option identity, and required VEs. The client must not be trusted to submit an arbitrary VEs deduction.
 
-- payout method
-- payout denomination
-- required VEs
-- supported currency
-- payout option identity
+### Payout mapping from the project task PDF
 
----
+The project’s configured UPI-style payout mapping is:
 
-# Current Payout Mapping
+| Payout value | Required VEs |
+| -----------: | -----------: |
+|          ₹10 |        2,400 |
+|          ₹25 |        5,800 |
+|          ₹50 |       10,000 |
+|         ₹100 |       19,500 |
+|         ₹150 |       28,500 |
+|         ₹300 |       52,500 |
+|         ₹500 |       80,500 |
+|       ₹1,000 |      150,000 |
 
-The final payout mapping used by the project is:
+These values are configuration, not a universal exchange rate. The API’s active payout-option records are the runtime source of truth. If an operator changes the database configuration, the runtime options may differ from this documentation; update this table when an approved configuration change is made.
 
-| Payout | Required VEs |
-| -----: | -----------: |
-|    ₹10 |    1,000 VEs |
-|    ₹25 |    2,500 VEs |
-|    ₹50 |    5,000 VEs |
-|   ₹100 |   10,000 VEs |
-|   ₹150 |   15,000 VEs |
-|   ₹300 |   30,000 VEs |
-|   ₹500 |   50,000 VEs |
-| ₹1,000 |  100,000 VEs |
+## Payout Methods
 
-These values are backend-controlled.
+The backend configuration can include:
 
-The authoritative final mapping is the table above.
+- **UPI**
+- **Bank Transfer**
+- **UPI QR**
+- **Amazon Gift Card**
+- **Google Play Gift Card**
 
----
+The methods and denominations actually available to a user depend on the active options returned by `GET /payout-options`.
 
-# Supported Payout Methods
+For gift-card requests, the destination is an email address. The project does **not** include an external gift-card provider integration; gift-card fulfilment is manual and should remain pending until an operator has completed the fulfilment and reviewed the request. Do not assume gift-card denominations or pricing are independently verified by a third-party provider.
 
-The backend supports payout configuration for:
+## Withdrawal Lifecycle
 
-- UPI
-- Bank Transfer
-- UPI QR
+The intended request flow is:
 
-Each method uses the configured payout denominations.
+1. The authenticated user loads the available payout options.
+2. The user selects a method and a configured denomination.
+3. The user enters the destination details and confirms the request.
+4. The frontend sends the payout option, destination details, and a unique `request_id`.
+5. The backend authenticates the user and validates the payout option, denomination, destination, and request ID.
+6. The backend resolves the required VEs from server-side configuration.
+7. The backend checks the stored wallet balance and attempts a conditional deduction.
+8. The backend creates the withdrawal and corresponding wallet transaction records.
+9. The API returns the withdrawal status; newly accepted requests use `PENDING`.
+10. The frontend refreshes the wallet and relevant history.
 
-The frontend loads these methods from the backend instead of assuming a fixed configuration.
-
----
-
-# Withdrawal Flow
-
-The complete withdrawal flow is:
-
-```text
-Wallet
-   ↓
-Open Withdrawal
-   ↓
-Load payout options
-   ↓
-Select payout method
-   ↓
-Select payout denomination
-   ↓
-Enter payout details
-   ↓
-Review withdrawal
-   ↓
-Confirm
-   ↓
-POST /wallet/me/withdrawal
-   ↓
-Validate authenticated user
-   ↓
-Validate payout option
-   ↓
-Validate denomination
-   ↓
-Resolve required VEs
-   ↓
-Validate payout destination
-   ↓
-Validate request ID
-   ↓
-Load current wallet balance
-   ↓
-Conditionally deduct VEs
-   ↓
-Create withdrawal record
-   ↓
-Create wallet transaction
-   ↓
-Return withdrawal
-   ↓
-Status = PENDING
-   ↓
-Refresh wallet
-   ↓
-Refresh transaction/withdrawal history
-```
-
----
-
-# Withdrawal Endpoint
-
-## Create Withdrawal
+The request endpoint is:
 
 ```http
 POST /wallet/me/withdrawal
+Authorization: Bearer <access_token>
+Content-Type: application/json
 ```
 
-Authentication is required.
+Use the request schema shown in the deployed Swagger documentation (`/docs`) as the definitive reference for required JSON fields.
 
-The request contains the selected payout information, payout details, and a request ID.
-
-The server resolves the authoritative VEs requirement from the selected backend payout configuration.
-
-The client does not submit an authoritative VEs deduction.
-
----
-
-# Withdrawal Request Principles
-
-A withdrawal request contains information such as:
-
-```text
-payout option ID
-payout denomination
-payout details
-request ID
-```
-
-The backend determines the required VEs.
-
-For example, if the selected payout is:
-
-```text
-₹100
-```
-
-the backend resolves:
-
-```text
-Required VEs = 10,000
-```
-
-The frontend cannot change that to an arbitrary value.
-
----
-
-# Withdrawal Records
-
-## Get My Withdrawals
+### Withdrawal history
 
 ```http
 GET /wallet/me/withdrawals
+Authorization: Bearer <access_token>
 ```
-
-Authentication is required.
 
 The endpoint returns withdrawal records belonging to the authenticated user.
 
-A withdrawal record can contain:
+## Validation and Safety Controls
 
-```text
-withdrawal_id
-request_id
-user_id
-currency
-amount
-payout_value
-payout_option_id
-payout_details
-status
-transaction_id
-failure_reason
-created_at
-updated_at
-```
+The backend is responsible for enforcing the rules below:
 
-A newly accepted withdrawal is represented with:
+- Reject unauthenticated requests to protected endpoints.
+- Use the authenticated user identity rather than a client-supplied wallet owner.
+- Reject unknown or inactive payout options.
+- Reject denominations that are not configured for the selected option.
+- Resolve the required VEs from server-side payout configuration.
+- Validate destination details for the selected payout method.
+- Reject a withdrawal when the stored balance is insufficient.
+- Use a conditional wallet update so simultaneous requests cannot both spend the same available balance.
+- Use a request ID to detect repeated submissions.
+- Keep wallet and withdrawal history scoped to the authenticated user.
+- Avoid exposing sensitive payout destination details unnecessarily in UI history.
 
-```text
-status = PENDING
-```
+### Idempotency and duplicate protection
 
----
+Withdrawal requests use a client-generated `request_id`. Reusing the same ID should not create a second debit. If the same ID is submitted with a different payload, the API should reject the conflicting request rather than silently treating it as the original request.
 
-# Withdrawal Validation
+### Concurrency example
 
-The server performs the following validation sequence:
+Suppose the stored balance is **10,000 VEs**, and two requests each attempt to withdraw **8,000 VEs**. Both must not succeed. The conditional database update should allow at most one deduction; the other request should fail because the current balance is insufficient.
 
-1. Authenticate the request.
-2. Identify the authenticated user.
-3. Validate the payout option.
-4. Validate the selected denomination.
-5. Resolve required VEs from backend configuration.
-6. Validate payout destination details.
-7. Check the request ID for an existing request.
-8. Read the current wallet balance.
-9. Confirm sufficient VEs.
-10. Perform a conditional wallet deduction.
-11. Create the withdrawal record.
-12. Create the wallet ledger transaction.
-13. Return the withdrawal response.
+### Failure handling
 
-This prevents the frontend from bypassing the business rules.
+Multi-step wallet operations must be designed to avoid a debit without a corresponding withdrawal/ledger record. The implementation includes compensation handling for certain persistence failures. This is not a substitute for reviewing transaction boundaries and failure cases before production use.
 
----
+## Authentication and Password Recovery
 
-# Insufficient Balance Protection
+### Authentication endpoints
 
-A withdrawal must never be allowed when the stored VEs balance is insufficient.
+| Method  | Endpoint                | Purpose                            |
+| ------- | ----------------------- | ---------------------------------- |
+| `POST`  | `/auth/register`        | Register an account                |
+| `POST`  | `/auth/login`           | Authenticate and obtain a token    |
+| `GET`   | `/auth/me`              | Get the current user               |
+| `PATCH` | `/auth/me`              | Update supported profile fields    |
+| `POST`  | `/auth/change-password` | Change password                    |
+| `POST`  | `/auth/forgot-password` | Start password recovery            |
+| `POST`  | `/auth/reset-password`  | Reset password using a valid token |
 
-Conceptually:
+The forgot-password flow should return a generic response so that the endpoint does not disclose whether a particular email is registered. Reset tokens should expire and be invalidated after successful use.
 
-```text
-Only deduct when:
+Password reset delivery depends on the email/reset configuration available in the deployment. Verify the configured delivery path before relying on it in a live demonstration.
 
-stored_ves_balance >= required_ves
-```
+## API Reference
 
-If the balance is insufficient, the backend rejects the operation.
+The deployed Swagger UI provides the most current route list and request/response schemas:
 
-Example:
+**https://veloop-rewards-jj94.onrender.com/docs**
 
-```text
-Required = 50,000 VEs
-Available = 20,000 VEs
-Result = Rejected
-```
+Key routes documented for this project include:
 
-The frontend cannot override this validation.
+| Method  | Endpoint                      | Purpose                 |
+| ------- | ----------------------------- | ----------------------- |
+| `POST`  | `/auth/register`              | Register                |
+| `POST`  | `/auth/login`                 | Login                   |
+| `GET`   | `/auth/me`                    | Current user            |
+| `PATCH` | `/auth/me`                    | Update profile          |
+| `POST`  | `/auth/change-password`       | Change password         |
+| `POST`  | `/auth/forgot-password`       | Start reset flow        |
+| `POST`  | `/auth/reset-password`        | Reset password          |
+| `GET`   | `/wallet/me`                  | Get wallet              |
+| `GET`   | `/wallet/me/transactions`     | Get transaction history |
+| `POST`  | `/wallet/me/withdrawal`       | Create withdrawal       |
+| `GET`   | `/wallet/me/withdrawals`      | Get withdrawal history  |
+| `GET`   | `/payout-options`             | List payout options     |
+| `GET`   | `/payout-options/{option_id}` | Get a payout option     |
+| `GET`   | `/`                           | API identity/status     |
+| `GET`   | `/health`                     | API/database health     |
 
----
+Additional routes may exist in the implementation. Use Swagger rather than assuming this table is exhaustive.
 
-# Conditional Wallet Update
+## Database Overview
 
-The wallet deduction is performed against the stored database balance.
+MongoDB Atlas is used for persistent application data. The logical data areas include:
 
-Conceptually:
+- Users and authentication-related fields.
+- Wallet balances.
+- Wallet transaction ledger entries.
+- Withdrawal requests and their statuses.
+- Payout option configuration.
+- Audit records, where configured.
 
-```text
-UPDATE wallet
-SET ves = ves - required_ves
-WHERE user_id = authenticated_user
-AND ves >= required_ves
-```
+User-specific API access should be based on the authenticated identity. Do not accept a client-provided user ID as proof that the caller owns a wallet.
 
-This is important because two simultaneous withdrawal requests must not both spend the same balance.
+## Local Setup
 
----
+### Prerequisites
 
-# Idempotency and Duplicate Protection
+Install a supported Python version, Node.js/npm, and ensure the MongoDB Atlas database is reachable from your development environment.
 
-Withdrawal requests accept a `request_id`.
-
-Before creating a new withdrawal, the backend checks whether the same authenticated user has already submitted a request with that ID.
-
-This protects against:
-
-- double-click submission
-- browser resubmission
-- network retry
-- client retry
-- accidental duplicate requests
-
-If an existing request is found, the backend can return the existing withdrawal instead of creating another one.
-
----
-
-# Concurrency and Balance Protection
-
-The wallet must remain correct even when two withdrawal requests arrive at approximately the same time.
-
-Example:
-
-```text
-Available VEs = 10,000
-
-Request A = 8,000 VEs
-Request B = 8,000 VEs
-```
-
-Both requests must not succeed.
-
-The conditional wallet update ensures that once the first successful request reduces the balance, the second request must re-check the current stored balance.
-
-Expected result:
-
-```text
-Request A → SUCCESS
-Request B → INSUFFICIENT BALANCE
-```
-
-The exact winner depends on which request successfully performs the conditional update first.
-
----
-
-# Payout Destination Validation
-
-The backend validates payout details according to the selected payout method.
-
-Examples of payout types include:
-
-```text
-UPI
-Bank Transfer
-UPI QR
-```
-
-The client cannot simply select a payout method and bypass destination validation.
-
-Invalid payout details are rejected before the withdrawal is finalized.
-
-Sensitive payout details should not be exposed unnecessarily in the frontend transaction history.
-
----
-
-# Wallet Transaction on Withdrawal
-
-A successful withdrawal creates a corresponding wallet transaction.
-
-The ledger captures the VEs movement.
-
-Typical withdrawal transaction information includes:
-
-```text
-currency = ves
-type = WITHDRAWAL
-amount = required VEs
-source = withdrawal
-reference_id = withdrawal ID
-status
-balance_before
-balance_after
-metadata
-created_at
-updated_at
-```
-
-The metadata preserves payout context such as:
-
-```text
-payout option
-payout method
-payout value
-required VEs
-```
-
-This makes the wallet movement traceable.
-
----
-
-# Compensation / Failure Handling
-
-The withdrawal implementation also protects against persistence failures after a wallet deduction.
-
-If the wallet is deducted but a required persistence operation fails during the implemented compensation path, the deducted VEs can be restored.
-
-This reduces the risk of a wallet balance being lost without a corresponding withdrawal record.
-
----
-
-# Database Architecture
-
-MongoDB Atlas is the persistent database.
-
-The project uses collections/models for areas including:
-
-```text
-users
-wallets
-wallet transactions
-withdrawals
-payout options
-audit logs
-```
-
-Logical backend models include:
-
-```text
-User
-Auth
-Wallet
-WalletTransaction
-Withdrawal
-PayoutOption
-AuditLog
-```
-
-User-specific access is based on the authenticated `user_id`.
-
-A client does not choose another user's wallet by sending a different wallet owner ID.
-
----
-
-# Security
-
-## Authentication
-
-JWT Bearer authentication protects authenticated operations.
-
-## Authorization
-
-Protected operations operate on the authenticated user's identity.
-
-## Password Hashing
-
-Passwords are stored as hashes rather than plain-text passwords.
-
-## Input Validation
-
-Pydantic models validate request data before business logic is executed.
-
-## Wallet Authorization
-
-The backend loads wallet data for the authenticated user.
-
-## Payout Authorization
-
-The backend resolves payout configuration from server-side configuration.
-
-## Password Reset Security
-
-Reset-token hashes and expiry are used instead of storing a usable reset token as the authoritative database value.
-
-## Secrets
-
-Sensitive credentials must remain outside source control.
-
-The real `.env` file must never be committed.
-
----
-
-# Password Recovery
-
-The password recovery flow is:
-
-```text
-User selects Forgot Password
-          ↓
-POST /auth/forgot-password
-          ↓
-Backend generates reset token
-          ↓
-Token hash stored with expiry
-          ↓
-Reset link/token delivered through configured flow
-          ↓
-User submits new password
-          ↓
-POST /auth/reset-password
-          ↓
-Backend validates token and expiry
-          ↓
-Password hash updated
-          ↓
-Reset token invalidated
-```
-
-The forgot-password endpoint should use a generic response to avoid account enumeration.
-
----
-
-# Reward Service
-
-The project includes a backend reward service for reward-related wallet operations.
-
-The final user-facing scope includes daily rewards and manual reward conversion.
-
-Reward-related wallet credits remain backend-controlled and produce proper wallet/transaction records where applicable.
-
----
-
-# Frontend
-
-The React frontend is a demonstration layer over the backend.
-
-The frontend provides:
-
-- Login
-- Registration
-- Password recovery
-- Password reset
-- Wallet overview
-- VEs display
-- SVEs display
-- Gems display
-- Tokens display
-- Recent wallet activity
-- Transaction history
-- Withdrawal interface
-- Backend payout methods
-- Backend payout denominations
-- Payout detail forms
-- Withdrawal confirmation
-- Withdrawal history
-- Profile controls
-- Loading states
-- Error states
-- Success states
-- Responsive layouts
-
----
-
-# Frontend Source-of-Truth Rules
-
-The frontend must not be treated as a wallet database.
-
-The following values are display values:
-
-```text
-VEs
-SVEs
-Gems
-Tokens
-```
-
-The backend remains authoritative.
-
-For withdrawal:
-
-```text
-Frontend
-   ↓
-Selection
-   ↓
-API request
-   ↓
-Backend validation
-   ↓
-Database operation
-   ↓
-Response
-   ↓
-Frontend refresh
-```
-
-The frontend refreshes wallet and history after a successful withdrawal.
-
----
-
-# User Experience
-
-The final UI is intended to provide a polished rewards-wallet experience while keeping the implementation focused on the assignment's backend requirements.
-
-Important UX states include:
-
-- initial loading
-- wallet loading
-- payout loading
-- withdrawal submission
-- successful withdrawal
-- insufficient balance
-- invalid payout details
-- invalid payout option
-- duplicate request
-- authentication failure
-- API/server error
-- session expiration
-
-The UI should not present client-side values as authoritative business rules.
-
----
-
-# API Reference
-
-## Authentication
-
-| Method | Endpoint                | Purpose          |
-| ------ | ----------------------- | ---------------- |
-| POST   | `/auth/register`        | Register user    |
-| POST   | `/auth/login`           | Login            |
-| GET    | `/auth/me`              | Current user     |
-| PATCH  | `/auth/me`              | Update profile   |
-| POST   | `/auth/change-password` | Change password  |
-| POST   | `/auth/forgot-password` | Start reset flow |
-| POST   | `/auth/reset-password`  | Reset password   |
-
-## Wallet
-
-| Method | Endpoint                  | Purpose                  |
-| ------ | ------------------------- | ------------------------ |
-| GET    | `/wallet/me`              | Get authenticated wallet |
-| GET    | `/wallet/me/transactions` | Get transaction history  |
-| POST   | `/wallet/me/withdrawal`   | Create withdrawal        |
-| GET    | `/wallet/me/withdrawals`  | Get withdrawal history   |
-
-## Payout
-
-| Method | Endpoint                      | Purpose               |
-| ------ | ----------------------------- | --------------------- |
-| GET    | `/payout-options`             | List payout options   |
-| GET    | `/payout-options/{option_id}` | Get one payout option |
-
-## Health
-
-| Method | Endpoint  | Purpose             |
-| ------ | --------- | ------------------- |
-| GET    | `/`       | API identity/status |
-| GET    | `/health` | Database/API health |
-
----
-
-# Health API
-
-## Root
-
-```http
-GET /
-```
-
-Returns basic API identity and status information.
-
-## Health Check
-
-```http
-GET /health
-```
-
-The health endpoint verifies the API/database state.
-
-A healthy response follows the project's health response structure, including status, database state, and API version.
-
----
-
-# Deployment
-
-The deployed architecture is:
-
-```text
-React Frontend
-      │
-      │ HTTPS
-      ▼
-Render Frontend
-      │
-      │ HTTPS API
-      ▼
-Render FastAPI Backend
-      │
-      │ PyMongo
-      ▼
-MongoDB Atlas
-```
-
-The backend uses environment variables for sensitive configuration.
-
-No production database credentials should be committed to GitHub.
-
----
-
-# Local Development
-
-## Clone Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/samarth306/VELoop-Rewards.git
-cd VELoop-Rewards
+cd VELOop-Rewards
 ```
 
-## Create Python Environment
+### 2. Create and activate a Python virtual environment
 
 Windows PowerShell:
 
@@ -1164,31 +343,33 @@ python -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
 
-## Install Backend Dependencies
+If PowerShell blocks activation, use an approved local execution-policy option or activate the environment using your preferred terminal.
+
+### 3. Install backend dependencies
+
+From the repository root:
 
 ```powershell
 pip install -r requirements.txt
 ```
 
-## Configure Environment
+### 4. Configure environment variables
 
-Create:
+Create a local `.env` file using `.env.example` as a template. Set valid local values for the variables required by the application. Never commit the real `.env` file.
 
-```text
-.env
+### 5. Start the backend
+
+From the repository root, run the project's FastAPI application entry point:
+
+```powershell
+uvicorn backend.app.main:app --reload
 ```
 
-using:
+The local API is normally available at `http://127.0.0.1:8000`; Swagger is at `http://127.0.0.1:8000/docs`.
 
-```text
-.env.example
-```
+### 6. Start the frontend
 
-as the template.
-
-Never commit real secrets.
-
-## Run Frontend
+Open another terminal:
 
 ```powershell
 cd frontend
@@ -1196,52 +377,26 @@ npm install
 npm run dev
 ```
 
-## Run Backend
+Vite prints the local frontend URL in the terminal. Open that URL in a browser.
 
-Start the FastAPI application using the project's configured Python entry point and environment variables.
+## Environment Variables
 
-The deployed backend is:
+The application uses environment variables for sensitive configuration. Depending on the enabled features, `.env.example` may include entries for:
 
-```text
-https://veloop-rewards-jj94.onrender.com
-```
+- `MONGO_URI`
+- `JWT_SECRET`
+- `JWT_ALGORITHM`
+- `ACCESS_TOKEN_EXPIRE_MINUTES`
+- `FRONTEND_URL`
+- Password-reset/email configuration
+- `ADMIN_WITHDRAWAL_KEY` for protected administrative withdrawal review, if enabled
 
----
+Use the exact variable names and requirements in the repository's `.env.example` and backend settings code. Never put real credentials in the README, source code, Postman collection, screenshots, or public repository. Use a strong, unique `JWT_SECRET`; configure deployment secrets in Render's Environment settings.
 
-# Environment Variables
-
-The project uses environment variables for configuration.
-
-Typical configuration includes:
-
-```text
-MONGO_URI
-JWT_SECRET
-JWT_ALGORITHM
-ACCESS_TOKEN_EXPIRE_MINUTES
-FRONTEND_URL
-```
-
-Additional variables may be used by the password-reset/email configuration.
-
-Do not place real credentials in:
-
-- README
-- source code
-- Postman collection
-- GitHub repository
-- screenshots
-- public documentation
-
-Use `.env.example` with placeholder values.
-
----
-
-# Project Structure
+## Project Structure
 
 ```text
-VELOop Project/
-│
+VELOop-Rewards/
 ├── backend/
 │   └── app/
 │       ├── auth_service.py
@@ -1251,7 +406,6 @@ VELOop Project/
 │       ├── main.py
 │       ├── reward_service.py
 │       ├── wallet_service.py
-│       │
 │       └── models/
 │           ├── audit_log.py
 │           ├── auth.py
@@ -1260,13 +414,11 @@ VELOop Project/
 │           ├── wallet.py
 │           ├── wallet_transaction.py
 │           └── withdrawal.py
-│
 ├── frontend/
 │   └── src/
 │       ├── App.jsx
 │       ├── App.css
 │       └── ...
-│
 ├── README.md
 ├── API_DOCUMENTATION.md
 ├── TEST_CASES.md
@@ -1276,561 +428,79 @@ VELOop Project/
 └── VELOOP_Rewards_Postman_Collection.json
 ```
 
----
+This is a high-level view; exact files can change as the project evolves.
 
-# Important Files
+## Tests and Build Checks
 
-## `backend/app/main.py`
+Run these checks from the repository root after installing dependencies.
 
-Main FastAPI application.
+### Backend tests
 
-Responsible for API routes, authentication integration, wallet endpoints, payout configuration, withdrawal processing, and related backend functionality.
-
-## `backend/app/reward_service.py`
-
-Reward-related backend service for daily claims and manual SVE/Token/Gem conversion.
-
-## `backend/app/wallet_service.py`
-
-Wallet operations and balance-related business logic.
-
-## `frontend/src/App.jsx`
-
-Main React frontend application.
-
-## `frontend/src/App.css`
-
-Frontend styling and responsive UI.
-
-## `API_DOCUMENTATION.md`
-
-Detailed API documentation.
-
-## `TEST_CASES.md`
-
-Testing scenarios and expected results.
-
-## `VELOOP_Rewards_Postman_Collection.json`
-
-API testing collection.
-
----
-
-# Testing Checklist
-
-The following scenarios should be tested before final submission.
-
-## Authentication Tests
-
-- Valid registration
-- Duplicate registration
-- Valid login
-- Invalid password
-- Invalid email
-- Protected endpoint without JWT
-- Invalid JWT
-- Current user endpoint
-- Profile update
-- Change password
-- Forgot password
-- Reset password
-- Expired reset token
-
-## Wallet Tests
-
-- Authenticated wallet loads
-- Wallet values are returned from backend
-- Correct user wallet is returned
-- Unauthorized wallet request is rejected
-- Transaction history loads
-- Transaction history belongs only to current user
-
-## Payout Tests
-
-- Payout options load from backend
-- Valid payout option accepted
-- Invalid payout option rejected
-- Valid denomination accepted
-- Invalid denomination rejected
-- Required VEs resolved from backend
-- Frontend cannot choose arbitrary VEs deduction
-
-## Withdrawal Tests
-
-- Valid UPI withdrawal
-- Valid bank withdrawal
-- Valid UPI QR withdrawal
-- Invalid payout details
-- Insufficient VEs
-- Duplicate request ID
-- Successful withdrawal
-- Withdrawal appears in history
-- Wallet balance decreases correctly
-- Ledger transaction is created
-- Withdrawal status becomes `PENDING`
-
-## Concurrency Tests
-
-Example:
-
-```text
-Starting VEs = 10,000
-
-Withdrawal A = 8,000
-Withdrawal B = 8,000
+```powershell
+python -m unittest discover -s tests -v
 ```
 
-Expected:
+### Frontend production build
 
-```text
-Only one request succeeds.
-The other request is rejected because the remaining
-stored balance is insufficient.
+```powershell
+npm run build --prefix frontend
 ```
 
-## Frontend Manipulation Test
+Also verify the API and database connection locally:
 
-Try changing the browser-visible wallet value:
-
-```text
-VEs = 999999
+```powershell
+Invoke-RestMethod http://127.0.0.1:8000/health
+Invoke-RestMethod http://127.0.0.1:8000/payout-options | ConvertTo-Json -Depth 8
 ```
 
-Then submit a withdrawal.
+The test suite and build output reflect the code and environment at the time they are run. Re-run them after changing source files or configuration; a successful local check alone does not prove that the deployed service has the same configuration.
 
-Expected:
+## Suggested Demo Flow
 
-```text
-Backend ignores the manipulated display value.
-Backend uses the stored MongoDB wallet balance.
-```
+1. Open the live frontend.
+2. Register or sign in with a test account.
+3. Show the wallet balances.
+4. Open transaction history.
+5. Open the withdrawal interface.
+6. Show payout methods and denominations loaded from the API.
+7. Enter valid destination details.
+8. Review and submit a withdrawal only with a suitable test account and balance.
+9. Show the resulting pending withdrawal and transaction history.
+10. Open Swagger to explain the API routes and server-side validation.
 
-## Payout Manipulation Test
+Do not use real sensitive banking details or expose credentials during a recording or screen share.
 
-Try changing the request so that the client attempts to submit an arbitrary VEs deduction.
+## Operational Notes and Limitations
 
-Expected:
+- **Demonstration project:** This repository demonstrates wallet and payout workflow patterns; it is not a regulated payment processor.
+- **Gift-card fulfilment:** Amazon and Google Play gift-card requests are manually fulfilled. No external gift-card provider integration is included.
+- **Payout rates:** Runtime rates come from active backend configuration. The table above documents the project task mapping; keep documentation aligned with any approved database changes.
+- **Administrative review:** If the administrative withdrawal-review route is enabled, protect it with a strong secret stored only in deployment environment settings. Do not expose that secret to the frontend or commit it to source control.
+- **Rate limiting:** In-process throttling, if configured, does not coordinate limits across multiple API instances. A scaled deployment needs a shared limiter or gateway.
+- **Multi-document consistency:** Review MongoDB transaction support and error recovery carefully before treating the system as production-ready.
+- **Production readiness:** Perform security review, monitoring, backup/recovery planning, reconciliation, and end-to-end testing before handling real funds or sensitive financial data.
 
-```text
-Backend resolves the required VEs from payout configuration.
-```
+## Future Production Improvements
+
+A production-grade wallet would typically need additional work, including:
+
+- MongoDB transactions or another robust consistency strategy for multi-document operations.
+- A durable, append-oriented ledger and reconciliation process.
+- Unique indexes and tested idempotency constraints.
+- Centralized rate limiting, structured logs, metrics, and alerting.
+- Withdrawal risk rules, velocity checks, and fraud monitoring.
+- Background workers or queues for external payout processing.
+- A real provider integration with secure callbacks and reconciliation, where applicable.
+- Automated integration tests for concurrent withdrawals and failure recovery.
+- Formal secrets rotation and operational access controls.
 
 ---
 
-# Recommended Demo Flow
+## Project Summary
 
-A clean project demonstration can follow this sequence:
+VELOOP Rewards combines a React/Vite frontend with a Python/FastAPI backend and MongoDB Atlas. Its main focus is authenticated wallet access, server-controlled payout configuration, withdrawal validation, balance protection, and transaction traceability.
 
-```text
-1. Open live frontend
-        ↓
-2. Login
-        ↓
-3. Open Wallet
-        ↓
-4. Show backend-driven wallet balances
-        ↓
-5. Open transaction history
-        ↓
-6. Open Withdrawal
-        ↓
-7. Show payout methods loaded from backend
-        ↓
-8. Select payout denomination
-        ↓
-9. Show required VEs
-        ↓
-10. Enter payout details
-        ↓
-11. Review confirmation
-        ↓
-12. Submit withdrawal
-        ↓
-13. Backend validates request
-        ↓
-14. VEs conditionally deducted
-        ↓
-15. Withdrawal stored as PENDING
-        ↓
-16. Ledger transaction created
-        ↓
-17. Wallet refreshed
-        ↓
-18. Withdrawal history refreshed
-```
-
----
-
-# Example Payout Demonstration
-
-For a ₹100 withdrawal:
-
-```text
-Selected payout:
-₹100
-
-Backend configuration:
-10,000 VEs
-
-Wallet before:
-15,000 VEs
-
-Required:
-10,000 VEs
-
-Wallet after:
-5,000 VEs
-```
-
-The frontend does not calculate the authoritative deduction.
-
-The backend resolves:
-
-```text
-₹100 → 10,000 VEs
-```
-
-from payout configuration.
-
----
-
-# Example Insufficient Balance Demonstration
-
-```text
-Wallet:
-5,000 VEs
-
-Selected payout:
-₹100
-
-Required:
-10,000 VEs
-```
-
-Result:
-
-```text
-Withdrawal rejected
-Insufficient VEs balance
-```
-
-The stored wallet remains unchanged.
-
----
-
-# Example Idempotency Demonstration
-
-A request uses:
-
-```text
-request_id = unique-request-123
-```
-
-If the same request is submitted twice:
-
-```text
-First request  → Withdrawal created
-Second request → Existing request detected
-```
-
-The system must not create two withdrawals for the same request ID and user.
-
----
-
-# Transaction Consistency
-
-A wallet transaction should preserve the relationship:
-
-```text
-balance_after
-=
-balance_before + credit - debit
-```
-
-For a withdrawal:
-
-```text
-balance_after
-=
-balance_before - required_ves
-```
-
-The transaction ledger provides the historical record required to inspect wallet movement.
-
----
-
-# Auditability
-
-Wallet-sensitive operations should be traceable through:
-
-- wallet transaction ID
-- withdrawal ID
-- request ID
-- user ID
-- timestamp
-- transaction status
-- payout metadata
-
-This makes it possible to understand why a wallet balance changed.
-
----
-
-# API Documentation
-
-The project includes API documentation separately in:
-
-```text
-API_DOCUMENTATION.md
-```
-
-Swagger documentation is also available from the deployed FastAPI application:
-
-```text
-https://veloop-rewards-jj94.onrender.com/docs
-```
-
----
-
-# Postman Collection
-
-The project includes:
-
-```text
-VELOOP_Rewards_Postman_Collection.json
-```
-
-The collection is intended for API verification including authentication, wallet, payout, and withdrawal flows.
-
-Use environment variables rather than committing access tokens or credentials.
-
----
-
-# Test Documentation
-
-Testing scenarios are documented in:
-
-```text
-TEST_CASES.md
-```
-
-Important backend cases include:
-
-- normal credit
-- normal withdrawal
-- insufficient balance
-- duplicate withdrawal
-- concurrent withdrawal
-- invalid payout option
-- invalid denomination
-- unauthorized wallet access
-- invalid payout destination
-- frontend request manipulation
-
----
-
-# Scaling Considerations
-
-The current project is a demonstration deployment. A production-scale wallet system would require additional engineering.
-
-## Database Transactions
-
-For operations involving multiple collections, MongoDB transactions can be used where required.
-
-## Atomic Wallet Updates
-
-Balance-sensitive operations should remain conditional and server-side.
-
-## Ledger
-
-A production wallet should retain an append-oriented ledger suitable for reconciliation.
-
-## Idempotency
-
-Money-moving operations should continue to use idempotency keys and suitable unique indexes.
-
-## Indexing
-
-Frequently queried fields should have appropriate indexes, including:
-
-```text
-user_id
-request_id
-transaction_id
-withdrawal_id
-created_at
-status
-```
-
-## Queues
-
-Long-running external payout processing can be moved to background workers or queues.
-
-## Caching
-
-Caching can be used for non-authoritative configuration or derived information.
-
-Cached values must never become the authoritative wallet balance.
-
-## Rate Limiting
-
-Production systems should apply route-specific rate limiting to:
-
-- login
-- registration
-- password recovery
-- reward-credit operations
-- withdrawal operations
-
-## Fraud Detection
-
-Production payout systems should add:
-
-- velocity checks
-- anomaly detection
-- duplicate behavior detection
-- account-level controls
-- withdrawal risk rules
-
-## Audit Logging
-
-Important administrative and wallet-state actions should be logged.
-
-## Reconciliation
-
-Wallet balances, transaction ledger entries, and payout records should be periodically reconciled.
-
-## Monitoring
-
-Production systems should use:
-
-- structured logs
-- metrics
-- alerting
-- database monitoring
-- error tracking
-
----
-
-# Final Submission Checklist
-
-Before submitting the project, verify:
-
-## Backend
-
-- [ ] FastAPI backend starts successfully
-- [ ] MongoDB connection works
-- [ ] `/health` returns healthy
-- [ ] Authentication works
-- [ ] JWT protection works
-- [ ] Wallet endpoint works
-- [ ] Transaction endpoint works
-- [ ] Payout options endpoint works
-- [ ] Withdrawal endpoint works
-- [ ] Withdrawal history works
-- [ ] Insufficient balance is rejected
-- [ ] Invalid payout option is rejected
-- [ ] Invalid denomination is rejected
-- [ ] Invalid payout details are rejected
-- [ ] Duplicate request IDs are handled
-- [ ] Concurrent withdrawal protection works
-- [ ] Wallet ledger records are created
-
-## Frontend
-
-- [ ] Login works
-- [ ] Registration works
-- [ ] Wallet loads from backend
-- [ ] Transaction history loads
-- [ ] Payout methods load from backend
-- [ ] Payout denominations load from backend
-- [ ] Withdrawal confirmation works
-- [ ] Successful withdrawal refreshes wallet
-- [ ] Successful withdrawal refreshes history
-- [ ] Error states work
-- [ ] Loading states work
-- [ ] Responsive layout works
-- [ ] Manual reward conversion works per currency and amount
-- [ ] Conversion rates come from backend configuration
-
-## Documentation
-
-- [ ] README.md is complete
-- [ ] API_DOCUMENTATION.md is included
-- [ ] TEST_CASES.md is included
-- [ ] Postman collection is included
-- [ ] `.env.example` is included
-- [ ] Real `.env` is not committed
-- [ ] Secrets are not committed
-
-## Deployment
-
-- [ ] GitHub repository is available
-- [ ] Frontend deployment is available
-- [ ] Backend deployment is available
-- [ ] Swagger documentation is available
-- [ ] Health endpoint is available
-
----
-
-# Final Links
-
-## GitHub
-
-https://github.com/samarth306/VELoop-Rewards
-
-## Frontend
-
-https://veloop-rewards-frontend-ggzf.onrender.com
-
-## Backend
-
-https://veloop-rewards-jj94.onrender.com
-
-## Swagger
-
-https://veloop-rewards-jj94.onrender.com/docs
-
-## Health
-
-https://veloop-rewards-jj94.onrender.com/health
-
----
-
-# Project Summary
-
-VELOOP Rewards is a backend-driven wallet and payout demonstration built with:
-
-- FastAPI
-- Python
-- MongoDB Atlas
-- React
-- Vite
-
-The implementation focuses on:
-
-- server-authoritative wallet data
-- authenticated user access
-- backend-controlled payout configuration
-- validated payout destinations
-- safe VEs deduction
-- transaction traceability
-- idempotent withdrawal handling
-- concurrency-safe balance protection
-- persistent MongoDB records
-- password recovery
-- a polished demonstration frontend
-
-The final payout mapping is:
-
-```text
-₹10    → 1,000 VEs
-₹25    → 2,500 VEs
-₹50    → 5,000 VEs
-₹100   → 10,000 VEs
-₹150   → 15,000 VEs
-₹300   → 30,000 VEs
-₹500   → 50,000 VEs
-₹1,000 → 100,000 VEs
-```
-
-The backend remains the authoritative source for wallet balances, payout configuration, withdrawal validation, and wallet transactions.
+- **Frontend:** https://veloop-rewards-frontend-ggzf.onrender.com
+- **Backend:** https://veloop-rewards-jj94.onrender.com
+- **Swagger:** https://veloop-rewards-jj94.onrender.com/docs
+- **Repository:** https://github.com/samarth306/VELoop-Rewards

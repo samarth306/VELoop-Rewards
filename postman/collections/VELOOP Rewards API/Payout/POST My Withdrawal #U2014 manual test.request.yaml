@@ -1,0 +1,18 @@
+$kind: http-request
+url: "{{baseUrl}}/wallet/me/withdrawal"
+method: POST
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "amount": 10,
+      "payout_option_id": "{{payoutOptionId}}",
+      "payout_details": {
+        "upi_id": "example@upi"
+      },
+      "request_id": "{{requestId}}"
+    }
+order: 3000

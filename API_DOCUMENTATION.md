@@ -456,53 +456,38 @@ The returned option contains its backend-controlled denominations and payout con
 
 # Current Payout Mapping
 
-The final payout configuration is:
+The current platform payout configuration is authoritative. All currently configured payout methods use this VEs mapping:
 
 | Payout Value | Required VEs |
 | -----------: | -----------: |
-|          ₹10 |        1,000 |
-|          ₹25 |        2,500 |
-|          ₹50 |        5,000 |
-|         ₹100 |       10,000 |
-|         ₹150 |       15,000 |
-|         ₹300 |       30,000 |
-|         ₹500 |       50,000 |
-|       ₹1,000 |      100,000 |
+|          ₹10 |        2,400 |
+|          ₹25 |        5,800 |
+|          ₹50 |       10,000 |
+|         ₹100 |       19,500 |
+|         ₹150 |       28,500 |
+|         ₹300 |       52,500 |
+|         ₹500 |       80,500 |
+|       ₹1,000 |      150,000 |
 
-These are the authoritative final payout values.
-
-The obsolete values are not part of the final API configuration.
-
-In particular, the API documentation must not use the old mapping:
-
-```text
-₹10    → 2,400 VEs
-₹25    → 5,800 VEs
-₹50    → 10,000 VEs
-₹100   → 19,500 VEs
-₹150   → 28,500 VEs
-₹300   → 52,500 VEs
-₹500   → 80,500 VEs
-₹1,000 → 150,000 VEs
-```
-
-The backend-controlled mapping is the only authoritative mapping.
+The table is stored/configured by the backend; React does not calculate payout costs. The mapping above follows the original task PDF and is seeded by the backend. A database configuration changed deliberately by an operator is preserved.
 
 ---
 
 # Supported Payout Methods
 
-The configured payout system supports:
+The backend configuration currently includes:
 
 ```text
 UPI
 Bank Transfer
 UPI QR
+Amazon Gift Card
+Google Play Gift Card
 ```
 
-All supported methods use the backend payout configuration.
+Gift-card requests collect a delivery email and enter the same server-validated pending-withdrawal workflow. This repository does not include an Amazon or Google Play voucher-provider integration. A gift-card request therefore requires manual operator fulfilment/review before it can be marked `APPROVED`; do not mark it approved until the real voucher has been delivered. Rejection requires a reason and refunds reserved VEs.
 
-The client does not determine the final required VEs.
+All methods currently use the platform's configured denomination table. If the operator later needs method-specific gift-card pricing, update the backend/database payout configuration explicitly and test it before release.
 
 ---
 
@@ -553,6 +538,21 @@ The backend resolves the required VEs from the selected payout configuration.
 ```
 
 The exact payout detail validation is determined by the selected backend payout option.
+
+### Example Amazon / Google Play Gift Card Request
+
+```json
+{
+  "amount": 10,
+  "payout_option_id": "amazon_gift_card",
+  "payout_details": {
+    "email": "recipient@example.com"
+  },
+  "request_id": "giftcard-demo-001"
+}
+```
+
+Use `google_play_gift_card` for Google Play. The backend validates and normalizes the delivery email, reserves the configured VEs and creates a `PENDING` withdrawal. The project does not automatically purchase or email a voucher; an operator must fulfil the gift card before changing the withdrawal status to `APPROVED`.
 
 ---
 
@@ -1259,7 +1259,7 @@ Payout = ₹100
 Backend configuration says:
 
 ```text
-₹100 = 10,000 VEs
+₹100 = 19,500 VEs
 ```
 
 The withdrawal request is sent.
@@ -1268,8 +1268,8 @@ Backend processing:
 
 ```text
 Stored balance = 25,000
-Required       = 10,000
-Condition      = 25,000 >= 10,000
+Required       = 19,500
+Condition      = 25,000 >= 19,500
 ```
 
 The deduction succeeds.
@@ -1402,3 +1402,28 @@ Before final submission, verify:
 - [ ] Swagger documentation is available
 - [ ] deployed backend is reachable
 - [ ] deployed frontend is reachable
+
+
+## Audit additions
+
+### `PATCH /admin/withdrawals/{withdrawal_id}/status`
+Admin-only withdrawal review endpoint. Requires `X-Admin-Key` equal to the configured `ADMIN_WITHDRAWAL_KEY` environment variable. JSON body:
+
+```json
+{
+  "status": "REJECTED",
+  "rejection_reason": "Payout destination could not be verified",
+  "review_note": "Reviewed by operations"
+}
+```
+
+Allowed statuses: `PROCESSING`, `APPROVED`, `REJECTED`. Rejection requires a non-empty reason and credits the reserved VEs back to the user's wallet with a `WITHDRAWAL_REFUND` ledger entry in the same MongoDB transaction. Terminal states cannot be changed to a different state. `APPROVED` is an administrative record only; the external payout must actually have been completed before marking it approved.
+
+### Idempotency contract
+`POST /wallet/me/withdrawal` requires a unique `request_id` (8–100 characters; letters, digits, `.`, `_`, `:`, and `-`). Reusing the same ID and same normalized payload returns the original withdrawal. Reusing the ID with a different amount, method, or payout destination returns HTTP 409.
+
+### Payout configuration
+At startup, missing methods are inserted without overwriting existing operator configuration. All five configured methods (UPI, Bank Transfer, UPI QR, Amazon Gift Card, and Google Play Gift Card) are migrated from the exact incorrect default denomination table shipped in the previous replacement ZIP to the PDF mapping; other customized database configurations are preserved. `GET /payout-options` and `GET /payout-options/{option_id}` read from MongoDB. Newly added gift-card method records are inserted when missing. Verify the live payout page and provider fulfilment process before release.
+
+### Rate limiting
+The API throttles login, registration, password recovery, administrative mutations, and withdrawal creation per client IP in the current process. This in-memory limiter resets on restart and is not shared across multiple API instances; production scaling should use a shared store/API gateway.

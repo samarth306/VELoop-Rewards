@@ -12,7 +12,7 @@
 - Conversion rates are server-controlled: 1 SVE = 500 VEs, 1 Token = 2,000 VEs, 1 Gem = 5,000 VEs.
 - Daily reward claim uses `POST /rewards/daily/claim`.
 - Transactions use `GET /wallet/me/transactions` with backend pagination support.
-- Payout options and required VEs are resolved by the backend; the frontend does not carry a fallback payout table.
+- Payout options and required VEs are resolved by the backend; the frontend does not carry a fallback payout table. Amazon and Google Play gift cards use email-validated pending withdrawals and require manual fulfilment because there is no voucher-provider integration.
 - Withdrawal deduction, withdrawal record and ledger record are committed inside a MongoDB transaction with request-id idempotency protection.
 - About VELOOP section includes project overview, architecture/security principles, conversion and payout rules, technology stack and support contact `testuser.veloop@gmail.com`.
 - Sensitive local files are excluded from the final source archive.
@@ -21,14 +21,14 @@
 
 | Payout | Required VEs |
 |---:|---:|
-| ₹10 | 1,000 |
-| ₹25 | 2,500 |
-| ₹50 | 5,000 |
-| ₹100 | 10,000 |
-| ₹150 | 15,000 |
-| ₹300 | 30,000 |
-| ₹500 | 50,000 |
-| ₹1,000 | 100,000 |
+| ₹10 | 2,400 |
+| ₹25 | 5,800 |
+| ₹50 | 10,000 |
+| ₹100 | 19,500 |
+| ₹150 | 28,500 |
+| ₹300 | 52,500 |
+| ₹500 | 80,500 |
+| ₹1,000 | 150,000 |
 
 ## Validation performed
 
@@ -36,7 +36,7 @@
 - Backend route uniqueness/static inspection: PASS
 - Frontend JSX parse with Babel: PASS
 - API route string cross-check between frontend and backend: PASS
-- Stale old payout mappings / removed demo routes / removed spin endpoints / Convert-All references: NONE in the final source tree.
+- User-facing seed configuration, payout tables, and API docs match the PDF mapping. The prior ZIP mapping remains only as an explicit exact-match migration source and test fixture. Removed demo routes / spin endpoints / Convert-All references were checked separately.
 
 ## Environment note
 

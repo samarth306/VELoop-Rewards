@@ -35,8 +35,10 @@ def ensure_index(collection, keys, name, unique=False, sparse=False):
         existing_keys = tuple(index_info.get("key", []))
 
         if existing_keys == requested_keys:
-            # Same index structure already exists.
-            # Do not create another index with a different name.
+            # Preserve an existing equivalent index unless uniqueness is required.
+            if unique and not index_info.get("unique", False):
+                collection.drop_index(index_name)
+                break
             return index_name
 
     return collection.create_index(
@@ -50,6 +52,12 @@ def ensure_index(collection, keys, name, unique=False, sparse=False):
 # =========================
 # DATABASE INDEXES
 # =========================
+
+
+# Enforce one account per normalized email and one wallet per user.
+# Existing duplicate data must be reconciled before these unique indexes can be created.
+ensure_index(users_collection, [("email", 1)], name="unique_user_email", unique=True)
+ensure_index(wallets_collection, [("user_id", 1)], name="unique_wallet_user", unique=True)
 
 
 # Fast transaction history lookup

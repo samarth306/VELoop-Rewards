@@ -157,6 +157,7 @@ function App() {
     ifsc: "",
     bankName: "",
     qrFileName: "",
+    giftCardEmail: "",
   });
 
   useEffect(() => {
@@ -752,6 +753,8 @@ function App() {
       UPI: "UPI",
       BANK: "BANK_TRANSFER",
       QR: "UPI_QR",
+      AMAZON_GIFT_CARD: "AMAZON_GIFT_CARD",
+      GOOGLE_PLAY_GIFT_CARD: "GOOGLE_PLAY_GIFT_CARD",
     };
 
     const expected =
@@ -889,6 +892,14 @@ function App() {
       return "UPI";
     }
 
+    if (method === "AMAZON_GIFT_CARD") {
+      return "Amazon Gift Card";
+    }
+
+    if (method === "GOOGLE_PLAY_GIFT_CARD") {
+      return "Google Play Gift Card";
+    }
+
     return method || "Payout";
   }
 
@@ -924,14 +935,18 @@ function App() {
             ? "bank"
             : value === "QR"
               ? "qr"
-              : "wallet",
+              : value === "AMAZON_GIFT_CARD" || value === "GOOGLE_PLAY_GIFT_CARD"
+                ? "gift"
+                : "wallet",
 
         description:
           value === "BANK"
             ? "Direct bank payout"
             : value === "QR"
               ? "UPI QR payout"
-              : "UPI payout",
+              : value === "AMAZON_GIFT_CARD" || value === "GOOGLE_PLAY_GIFT_CARD"
+                ? "Gift card sent to email after manual review"
+                : "UPI payout",
       });
     }
 
@@ -1066,6 +1081,15 @@ function App() {
     const method =
       withdrawForm.method;
 
+    if (
+      method === "AMAZON_GIFT_CARD" ||
+      method === "GOOGLE_PLAY_GIFT_CARD"
+    ) {
+      return {
+        email: withdrawForm.giftCardEmail.trim().toLowerCase(),
+      };
+    }
+
     if (method === "BANK") {
       return {
         account_name:
@@ -1176,6 +1200,19 @@ function App() {
             wallet.ves
           )} VEs.`,
       };
+    }
+
+    if (
+      method === "AMAZON_GIFT_CARD" ||
+      method === "GOOGLE_PLAY_GIFT_CARD"
+    ) {
+      const email = withdrawForm.giftCardEmail.trim();
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return {
+          error: "Please enter a valid email address for gift-card delivery.",
+        };
+      }
     }
 
     if (method === "UPI" || method === "QR") {
@@ -1335,6 +1372,7 @@ function App() {
           ifsc: "",
           bankName: "",
           qrFileName: "",
+          giftCardEmail: "",
         })
       );
 
@@ -3793,6 +3831,26 @@ function WithdrawalsPage({
                   />
                 </Field>
               </div>
+            ) : (
+              form.method === "AMAZON_GIFT_CARD" ||
+              form.method === "GOOGLE_PLAY_GIFT_CARD"
+            ) ? (
+              <div className="form-grid single">
+                <Field label="Gift card delivery email">
+                  <input
+                    type="email"
+                    value={form.giftCardEmail}
+                    onChange={(e) =>
+                      updateForm("giftCardEmail", e.target.value)
+                    }
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                  <small>
+                    Requests are submitted for review. Gift-card delivery is not automated; the request remains pending until an operator fulfils or rejects it.
+                  </small>
+                </Field>
+              </div>
             ) : form.method === "UPI" ? (
               <div className="form-grid single">
                 <Field label="UPI ID">
@@ -4840,21 +4898,22 @@ function getMethodsForDisplay(
         ),
 
       description:
-        value ===
-          "BANK"
+        value === "BANK"
           ? "Direct bank payout"
-          : value ===
-            "QR"
+          : value === "QR"
             ? "UPI QR payout"
-            : "UPI payout",
+            : value === "AMAZON_GIFT_CARD" || value === "GOOGLE_PLAY_GIFT_CARD"
+              ? "Gift card sent to email after manual review"
+              : "UPI payout",
 
       icon:
-        value ===
-          "BANK"
+        value === "BANK"
           ? "bank"
           : value === "QR"
             ? "qr"
-            : "wallet",
+            : value === "AMAZON_GIFT_CARD" || value === "GOOGLE_PLAY_GIFT_CARD"
+              ? "gift"
+              : "wallet",
     });
   }
 
@@ -4923,6 +4982,14 @@ function displayMethod(
     method === "UPI"
   ) {
     return "UPI";
+  }
+
+  if (method === "AMAZON_GIFT_CARD") {
+    return "Amazon Gift Card";
+  }
+
+  if (method === "GOOGLE_PLAY_GIFT_CARD") {
+    return "Google Play Gift Card";
   }
 
   return (

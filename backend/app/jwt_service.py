@@ -5,7 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-JWT_SECRET = os.getenv("JWT_SECRET")
+JWT_SECRET = os.getenv("JWT_SECRET", "").strip()
+if not JWT_SECRET or JWT_SECRET == "replace_with_a_long_random_jwt_secret":
+    raise RuntimeError("JWT_SECRET must be configured with a strong random secret")
 JWT_ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
