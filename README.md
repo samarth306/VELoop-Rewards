@@ -14,6 +14,12 @@ The core design principle is simple: **the backend is the source of truth** for 
 
 > Live services may take time to wake up on a free hosting tier. Do not put passwords, API keys, database credentials, or access tokens in public issues, screenshots, or documentation.
 
+## Project reports
+
+- [Audit report](docs/AUDIT_REPORT.md)
+- [Change report](docs/CHANGE_REPORT.md)
+- [Final audit notes](docs/FINAL_AUDIT.md)
+
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
@@ -359,10 +365,10 @@ Create a local `.env` file using `.env.example` as a template. Set valid local v
 
 ### 5. Start the backend
 
-From the repository root, run the project's FastAPI application entry point:
+From the repository root, run the project's entry-point script (it starts `backend.app.main:app` through Uvicorn):
 
 ```powershell
-uvicorn backend.app.main:app --reload
+python start.py
 ```
 
 The local API is normally available at `http://127.0.0.1:8000`; Swagger is at `http://127.0.0.1:8000/docs`.
@@ -396,7 +402,7 @@ Use the exact variable names and requirements in the repository's `.env.example`
 ## Project Structure
 
 ```text
-VELOop-Rewards/
+VELoop-Rewards/
 ├── backend/
 │   └── app/
 │       ├── auth_service.py
@@ -422,6 +428,11 @@ VELOop-Rewards/
 ├── README.md
 ├── API_DOCUMENTATION.md
 ├── TEST_CASES.md
+├── docs/
+│   ├── AUDIT_REPORT.md
+│   ├── CHANGE_REPORT.md
+│   └── FINAL_AUDIT.md
+├── start.py
 ├── requirements.txt
 ├── .gitignore
 ├── .env.example
