@@ -1720,30 +1720,32 @@ def forgot_password(
         )
 
         try:
-
-            send_reset_email(
-
+            email_sent = send_reset_email(
                 user["email"],
-
                 raw_token,
-
             )
 
-        except Exception:
+            if email_sent:
+                print("PASSWORD_RESET_EMAIL_SENT")
+            else:
+                print("PASSWORD_RESET_EMAIL_NOT_CONFIGURED")
 
-            pass
+        except Exception as exc:
+            # Do not log reset tokens or credentials.
+            print(
+                "PASSWORD_RESET_EMAIL_FAILED:",
+                type(exc).__name__,
+            )
 
     return {
-
         "message": (
-
             "If an account exists for this email, "
-
             "a password reset link has been sent."
-
         )
-
     }
+
+
+    
 
 @app.post("/auth/reset-password")
 
