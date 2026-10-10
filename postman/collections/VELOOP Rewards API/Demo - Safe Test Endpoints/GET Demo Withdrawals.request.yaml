@@ -1,4 +1,0 @@
-$kind: http-request
-url: "{{baseUrl}}/wallet/demo/withdrawals"
-method: GET
-order: 4000
