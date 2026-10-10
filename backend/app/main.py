@@ -1730,12 +1730,14 @@ def forgot_password(
             else:
                 print("PASSWORD_RESET_EMAIL_NOT_CONFIGURED")
 
+        
         except Exception as exc:
-            # Do not log reset tokens or credentials.
             print(
                 "PASSWORD_RESET_EMAIL_FAILED:",
                 type(exc).__name__,
+                repr(exc),
             )
+
 
     return {
         "message": (
