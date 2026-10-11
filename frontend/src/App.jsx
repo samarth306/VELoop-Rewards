@@ -164,11 +164,14 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const tokenFromUrl = params.get("token");
 
-    if (
-      window.location.pathname === "/reset-password" &&
-      tokenFromUrl
-    ) {
+    if (tokenFromUrl) {
+      sessionStorage.setItem("veloop_reset_token", tokenFromUrl);
       setResetToken(tokenFromUrl);
+      // Remove the one-time token from the address bar after capturing it.
+      window.history.replaceState({}, "", window.location.pathname || "/");
+    } else {
+      const savedToken = sessionStorage.getItem("veloop_reset_token");
+      if (savedToken) setResetToken(savedToken);
     }
   }, []);
 
@@ -350,6 +353,7 @@ function App() {
         "/"
       );
 
+      sessionStorage.removeItem("veloop_reset_token");
       setResetToken("");
     } catch (err) {
       setError(

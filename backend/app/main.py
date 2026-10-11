@@ -8,11 +8,9 @@ import time
 import threading
 from collections import defaultdict, deque
 
-import smtplib
 
 from datetime import datetime, timedelta, timezone
 
-from email.message import EmailMessage
 
 from typing import Any, Optional
 
@@ -43,6 +41,8 @@ from backend.app.collections import (
 )
 
 from backend.app.wallet_service import credit_wallet, get_transactions
+
+from backend.app.email_service import send_reset_email
 
 from backend.app.models.auth import (
 
@@ -970,142 +970,6 @@ def create_wallet_transaction(
 
     return public_document(transaction)
 
-def send_reset_email(
-
-    email: str,
-
-    reset_token: str,
-
-) -> bool:
-
-    smtp_host = os.getenv(
-
-        "SMTP_HOST",
-
-        "",
-
-    ).strip()
-
-    smtp_port = int(
-
-        os.getenv(
-
-            "SMTP_PORT",
-
-            "587",
-
-        )
-
-    )
-
-    smtp_user = os.getenv(
-
-        "SMTP_USER",
-
-        "",
-
-    ).strip()
-
-    smtp_password = os.getenv(
-
-        "SMTP_PASSWORD",
-
-        "",
-
-    )
-
-    smtp_from = os.getenv(
-
-        "SMTP_FROM",
-
-        smtp_user,
-
-    ).strip()
-
-    frontend_url = os.getenv(
-
-        "FRONTEND_URL",
-
-        "http://localhost:5173",
-
-    ).rstrip("/")
-
-    if (
-
-        not smtp_host
-
-        or not smtp_user
-
-        or not smtp_password
-
-        or not smtp_from
-
-    ):
-
-        return False
-
-    reset_link = (
-
-        f"{frontend_url}/reset-password"
-
-        f"?token={reset_token}"
-
-    )
-
-    message = EmailMessage()
-
-    message["Subject"] = (
-
-        "VELOOP Rewards — Password Reset"
-
-    )
-
-    message["From"] = smtp_from
-
-    message["To"] = email
-
-    message.set_content(
-
-        "We received a request to reset your "
-
-        "VELOOP Rewards password.\n\n"
-
-        f"Reset your password here:\n{reset_link}\n\n"
-
-        f"This link expires in "
-
-        f"{RESET_TOKEN_MINUTES} minutes.\n"
-
-        "If you did not request this, "
-
-        "you can safely ignore this email."
-
-    )
-
-    with smtplib.SMTP(
-
-        smtp_host,
-
-        smtp_port,
-
-        timeout=10,
-
-    ) as server:
-
-        server.starttls()
-
-        server.login(
-
-            smtp_user,
-
-            smtp_password,
-
-        )
-
-        server.send_message(message)
-
-    return True
-
 class WithdrawalRequest(BaseModel):
 
     amount: int = Field(
@@ -1720,10 +1584,7 @@ def forgot_password(
         )
 
         try:
-            email_sent = send_reset_email(
-                user["email"],
-                raw_token,
-            )
+            email_sent = send_reset_email(user["email"], raw_token, RESET_TOKEN_MINUTES)
 
             if email_sent:
                 print("PASSWORD_RESET_EMAIL_SENT")

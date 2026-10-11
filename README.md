@@ -1,4 +1,4 @@
-﻿# VELOOP Rewards — Wallet & Payout System
+# VELOOP Rewards — Wallet & Payout System
 
 A backend-driven digital rewards wallet and payout demonstration built with **Python, FastAPI, MongoDB Atlas, React, and Vite**.
 
@@ -398,6 +398,19 @@ The application uses environment variables for sensitive configuration. Dependin
 - `ADMIN_WITHDRAWAL_KEY` for protected administrative withdrawal review, if enabled
 
 Use the exact variable names and requirements in the repository's `.env.example` and backend settings code. Never put real credentials in the README, source code, Postman collection, screenshots, or public repository. Use a strong, unique `JWT_SECRET`; configure deployment secrets in Render's Environment settings.
+
+## Password-reset email configuration
+
+For Render, prefer the HTTPS email API rather than SMTP because outbound SMTP is blocked on free Render web services.
+
+1. Create an email-provider account and verify a sender domain.
+2. Set these variables in the Render backend service:
+   - `RESEND_API_KEY`: private API key from the provider.
+   - `RESEND_FROM`: sender identity on the verified domain, e.g. `VELOOP Rewards <noreply@your-verified-domain.com>`.
+   - `FRONTEND_URL`: `https://veloop-rewards-frontend-ggzf.onrender.com`.
+3. Redeploy the backend, request a password reset for an account you control, receive the email, open its link, and verify the new password works.
+
+Never commit the API key. The endpoint intentionally returns a generic response to avoid revealing whether an email is registered; use backend/provider logs to confirm delivery.
 
 ## Project Structure
 
