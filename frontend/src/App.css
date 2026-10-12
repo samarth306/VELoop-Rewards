@@ -5941,3 +5941,273 @@ input:focus,select:focus,textarea:focus {
   .hero-side { gap: 12px !important; }
   .currency-grid { gap: 10px !important; }
 }
+
+
+/* =========================================================
+   VELOOP MULTI-PAGE NEON GLASS THEME
+   Visual-only overrides for existing Dashboard, Wallet,
+   Transactions, Withdrawals, Rewards, About, Profile and Auth.
+   Keeps React content, API calls, backend rules and navigation.
+   ========================================================= */
+:root {
+  --vl-bg:#020817;
+  --vl-card:rgba(7,20,46,.88);
+  --vl-line:rgba(51,132,255,.36);
+  --vl-blue:#176cff;
+  --vl-cyan:#4bdfff;
+  --vl-purple:#792dff;
+  --vl-pink:#ff42df;
+  --vl-yellow:#ffbd38;
+}
+html,body,#root { background:#020817; }
+.app-shell {
+  color:#f3f7ff !important;
+  background:
+    radial-gradient(ellipse at 78% 0%,rgba(22,66,255,.20),transparent 33%),
+    radial-gradient(ellipse at 5% 75%,rgba(106,30,255,.13),transparent 35%),
+    #020817 !important;
+}
+.sidebar {
+  background:
+    radial-gradient(ellipse at 20% 20%,rgba(31,89,255,.13),transparent 48%),
+    linear-gradient(180deg,#030a1b 0%,#06122a 58%,#080a22 100%) !important;
+  border-right:1px solid rgba(47,120,255,.36) !important;
+  box-shadow:inset -1px 0 rgba(255,255,255,.025),12px 0 42px rgba(0,0,0,.18) !important;
+}
+.brand-row { border-radius:15px !important; }
+.velo-logo { filter:drop-shadow(0 0 10px rgba(81,64,255,.45)); }
+.sidebar-divider { background:linear-gradient(90deg,transparent,rgba(64,135,255,.35),transparent) !important; }
+.nav-item {
+  border:1px solid transparent !important;
+  border-radius:11px !important;
+  transition:background .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease !important;
+}
+.nav-item:hover {
+  background:rgba(42,92,205,.15) !important;
+  border-color:rgba(66,140,255,.20) !important;
+  transform:translateX(2px);
+}
+.nav-item.active {
+  color:#fff !important;
+  background:linear-gradient(105deg,rgba(0,102,255,.98),rgba(88,26,255,.98)) !important;
+  border:1px solid rgba(107,191,255,.85) !important;
+  box-shadow:0 0 0 1px rgba(56,112,255,.22),0 0 25px rgba(47,70,255,.45),inset 0 1px rgba(255,255,255,.24) !important;
+}
+.nav-item.active .nav-icon { color:#fff !important; filter:drop-shadow(0 0 5px rgba(104,224,255,.75)); }
+.nav-indicator { background:#5deaff !important; box-shadow:0 0 12px #5deaff !important; }
+.main-shell {
+  background:
+    radial-gradient(ellipse at 78% 0%,rgba(20,68,255,.09),transparent 36%),
+    transparent !important;
+}
+.topbar {
+  background:rgba(2,8,23,.78) !important;
+  border-bottom:1px solid rgba(57,126,255,.25) !important;
+  box-shadow:0 8px 28px rgba(0,0,0,.12) !important;
+  backdrop-filter:blur(20px) !important;
+}
+.eyebrow,.section-kicker,.hero-overline,.reward-kicker {
+  color:#60dfff !important;
+  letter-spacing:1.35px !important;
+}
+.page-title-block h1,.page-head h2,.section-head h2 { color:#f5f8ff !important; }
+.title-line { background:linear-gradient(90deg,#28d9ff,#504aff,#b32bff,transparent) !important; }
+.icon-btn,.profile-avatar {
+  border-color:rgba(75,143,255,.35) !important;
+  background:linear-gradient(145deg,rgba(11,31,69,.92),rgba(5,14,34,.94)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.05) !important;
+}
+.panel,.page-panel,.section-block,.streak-dashboard-card,.about-card-pro,.about-tech-card,.about-how,.about-security,.profile-note,.wallet-note,.payout-panel,.confirm-summary,.profile-summary {
+  border:1px solid rgba(55,126,255,.29) !important;
+  background:linear-gradient(145deg,rgba(7,21,47,.95),rgba(3,12,30,.97)) !important;
+  box-shadow:0 14px 40px rgba(0,0,0,.18),inset 0 1px rgba(255,255,255,.035) !important;
+}
+.wallet-hero,.rewards-hero-pro,.about-hero-pro {
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(61,150,255,.58) !important;
+  border-radius:22px !important;
+  background:
+    radial-gradient(ellipse at 84% 18%,rgba(40,88,255,.28),transparent 30%),
+    radial-gradient(ellipse at 7% 100%,rgba(0,204,255,.16),transparent 35%),
+    linear-gradient(125deg,#0a1b3d 0%,#07132d 53%,#160e40 100%) !important;
+  box-shadow:0 18px 55px rgba(0,0,0,.27),0 0 30px rgba(35,83,255,.13),inset 0 1px rgba(255,255,255,.07) !important;
+}
+.wallet-hero::after,.rewards-hero-pro::after,.about-hero-pro::after {
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:linear-gradient(112deg,transparent 22%,rgba(54,133,255,.12) 49%,transparent 73%);
+  animation:veloThemeSheen 10s ease-in-out infinite alternate;
+}
+.hero-copy,.hero-side,.rewards-hero-copy,.reward-hero-stat,.about-hero-copy,.about-brand-stack { position:relative;z-index:1; }
+.hero-copy h2,.rewards-hero-copy h2,.about-hero-copy h2 { color:#fff !important;text-shadow:0 0 28px rgba(56,127,255,.25); }
+.hero-brand-orb,.about-logo-pro { filter:drop-shadow(0 0 20px rgba(62,101,255,.42));animation:veloThemeFloat 5s ease-in-out infinite; }
+.hero-inr-card,.reward-hero-stat {
+  background:linear-gradient(145deg,rgba(12,45,112,.88),rgba(22,16,83,.91)) !important;
+  border:1px solid rgba(61,168,255,.48) !important;
+  box-shadow:0 0 28px rgba(34,95,255,.16),inset 0 1px rgba(255,255,255,.09) !important;
+}
+.hero-inr-card strong,.reward-hero-stat strong { color:#fff !important;text-shadow:0 0 18px rgba(65,184,255,.35); }
+.hero-cta,.primary-btn,.reward-btn.primary,.auth-submit,.full-btn {
+  color:#fff !important;
+  background:linear-gradient(108deg,#086dff 0%,#3945ff 52%,#7928ff 100%) !important;
+  border:1px solid rgba(111,182,255,.7) !important;
+  box-shadow:0 8px 26px rgba(43,68,255,.32),inset 0 1px rgba(255,255,255,.2) !important;
+}
+.hero-cta:hover,.primary-btn:hover:not(:disabled),.reward-btn.primary:hover:not(:disabled),.auth-submit:hover,.full-btn:hover {
+  filter:brightness(1.12);
+  box-shadow:0 10px 34px rgba(56,78,255,.45),0 0 22px rgba(61,168,255,.17) !important;
+}
+.currency-grid { gap:14px !important; }
+.currency-card {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border-radius:16px !important;
+  border:1px solid rgba(82,151,255,.35) !important;
+  background:linear-gradient(145deg,rgba(8,27,60,.88),rgba(5,15,35,.91)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.06),0 12px 28px rgba(0,0,0,.15) !important;
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease !important;
+}
+.currency-card::before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  pointer-events:none;
+  background:radial-gradient(ellipse at 100% 0%,var(--asset-glow,rgba(50,130,255,.22)),transparent 63%);
+}
+.currency-card::after {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:130%;
+  height:70%;
+  right:-20%;
+  bottom:-43%;
+  border-radius:50%;
+  border-top:1px solid var(--asset-line,rgba(71,155,255,.34));
+  box-shadow:0 -8px 25px var(--asset-glow,rgba(50,130,255,.12));
+  transform:rotate(-12deg);
+  pointer-events:none;
+}
+.currency-card:hover { transform:translateY(-3px) !important;border-color:rgba(88,194,255,.65) !important;box-shadow:0 0 24px rgba(46,96,255,.16),0 16px 30px rgba(0,0,0,.22) !important; }
+.currency-card.featured {
+  --asset-glow:rgba(0,204,255,.34);
+  --asset-line:rgba(62,217,255,.55);
+  background:linear-gradient(135deg,rgba(0,102,255,.93),rgba(28,34,202,.91) 67%,rgba(77,20,201,.94)) !important;
+  border-color:rgba(66,211,255,.72) !important;
+  box-shadow:0 0 26px rgba(25,98,255,.23),inset 0 1px rgba(255,255,255,.18) !important;
+}
+.currency-card.accent-cyan { --asset-glow:rgba(0,213,255,.24);--asset-line:rgba(0,221,255,.32); }
+.currency-card.accent-indigo {
+  --asset-glow:rgba(0,224,255,.17);
+  --asset-line:rgba(57,226,255,.28);
+  background:linear-gradient(145deg,rgba(9,58,78,.68),rgba(7,23,47,.82)) !important;
+  border-color:rgba(0,215,255,.37) !important;
+  backdrop-filter:blur(8px);
+}
+.currency-card.accent-gold {
+  --asset-glow:rgba(255,37,220,.24);
+  --asset-line:rgba(255,66,224,.55);
+  background:linear-gradient(145deg,rgba(95,10,98,.42),rgba(31,10,56,.70)) !important;
+  border-color:rgba(255,55,225,.50) !important;
+  backdrop-filter:blur(8px);
+}
+.currency-card.accent-green {
+  --asset-glow:rgba(255,184,40,.25);
+  --asset-line:rgba(255,191,52,.55);
+  background:linear-gradient(145deg,rgba(92,58,9,.43),rgba(33,24,20,.70)) !important;
+  border-color:rgba(255,185,45,.50) !important;
+  backdrop-filter:blur(8px);
+}
+.currency-card .asset-icon {
+  border:1px solid rgba(255,255,255,.18) !important;
+  box-shadow:0 0 17px var(--asset-glow,rgba(60,140,255,.22)),inset 0 1px rgba(255,255,255,.16) !important;
+}
+.currency-card.accent-gold .asset-icon { color:#ff83ed !important;background:rgba(255,46,220,.13) !important; }
+.currency-card.accent-green .asset-icon { color:#ffd06a !important;background:rgba(255,181,35,.13) !important; }
+.currency-card.accent-indigo .asset-icon { color:#65eaff !important;background:rgba(0,218,255,.10) !important; }
+.currency-value { color:#fff !important;text-shadow:0 0 18px rgba(66,139,255,.15); }
+.asset-name { color:#f2f7ff !important; }
+.asset-status { border-color:rgba(98,159,255,.22) !important;background:rgba(3,14,34,.48) !important; }
+.quick-grid { gap:14px !important; }
+.action-card {
+  background:linear-gradient(145deg,rgba(9,27,59,.95),rgba(4,14,34,.98)) !important;
+  border:1px solid rgba(64,137,255,.30) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.04) !important;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease !important;
+}
+.action-card:hover { transform:translateY(-2px) !important;border-color:rgba(76,181,255,.6) !important;box-shadow:0 0 24px rgba(47,94,255,.17) !important; }
+.action-card.primary-action { background:linear-gradient(110deg,rgba(7,79,223,.93),rgba(75,23,204,.93)) !important;border-color:rgba(102,171,255,.65) !important; }
+.asset-icon,.action-icon,.note-icon,.transaction-icon,.about-icon,.about-contact-icon,.method-icon {
+  box-shadow:0 0 18px rgba(44,139,255,.17),inset 0 1px rgba(255,255,255,.11) !important;
+}
+.transaction-row { border-bottom-color:rgba(80,139,235,.15) !important;transition:background .2s ease,transform .2s ease; }
+.transaction-row:hover { background:rgba(37,104,255,.07) !important; }
+.transaction-icon.credit { background:linear-gradient(145deg,rgba(0,218,172,.22),rgba(0,126,129,.12)) !important; }
+.transaction-icon.debit { background:linear-gradient(145deg,rgba(255,64,111,.22),rgba(147,25,92,.13)) !important; }
+.amount-positive { color:#28edc0 !important; }
+.amount-negative { color:#ff5f88 !important; }
+.status-pill,.status-badge,.transaction-status { box-shadow:0 0 12px rgba(26,221,171,.10); }
+.toolbar,.filter-group { border-color:rgba(69,137,255,.20) !important; }
+.soft-btn,.secondary-btn,.text-btn,.icon-btn {
+  border-color:rgba(79,145,255,.34) !important;
+  background:linear-gradient(145deg,rgba(12,31,67,.86),rgba(5,15,36,.9)) !important;
+  color:#c8dcff !important;
+}
+input,select,textarea { color-scheme:dark; }
+input:focus,select:focus,textarea:focus {
+  border-color:rgba(67,205,255,.72) !important;
+  box-shadow:0 0 0 3px rgba(45,139,255,.12),0 0 22px rgba(45,139,255,.08) !important;
+}
+.rewards-experience .streak-node.done,.streak-node.active {
+  border-color:rgba(70,190,255,.62) !important;
+  box-shadow:0 0 18px rgba(49,102,255,.16) !important;
+}
+.daily-card,.reward-card,.reward-feature-card {
+  border-color:rgba(80,139,255,.30) !important;
+  background:linear-gradient(145deg,rgba(9,24,52,.96),rgba(5,14,34,.98)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.035),0 12px 30px rgba(0,0,0,.14) !important;
+}
+.reward-card:nth-of-type(3n+1) .asset-icon { color:#5be6ff; }
+.reward-card:nth-of-type(3n+2) .asset-icon { color:#ff70e7; }
+.reward-card:nth-of-type(3n) .asset-icon { color:#ffcc58; }
+.about-card-pro:nth-child(4n+1) .about-icon { color:#4bdfff;background:rgba(0,174,255,.12) !important; }
+.about-card-pro:nth-child(4n+2) .about-icon { color:#ff62e5;background:rgba(255,47,216,.12) !important; }
+.about-card-pro:nth-child(4n+3) .about-icon { color:#ffd064;background:rgba(255,178,36,.12) !important; }
+.about-card-pro:nth-child(4n) .about-icon { color:#4de8c0;background:rgba(0,224,173,.12) !important; }
+.about-contact {
+  border:1px solid rgba(62,143,255,.32) !important;
+  background:linear-gradient(115deg,rgba(8,28,60,.94),rgba(18,12,55,.94)) !important;
+}
+.profile-editor-modal,.profile-modal,.confirm-modal,.auth-card,.register-modal,.auth-modal {
+  border:1px solid rgba(66,139,255,.38) !important;
+  background:linear-gradient(145deg,rgba(7,19,43,.98),rgba(3,10,27,.99)) !important;
+  box-shadow:0 24px 80px rgba(0,0,0,.48),0 0 35px rgba(35,80,255,.12) !important;
+}
+.profile-note { background:rgba(18,39,76,.55) !important; }
+.avatar,.profile-avatar,.profile-photo-large {
+  border-color:rgba(91,144,255,.48) !important;
+  box-shadow:0 0 18px rgba(81,71,255,.22) !important;
+}
+.dropdown-primary { background:linear-gradient(105deg,#126dff,#722aff) !important; }
+.dropdown-danger,.logout-btn { background:linear-gradient(105deg,#ff466f,#c92355) !important;color:#fff !important; }
+.notification-panel,.profile-dropdown {
+  border:1px solid rgba(67,137,255,.38) !important;
+  background:rgba(4,13,31,.97) !important;
+  box-shadow:0 24px 70px rgba(0,0,0,.45),0 0 24px rgba(43,89,255,.12) !important;
+  backdrop-filter:blur(22px);
+}
+@keyframes veloThemeFloat { 0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)} }
+@keyframes veloThemeSheen { 0%{opacity:.28;transform:translateX(-3%)}100%{opacity:.82;transform:translateX(3%)} }
+@media (prefers-reduced-motion:reduce) {
+  .hero-brand-orb,.about-logo-pro,.wallet-hero::after,.rewards-hero-pro::after,.about-hero-pro::after { animation:none !important; }
+  .currency-card,.action-card,.nav-item { transition:none !important; }
+}
+@media (max-width:720px) {
+  .wallet-hero,.rewards-hero-pro,.about-hero-pro { border-radius:17px !important; }
+  .currency-grid { gap:9px !important; }
+}
