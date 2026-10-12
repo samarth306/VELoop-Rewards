@@ -6211,3 +6211,372 @@ input:focus,select:focus,textarea:focus {
   .wallet-hero,.rewards-hero-pro,.about-hero-pro { border-radius:17px !important; }
   .currency-grid { gap:9px !important; }
 }
+
+
+/* =========================================================
+   DETAIL PASS — TRANSACTIONS / WITHDRAWALS / PROFILE + HEADER
+   Visual-only: no JSX, account values, payout rules or APIs changed.
+   ========================================================= */
+
+/* Fill the previously quiet strip above the wallet heading with
+   subtle blue-violet light and a soft animated aurora. */
+.main-shell {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+}
+.main-shell::before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  pointer-events:none;
+  top:-105px;
+  left:8%;
+  right:-10%;
+  height:300px;
+  opacity:.9;
+  background:
+    radial-gradient(ellipse at 14% 35%,rgba(0,190,255,.16),transparent 32%),
+    radial-gradient(ellipse at 51% 4%,rgba(43,79,255,.24),transparent 37%),
+    radial-gradient(ellipse at 86% 30%,rgba(149,35,255,.17),transparent 33%);
+  filter:blur(14px);
+  animation:veloTopAurora 12s ease-in-out infinite alternate;
+}
+.main-shell::after {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  pointer-events:none;
+  top:0;
+  left:0;
+  right:0;
+  height:165px;
+  opacity:.45;
+  background:linear-gradient(118deg,transparent 15%,rgba(35,104,255,.12) 44%,transparent 60%,rgba(161,49,255,.09) 76%,transparent);
+  mask-image:linear-gradient(#000,transparent);
+}
+.topbar {
+  padding-top:10px !important;
+  padding-bottom:13px !important;
+  margin-bottom:24px !important;
+  border-radius:0 0 18px 18px;
+  background:linear-gradient(100deg,rgba(3,12,33,.75),rgba(7,17,47,.57),rgba(15,9,47,.66)) !important;
+  box-shadow:0 9px 34px rgba(0,0,0,.14),inset 0 -1px rgba(66,134,255,.16) !important;
+}
+.page-title-block h1 {
+  text-shadow:0 0 24px rgba(69,123,255,.19),0 7px 30px rgba(0,0,0,.18) !important;
+}
+.title-line {
+  width:78px !important;
+  background:linear-gradient(90deg,#39ddff,#4268ff,#b34dff,transparent) !important;
+  box-shadow:0 0 18px rgba(75,111,255,.45) !important;
+}
+.topbar-actions .icon-btn,.topbar-actions .profile-avatar {
+  border-color:rgba(69,138,255,.36) !important;
+  background:linear-gradient(145deg,rgba(13,32,73,.86),rgba(6,13,35,.86)) !important;
+  box-shadow:0 0 16px rgba(39,95,255,.08),inset 0 1px rgba(255,255,255,.07) !important;
+}
+
+/* Transactions: more colorful but still translucent ledger rows. */
+.page-panel .page-head {
+  padding:3px 2px 18px !important;
+}
+.page-panel .stat-pill {
+  border:1px solid rgba(65,154,255,.32) !important;
+  border-radius:14px !important;
+  background:linear-gradient(145deg,rgba(17,52,108,.62),rgba(11,20,57,.65)) !important;
+  box-shadow:0 0 22px rgba(38,105,255,.10),inset 0 1px rgba(255,255,255,.06) !important;
+}
+.page-panel .toolbar {
+  padding:12px !important;
+  border:1px solid rgba(62,128,255,.23) !important;
+  border-radius:15px !important;
+  background:linear-gradient(100deg,rgba(7,25,58,.72),rgba(13,17,54,.64)) !important;
+}
+.filter-btn {
+  border:1px solid rgba(83,142,255,.22) !important;
+  background:rgba(7,19,45,.72) !important;
+  color:#9eb8df !important;
+  transition:all .2s ease !important;
+}
+.filter-btn:hover {
+  color:#fff !important;
+  border-color:rgba(67,189,255,.5) !important;
+  background:rgba(28,65,133,.45) !important;
+}
+.filter-btn.active {
+  color:#fff !important;
+  border-color:rgba(97,166,255,.7) !important;
+  background:linear-gradient(110deg,#075eff,#5329ed) !important;
+  box-shadow:0 0 18px rgba(46,84,255,.28),inset 0 1px rgba(255,255,255,.15) !important;
+}
+.transaction-list {
+  padding:8px 10px !important;
+  border:1px solid rgba(63,126,255,.23) !important;
+  border-radius:16px !important;
+  background:linear-gradient(145deg,rgba(4,15,37,.72),rgba(5,12,31,.62)) !important;
+}
+.transaction-row {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  min-height:76px !important;
+  margin:3px 0 !important;
+  padding:12px 11px !important;
+  border:1px solid transparent !important;
+  border-bottom-color:rgba(70,121,220,.13) !important;
+  border-radius:12px !important;
+  background:linear-gradient(100deg,rgba(13,35,74,.40),rgba(8,20,46,.22)) !important;
+}
+.transaction-row::before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  opacity:.55;
+  pointer-events:none;
+  background:linear-gradient(100deg,rgba(38,112,255,.08),transparent 42%,rgba(117,47,255,.04));
+}
+.transaction-row:nth-child(4n+1) { background:linear-gradient(100deg,rgba(0,163,255,.11),rgba(8,20,46,.24) 54%,rgba(5,14,34,.2)) !important; }
+.transaction-row:nth-child(4n+2) { background:linear-gradient(100deg,rgba(255,53,124,.10),rgba(28,15,47,.24) 55%,rgba(5,14,34,.2)) !important; }
+.transaction-row:nth-child(4n+3) { background:linear-gradient(100deg,rgba(0,218,174,.09),rgba(8,25,45,.24) 55%,rgba(5,14,34,.2)) !important; }
+.transaction-row:nth-child(4n) { background:linear-gradient(100deg,rgba(255,181,40,.10),rgba(34,25,35,.22) 55%,rgba(5,14,34,.2)) !important; }
+.transaction-row:hover {
+  border-color:rgba(71,151,255,.35) !important;
+  background:linear-gradient(100deg,rgba(21,66,137,.45),rgba(26,22,76,.35)) !important;
+  box-shadow:0 0 22px rgba(39,95,255,.09) !important;
+  transform:translateX(2px) !important;
+}
+.transaction-icon {
+  width:44px !important;
+  height:44px !important;
+  flex-basis:44px !important;
+  border-radius:13px !important;
+  border:1px solid rgba(255,255,255,.13) !important;
+}
+.transaction-icon.credit {
+  color:#45f0c1 !important;
+  background:linear-gradient(145deg,rgba(0,225,178,.24),rgba(0,127,155,.13)) !important;
+  box-shadow:0 0 20px rgba(0,218,177,.10),inset 0 1px rgba(255,255,255,.12) !important;
+}
+.transaction-icon.debit {
+  color:#ff779c !important;
+  background:linear-gradient(145deg,rgba(255,50,116,.25),rgba(125,23,100,.15)) !important;
+  box-shadow:0 0 20px rgba(255,48,125,.10),inset 0 1px rgba(255,255,255,.12) !important;
+}
+.transaction-main strong { color:#f0f5ff !important;font-size:11px !important; }
+.transaction-main span { color:#91a8ca !important;font-size:8px !important; }
+.transaction-meta .status,.status {
+  border:1px solid rgba(30,226,174,.26) !important;
+  color:#6cf2c7 !important;
+  background:linear-gradient(100deg,rgba(0,181,143,.19),rgba(0,119,139,.13)) !important;
+  box-shadow:0 0 12px rgba(0,222,174,.06) !important;
+}
+
+/* Withdrawal: translucent colored method choices, denomination cards,
+   numbered steps and a distinct secure review surface. */
+.payout-panel {
+  position:relative;
+  overflow:hidden;
+}
+.payout-panel::before {
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  top:0;
+  right:0;
+  width:70%;
+  height:220px;
+  background:radial-gradient(ellipse at 70% 10%,rgba(46,88,255,.15),transparent 56%),radial-gradient(ellipse at 95% 60%,rgba(163,36,255,.10),transparent 43%);
+}
+.payout-panel > * { position:relative; }
+.payout-panel .balance-chip {
+  border:1px solid rgba(49,204,255,.36) !important;
+  border-radius:15px !important;
+  background:linear-gradient(135deg,rgba(0,139,255,.19),rgba(77,37,224,.20)) !important;
+  box-shadow:0 0 24px rgba(40,100,255,.10),inset 0 1px rgba(255,255,255,.07) !important;
+}
+.withdraw-form {
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+}
+.payout-section {
+  padding:17px !important;
+  border:1px solid rgba(67,135,255,.24) !important;
+  border-radius:17px !important;
+  background:linear-gradient(145deg,rgba(8,26,58,.68),rgba(5,14,34,.62)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.035) !important;
+}
+.form-title {
+  gap:12px !important;
+  margin-bottom:16px !important;
+}
+.form-title > span {
+  width:35px !important;
+  height:35px !important;
+  display:grid !important;
+  place-items:center !important;
+  border:1px solid rgba(86,151,255,.42) !important;
+  border-radius:11px !important;
+  color:#fff !important;
+  background:linear-gradient(145deg,#086bff,#722bff) !important;
+  box-shadow:0 0 19px rgba(58,81,255,.25),inset 0 1px rgba(255,255,255,.2) !important;
+}
+.form-title strong { color:#f3f7ff !important; }
+.form-title small { color:#8fa8cb !important; }
+.method-grid { gap:11px !important; }
+.method-card {
+  position:relative;
+  overflow:hidden;
+  border:1px solid rgba(78,139,255,.28) !important;
+  border-radius:14px !important;
+  background:linear-gradient(145deg,rgba(13,36,78,.67),rgba(5,16,39,.74)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.04) !important;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease !important;
+}
+.method-card:nth-child(3n+1) .method-icon {
+  color:#53eaff !important;
+  background:rgba(0,190,255,.13) !important;
+  border:1px solid rgba(53,207,255,.25) !important;
+}
+.method-card:nth-child(3n+2) .method-icon {
+  color:#ff76e9 !important;
+  background:rgba(255,48,220,.13) !important;
+  border:1px solid rgba(255,76,221,.25) !important;
+}
+.method-card:nth-child(3n) .method-icon {
+  color:#ffd36a !important;
+  background:rgba(255,183,45,.13) !important;
+  border:1px solid rgba(255,195,66,.25) !important;
+}
+.method-card:hover {
+  transform:translateY(-2px);
+  border-color:rgba(74,179,255,.55) !important;
+  box-shadow:0 0 22px rgba(42,103,255,.12) !important;
+}
+.method-card.active {
+  border-color:rgba(85,183,255,.78) !important;
+  background:linear-gradient(125deg,rgba(0,105,255,.29),rgba(103,35,255,.25)) !important;
+  box-shadow:0 0 23px rgba(49,90,255,.18),inset 0 1px rgba(255,255,255,.1) !important;
+}
+.denomination-grid { gap:12px !important; }
+.denomination-card,.denomination-option,.payout-option {
+  border-radius:14px !important;
+}
+.denomination-grid > button:nth-child(3n+1) {
+  border-color:rgba(63,155,255,.43) !important;
+  background:linear-gradient(145deg,rgba(0,110,255,.23),rgba(14,28,83,.52)) !important;
+}
+.denomination-grid > button:nth-child(3n+2) {
+  border-color:rgba(0,218,255,.39) !important;
+  background:linear-gradient(145deg,rgba(0,190,220,.17),rgba(8,39,61,.52)) !important;
+}
+.denomination-grid > button:nth-child(3n) {
+  border-color:rgba(255,57,220,.40) !important;
+  background:linear-gradient(145deg,rgba(219,30,197,.18),rgba(43,13,66,.53)) !important;
+}
+.denomination-grid > button:hover,.denomination-grid > button.active,.denomination-grid > button.selected {
+  border-color:rgba(100,177,255,.8) !important;
+  box-shadow:0 0 24px rgba(58,86,255,.18),inset 0 1px rgba(255,255,255,.10) !important;
+}
+.withdraw-form input,.withdraw-form select,.withdraw-form textarea {
+  border-color:rgba(73,139,255,.30) !important;
+  background:linear-gradient(145deg,rgba(4,17,42,.9),rgba(8,20,49,.88)) !important;
+}
+.review-bar {
+  border:1px solid rgba(67,139,255,.30) !important;
+  border-radius:16px !important;
+  background:linear-gradient(110deg,rgba(0,109,255,.12),rgba(108,33,255,.12),rgba(0,206,208,.07)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.04) !important;
+}
+.payout-preview {
+  border-color:rgba(68,139,255,.26) !important;
+  background:linear-gradient(110deg,rgba(9,30,66,.72),rgba(22,14,61,.62)) !important;
+}
+.confirm-summary > div:nth-child(1) { border:1px solid rgba(0,202,255,.20);background:rgba(0,160,255,.08) !important; }
+.confirm-summary > div:nth-child(2) { border:1px solid rgba(255,57,220,.20);background:rgba(255,57,220,.07) !important; }
+.confirm-summary > div:nth-child(3) { border:1px solid rgba(255,188,53,.20);background:rgba(255,188,53,.07) !important; }
+
+/* Profile: richer section hierarchy, colored security rows and inputs. */
+.profile-details,.profile-summary,.profile-note {
+  border-color:rgba(66,133,255,.27) !important;
+}
+.profile-details {
+  background:linear-gradient(145deg,rgba(8,26,58,.72),rgba(5,15,36,.68)) !important;
+  border:1px solid rgba(63,131,255,.28) !important;
+  border-radius:17px !important;
+  padding:18px !important;
+}
+.profile-details .field,.profile-details .profile-row {
+  padding:10px 0;
+  border-bottom:1px solid rgba(81,133,218,.14);
+}
+.profile-details .field:last-child,.profile-details .profile-row:last-child { border-bottom:0; }
+.profile-details input,.profile-details select {
+  border:1px solid rgba(65,133,255,.32) !important;
+  border-radius:10px !important;
+  background:linear-gradient(145deg,rgba(4,17,42,.88),rgba(10,21,49,.86)) !important;
+}
+.profile-details input:focus {
+  border-color:rgba(55,207,255,.67) !important;
+  box-shadow:0 0 0 3px rgba(45,139,255,.11),0 0 18px rgba(45,139,255,.08) !important;
+}
+.profile-summary {
+  border-radius:15px !important;
+  background:linear-gradient(115deg,rgba(0,124,255,.14),rgba(116,43,255,.12)) !important;
+}
+.profile-note {
+  border-radius:13px !important;
+  background:linear-gradient(115deg,rgba(9,35,73,.76),rgba(23,15,62,.68)) !important;
+}
+.profile-editor-modal .avatar-picker {
+  border:1px solid rgba(67,135,255,.29) !important;
+  background:linear-gradient(145deg,rgba(8,27,60,.78),rgba(11,15,43,.74)) !important;
+}
+.profile-editor-modal .preset-avatar {
+  border-color:rgba(83,142,255,.20) !important;
+  background:rgba(9,27,61,.72) !important;
+}
+.profile-editor-modal .preset-avatar:hover,.profile-editor-modal .preset-avatar.selected {
+  border-color:rgba(255,73,225,.65) !important;
+  background:linear-gradient(145deg,rgba(14,109,255,.25),rgba(178,33,204,.22)) !important;
+  box-shadow:0 0 17px rgba(117,56,255,.20) !important;
+}
+.profile-editor-modal .avatar-action {
+  border-color:rgba(71,140,255,.29) !important;
+  background:linear-gradient(145deg,rgba(10,32,70,.88),rgba(5,17,40,.88)) !important;
+}
+.profile-editor-modal .avatar-action.primary {
+  color:#8deeff !important;
+  border-color:rgba(48,207,255,.36) !important;
+  background:linear-gradient(110deg,rgba(0,145,255,.19),rgba(83,40,255,.19)) !important;
+}
+.profile-editor-modal .primary-btn {
+  background:linear-gradient(105deg,#096bff,#7427ff) !important;
+}
+.profile-modal .field,.profile-editor-modal .field { margin-bottom:14px; }
+
+/* Make shared page panels feel like the reference instead of flat black. */
+.content-stack > .panel,.content-stack > section.panel {
+  border-color:rgba(56,128,255,.30) !important;
+  background:linear-gradient(145deg,rgba(5,17,40,.91),rgba(4,12,31,.95)) !important;
+  box-shadow:0 18px 46px rgba(0,0,0,.17),inset 0 1px rgba(255,255,255,.035) !important;
+}
+.empty-state {
+  border:1px dashed rgba(75,141,255,.28) !important;
+  border-radius:16px !important;
+  background:linear-gradient(145deg,rgba(7,25,55,.48),rgba(14,14,47,.35)) !important;
+}
+@keyframes veloTopAurora {
+  0% { transform:translate3d(-1%,0,0) scale(1);opacity:.62; }
+  100% { transform:translate3d(2%,7px,0) scale(1.05);opacity:1; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .main-shell::before { animation:none !important; }
+}
+@media (max-width:720px) {
+  .topbar { margin-bottom:17px !important;padding-top:7px !important; }
+  .payout-section { padding:12px !important; }
+  .transaction-row { padding:10px 7px !important; }
+}
