@@ -88,7 +88,7 @@ def _ledger_doc(
 
 def get_daily_status(user_id):
     """Return today's claim state and the reward for the current streak day."""
-    today = date.today().isoformat()
+    today = _now().date().isoformat()
     claim = reward_claims_collection.find_one(
         {"user_id": user_id, "claim_date": today},
         {"_id": 0},
@@ -116,7 +116,7 @@ def get_daily_status(user_id):
     if last_date:
         try:
             previous = date.fromisoformat(str(last_date))
-            delta = (date.today() - previous).days
+            delta = (_now().date() - previous).days
             if delta == 1:
                 next_day = 1 if streak_day >= 10 else streak_day + 1
             elif delta == 0:
@@ -138,7 +138,7 @@ def get_daily_status(user_id):
 
 def claim_daily_reward(user_id):
     """Atomically credit the user's daily reward and record the claim."""
-    today = date.today().isoformat()
+    today = _now().date().isoformat()
     now = _now()
 
     with client.start_session() as session:
