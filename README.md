@@ -19,6 +19,7 @@ The core design principle is simple: **the backend is the source of truth** for 
 - [Audit report](docs/AUDIT_REPORT.md)
 - [Change report](docs/CHANGE_REPORT.md)
 - [Final audit notes](docs/FINAL_AUDIT.md)
+- [Detailed source audit — 2026-10-12](docs/DETAILED_AUDIT_2026-10-12.md)
 
 ## Table of Contents
 
