@@ -216,6 +216,17 @@ class ProjectContractTests(unittest.TestCase):
         self.assertIn('def throttle_sensitive_requests', MAIN)
         self.assertIn('status_code=429', MAIN)
 
+    def test_profile_avatar_is_persisted_per_authenticated_account(self):
+        self.assertIn('@app.patch("/auth/me/avatar")', MAIN)
+        self.assertIn('{"avatar": avatar, "updated_at": now_utc()}', MAIN)
+        self.assertIn('apiRequest("/auth/me/avatar"', FRONTEND)
+        self.assertIn('data?.avatar', FRONTEND)
+        self.assertIn('veloop_avatar:', FRONTEND)
+
+    def test_registration_handles_duplicate_email_race(self):
+        self.assertIn('except DuplicateKeyError:', MAIN)
+        self.assertIn('detail="Email already registered"', MAIN)
+
     def test_removed_spin_feature_stays_out_of_frontend(self):
         self.assertNotRegex(FRONTEND.lower(), r'\bspin(s)?\b')
 
