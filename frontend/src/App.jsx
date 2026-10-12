@@ -3189,20 +3189,22 @@ function QrPayoutScanner({ form, updateForm }) {
   async function stopScanner(scannerInstance = scannerRef.current) {
     const scanner = scannerInstance;
     setScanning(false);
-    if (!scanner) return;
+    if (!scanner || scannerRef.current !== scanner) return;
+
+    // Detach the instance before awaiting stop/clear so the React effect cleanup
+    // cannot stop and clear the same Html5Qrcode instance concurrently.
+    scannerRef.current = null;
 
     try {
       await scanner.stop();
     } catch {
+      // The scanner may not have started yet, or may already have stopped.
     }
 
     try {
       scanner.clear();
     } catch {
-    }
-
-    if (scannerRef.current === scanner) {
-      scannerRef.current = null;
+      // The reader may already have been cleared by the library.
     }
   }
 
