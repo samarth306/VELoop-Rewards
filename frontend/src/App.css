@@ -6580,3 +6580,124 @@ input:focus,select:focus,textarea:focus {
   .payout-section { padding:12px !important; }
   .transaction-row { padding:10px 7px !important; }
 }
+
+
+/* VELOOP premium gamified dashboard — responsive additions */
+.gamified-page { gap: 26px; }
+.gamified-welcome {
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; align-items: center; justify-content: space-between; gap: 28px;
+  min-height: 260px; padding: clamp(24px,4vw,42px);
+  border: 1px solid rgba(151,105,255,.38); border-radius: 28px;
+  background: radial-gradient(circle at 82% 22%,rgba(123,73,255,.25),transparent 34%),linear-gradient(120deg,#100c2a 0%,#17113b 48%,#10152c 100%);
+  box-shadow: 0 22px 65px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.06);
+}
+.gamified-welcome:after { content:""; position:absolute; inset:auto -6% -62% 34%; height:230px; border:1px solid rgba(164,119,255,.18); border-radius:50%; transform:rotate(-12deg); z-index:-1; }
+.gamified-welcome-copy { max-width:720px; position:relative; z-index:1; }
+.gamified-eyebrow,.gamified-kicker { display:inline-flex; align-items:center; gap:8px; color:#b9a0ff; font-size:11px; font-weight:850; letter-spacing:.13em; }
+.gamified-eyebrow { padding:9px 13px; border:1px solid rgba(161,123,255,.25); border-radius:999px; background:rgba(127,84,255,.12); }
+.gamified-welcome h1,.page-heading h1 { margin:18px 0 10px; font-size:clamp(30px,4vw,44px); line-height:1.08; letter-spacing:-.04em; font-weight:850; }
+.gamified-welcome h1 em { color:#ffbd36; font-style:normal; }
+.gamified-welcome p,.page-heading p { color:#a8b0c9; line-height:1.7; max-width:680px; margin:0; }
+.gamified-quick-actions { display:flex; flex-wrap:wrap; gap:12px; margin-top:24px; }
+.gamified-btn,.gamified-outline,.gamified-task-action,.gamified-link { display:inline-flex; align-items:center; justify-content:center; gap:9px; border:0; cursor:pointer; font:inherit; font-weight:800; transition:transform .18s ease,filter .18s ease,border-color .18s ease; }
+.gamified-btn:hover,.gamified-outline:hover,.gamified-task-action:hover { transform:translateY(-2px); filter:brightness(1.08); }
+.gamified-btn { padding:13px 18px; border-radius:14px; color:#fff; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+.gamified-btn.gold { color:#211403; background:linear-gradient(115deg,#ffd15b,#ff9d08); }
+.gamified-btn.purple { background:linear-gradient(115deg,#9661ff,#6d28d9); }
+.gamified-btn:disabled { opacity:.55; cursor:not-allowed; transform:none; }
+.gamified-btn.full,.gamified-outline.full { width:100%; }
+.gamified-orbit { width:190px; min-width:190px; height:190px; position:relative; display:grid; place-items:center; }
+.orbit-ring { position:absolute; inset:4px; border:1px solid rgba(177,144,255,.35); border-radius:50%; box-shadow:0 0 42px rgba(132,77,255,.16),inset 0 0 35px rgba(132,77,255,.1); }
+.orbit-ring:before,.orbit-ring:after { content:""; position:absolute; inset:19px -7px; border:1px solid rgba(255,190,57,.27); border-radius:50%; transform:rotate(48deg); }
+.orbit-ring:after { transform:rotate(-48deg); }
+.orbit-core { width:100px; height:100px; display:grid; place-items:center; border-radius:30px; background:linear-gradient(145deg,#4323a4,#16123b); border:1px solid rgba(176,142,255,.5); box-shadow:0 0 38px rgba(123,77,255,.28); }
+.orbit-coin { position:absolute; display:grid; place-items:center; width:36px; height:36px; border-radius:12px; color:#ffcb4d; background:#241b43; border:1px solid rgba(255,195,61,.35); font-weight:900; }
+.coin-one { top:15px; right:15px; }.coin-two { bottom:18px; left:5px; color:#bba2ff; }
+.gamified-stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:15px; }
+.gamified-stat { min-width:0; padding:21px; border:1px solid rgba(143,119,203,.22); border-radius:20px; background:linear-gradient(145deg,rgba(23,18,51,.96),rgba(12,14,32,.96)); box-shadow:0 12px 28px rgba(0,0,0,.12); }
+.stat-top { display:flex; align-items:center; justify-content:space-between; gap:10px; color:#c0c4d9; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.055em; }
+.stat-top svg { width:21px; height:21px; color:#b69aff; }
+.gamified-stat strong { display:block; margin:16px 0 7px; font-size:clamp(24px,2.6vw,32px); line-height:1.05; letter-spacing:-.035em; overflow-wrap:anywhere; }
+.gamified-stat small { color:#9fa7c0; font-size:12px; line-height:1.5; }
+.gold-stat { border-color:rgba(255,181,39,.34); }.gold-stat .stat-top svg {color:#ffc044}.gold-stat strong {color:#ffd05a}
+.purple-stat {border-color:rgba(152,104,255,.32)}.blue-stat {border-color:rgba(64,181,255,.27)}.green-stat {border-color:rgba(45,211,160,.25)}.green-stat .stat-top svg {color:#34d9a0}
+.gamified-main-grid,.gamified-bottom-grid { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:18px; align-items:stretch; }
+.gamified-panel { min-width:0; padding:clamp(20px,2.8vw,30px); border:1px solid rgba(145,121,203,.22); border-radius:24px; background:linear-gradient(145deg,rgba(20,15,45,.97),rgba(10,12,28,.97)); box-shadow:0 14px 34px rgba(0,0,0,.14); }
+.gamified-section-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
+.gamified-section-heading h2,.gamified-panel h2 { margin:8px 0 0; font-size:clamp(20px,2.5vw,27px); letter-spacing:-.025em; line-height:1.2; }
+.gamified-section-heading p { margin:9px 0 0; color:#a4abc3; line-height:1.6; font-size:13px; }
+.gamified-section-heading h2 svg { color:#ffb52d; vertical-align:-3px; }
+.streak-pill,.task-state { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; padding:7px 10px; border:1px solid rgba(164,130,255,.25); border-radius:999px; background:rgba(127,83,255,.11); color:#c5b0ff; font-size:11px; font-weight:800; }
+.checkin-panel > p { color:#a5acc4; line-height:1.65; font-size:13px; }
+.checkin-week { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; margin:22px 0; }
+.checkin-day { display:flex; flex-direction:column; align-items:center; gap:9px; padding:12px 3px; border:1px solid rgba(255,255,255,.07); border-radius:13px; background:rgba(255,255,255,.025); }
+.checkin-day span { font-size:10px; color:#8e96b1; font-weight:800; }.checkin-day strong { display:grid; place-items:center; width:27px; height:27px; border-radius:50%; background:#201a3b; color:#a8afc7; font-size:12px; }
+.checkin-day.checked { border-color:rgba(255,186,45,.35); background:rgba(255,174,24,.07); }.checkin-day.checked strong { background:#ffb52d; color:#231600; }.checkin-day.today {border-color:#a477ff}.checkin-day.today strong {background:#6c3dd5;color:white}
+.checkin-reward-line { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; font-size:12px; color:#aab0c6; }.checkin-reward-line strong {color:#ffd05a;text-align:right}
+.gamified-disclaimer { display:block; margin-top:12px; color:#8189a5; line-height:1.5; font-size:10px; }
+.gamified-link { padding:5px 0; background:none; color:#b9a0ff; font-size:12px; white-space:nowrap; }
+.activity-total { padding:17px; margin:10px 0 15px; border-radius:16px; background:linear-gradient(110deg,rgba(116,74,222,.15),rgba(30,137,198,.08)); border:1px solid rgba(149,118,255,.15); }
+.activity-total span,.activity-total small { display:block; color:#a7aec6; font-size:12px; }.activity-total strong {display:block;margin:7px 0;font-size:27px;color:#fff}.activity-total small {font-size:10px;line-height:1.5}
+.activity-mini-list { display:grid; gap:3px; margin-bottom:15px; }.activity-mini-row {display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.055)}
+.activity-mini-icon {width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:rgba(112,74,221,.14);color:#bda6ff}.activity-mini-row div {min-width:0}.activity-mini-row div strong,.activity-mini-row div small {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.activity-mini-row div strong {font-size:12px}.activity-mini-row div small {margin-top:4px;color:#8f97b1;font-size:10px}.activity-mini-row b {font-size:11px;white-space:nowrap}.amount-positive {color:#39d5a0}.amount-negative {color:#ff8d9c}.activity-empty {padding:18px 0;color:#9ba3bd;font-size:13px}
+.gamified-outline {padding:12px 15px;border:1px solid rgba(159,129,255,.3);border-radius:13px;background:rgba(125,80,255,.08);color:#c9b7ff;font-size:12px}
+.gamified-task-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.gamified-task-card {display:flex;flex-direction:column;min-width:0;padding:20px;border:1px solid rgba(141,117,202,.2);border-radius:20px;background:linear-gradient(150deg,rgba(24,18,52,.92),rgba(12,13,30,.98));}
+.task-card-top {display:flex;align-items:center;justify-content:space-between;gap:8px}.task-icon {display:grid;place-items:center;width:43px;height:43px;border:1px solid rgba(160,130,255,.2);border-radius:14px;background:rgba(132,86,255,.12);color:#c6adff;font-size:18px}.task-state {padding:6px 8px;font-size:10px}.task-state.done {color:#42d6a4;border-color:rgba(49,211,159,.28);background:rgba(36,193,139,.08)}
+.gamified-task-card h3 {margin:17px 0 8px;font-size:16px;line-height:1.35}.gamified-task-card p {flex:1;margin:0 0 18px;color:#9fa7c0;font-size:12px;line-height:1.65}
+.gamified-task-action {justify-content:space-between;padding:11px 0 0;border-top:1px solid rgba(255,255,255,.07);background:none;color:#bba1ff;font-size:12px;text-align:left}
+.rank-preview {background:radial-gradient(circle at 100% 0,rgba(255,178,34,.09),transparent 35%),linear-gradient(145deg,rgba(20,15,45,.97),rgba(10,12,28,.97))}
+.rank-preview h2 {margin:10px 0}.rank-preview p {color:#a4abc3;font-size:13px;line-height:1.7}
+.rank-preview-metric {display:flex;justify-content:space-between;align-items:center;gap:12px;padding:17px 0;margin:15px 0;border-top:1px solid rgba(255,255,255,.07);border-bottom:1px solid rgba(255,255,255,.07);color:#a6aec5;font-size:12px}.rank-preview-metric strong {color:#ffd05a;font-size:23px}.rank-preview-metric small {font-size:11px}
+.achievement-mini-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}.achievement-mini-grid div {display:flex;flex-direction:column;gap:6px;padding:13px 10px;border:1px solid rgba(156,128,231,.17);border-radius:14px;background:rgba(255,255,255,.025)}.achievement-mini-grid span {font-size:21px}.achievement-mini-grid strong {font-size:11px}.achievement-mini-grid small {font-size:10px;color:#9ca4bf;line-height:1.4}
+.page-heading {padding:8px 2px 4px}.compact-welcome {min-height:200px}.rank-large-number {display:flex;flex-direction:column;align-items:flex-end;gap:8px;padding:20px;border:1px solid rgba(255,191,53,.27);border-radius:18px;background:rgba(255,178,24,.06);white-space:nowrap}.rank-large-number strong {font-size:clamp(25px,4vw,38px);color:#ffd05a}.rank-large-number span {color:#a8afc5;font-size:12px}
+.leaderboard-placeholder {display:flex;flex-direction:column;align-items:center;gap:10px;padding:34px 20px;margin-top:18px;border:1px dashed rgba(154,127,228,.3);border-radius:18px;text-align:center;background:rgba(125,82,255,.04)}.leaderboard-placeholder svg {width:34px;height:34px;color:#c0a6ff}.leaderboard-placeholder strong {font-size:15px}.leaderboard-placeholder span {max-width:480px;color:#9ea6c0;font-size:12px;line-height:1.6}
+.achievement-progress-panel {display:flex;flex-direction:column;gap:18px}.achievement-progress-head {display:flex;align-items:center;justify-content:space-between;gap:16px}.achievement-progress-head h2 {margin:8px 0 0;font-size:22px}.achievement-progress-head > strong {font-size:28px;color:#c2a6ff}.achievement-progress-track {height:10px;overflow:hidden;border-radius:999px;background:rgba(255,255,255,.07)}.achievement-progress-track span {display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7547e8,#31d4a0);transition:width .25s ease}
+.achievement-full-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.achievement-card {position:relative;min-width:0;padding:22px;border:1px solid rgba(142,119,200,.18);border-radius:20px;background:linear-gradient(145deg,rgba(20,16,43,.95),rgba(11,13,29,.97))}.achievement-card.unlocked {border-color:rgba(46,211,157,.3);background:linear-gradient(145deg,rgba(14,48,47,.35),rgba(12,13,30,.97))}.achievement-icon {display:grid;place-items:center;width:48px;height:48px;border-radius:15px;background:rgba(136,89,255,.14);color:#c6adff;font-size:23px}.achievement-status {position:absolute;right:15px;top:17px;color:#8d95ae;font-size:10px;font-weight:800}.achievement-status.unlocked {color:#39d6a1}.achievement-card h3 {margin:17px 0 7px;font-size:16px}.achievement-card p {margin:0;color:#9fa7c0;font-size:12px;line-height:1.6}
+.wallet-hero {border-radius:28px!important;box-shadow:0 24px 65px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.08)!important}
+.currency-grid {gap:16px!important}.currency-card,.action-card,.wallet-note {border-radius:20px!important}.section-block .section-head h2 {letter-spacing:-.025em}
+@media (max-width:1100px) {
+ .gamified-stats-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gamified-task-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gamified-orbit {width:145px;min-width:145px;height:145px}.orbit-core {width:80px;height:80px}
+}
+@media (max-width:760px) {
+ .gamified-page {gap:16px}
+ .gamified-welcome {min-height:0;padding:23px 20px;border-radius:22px}
+ .gamified-welcome h1,.page-heading h1 {font-size:30px}
+ .gamified-orbit {display:none}
+ .gamified-main-grid,.gamified-bottom-grid {grid-template-columns:minmax(0,1fr);gap:14px}
+ .gamified-stats-grid {gap:10px}
+ .gamified-stat {padding:16px;border-radius:17px}
+ .gamified-stat strong {font-size:25px}
+ .gamified-section-heading {gap:10px}
+ .gamified-panel {padding:19px;border-radius:20px}
+ .gamified-task-grid {grid-template-columns:minmax(0,1fr);gap:11px}
+ .gamified-task-card {padding:18px}
+ .achievement-full-grid {grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .achievement-card {padding:16px}
+ .achievement-status {position:static;display:block;margin-top:10px}
+ .achievement-card h3 {margin-top:12px;font-size:14px}
+ .checkin-week {gap:5px}
+ .checkin-day {padding:10px 1px}
+ .checkin-day span {font-size:9px}
+ .activity-mini-row {grid-template-columns:30px minmax(0,1fr);gap:9px}
+ .activity-mini-row b {grid-column:2}
+ .compact-welcome {align-items:flex-start;flex-direction:column}
+ .rank-large-number {align-items:flex-start;width:100%;box-sizing:border-box}
+ .achievement-mini-grid {grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media (max-width:420px) {
+ .gamified-stats-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gamified-stat {padding:13px}
+ .gamified-stat strong {font-size:21px}
+ .gamified-stat small {font-size:10px}
+ .gamified-quick-actions {display:grid;grid-template-columns:1fr}
+ .gamified-btn {width:100%}
+ .gamified-section-heading {flex-direction:column}
+ .checkin-reward-line {align-items:flex-start;flex-direction:column}
+ .checkin-reward-line strong {text-align:left}
+ .achievement-full-grid {grid-template-columns:minmax(0,1fr)}
+ .achievement-mini-grid {grid-template-columns:minmax(0,1fr)}
+}
