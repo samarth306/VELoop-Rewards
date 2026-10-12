@@ -378,7 +378,7 @@ _rate_events = defaultdict(deque)
 _rate_lock = threading.Lock()
 _RATE_POLICIES = {
     "/auth/login": (12, 60),
-    "/auth/register": (8, 3600),
+    "/auth/register": (20, 3600),
     "/auth/forgot-password": (4, 900),
     "/auth/reset-password": (8, 900),
     "/admin/auth/reset-password": (5, 300),
