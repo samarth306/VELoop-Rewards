@@ -122,21 +122,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -158,21 +158,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -194,21 +194,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -230,21 +230,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -266,21 +266,21 @@ PAYOUT_OPTIONS = [
 
         "denominations": [
 
-            {"payout_value": 10, "required_amount": 2400},
+            {"payout_value": 10, "required_amount": 1000},
 
-            {"payout_value": 25, "required_amount": 5800},
+            {"payout_value": 25, "required_amount": 2500},
 
-            {"payout_value": 50, "required_amount": 10000},
+            {"payout_value": 50, "required_amount": 5000},
 
-            {"payout_value": 100, "required_amount": 19500},
+            {"payout_value": 100, "required_amount": 10000},
 
-            {"payout_value": 150, "required_amount": 28500},
+            {"payout_value": 150, "required_amount": 15000},
 
-            {"payout_value": 300, "required_amount": 52500},
+            {"payout_value": 300, "required_amount": 30000},
 
-            {"payout_value": 500, "required_amount": 80500},
+            {"payout_value": 500, "required_amount": 50000},
 
-            {"payout_value": 1000, "required_amount": 150000},
+            {"payout_value": 1000, "required_amount": 100000},
 
         ],
 
@@ -540,9 +540,9 @@ def get_payout_denomination(
 
     Example:
 
-        ₹10 -> 2400 VEs
+        ₹10 -> 1000 VEs
 
-        ₹100 -> 19500 VEs
+        ₹100 -> 10000 VEs
 
     """
 
