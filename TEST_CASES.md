@@ -23,6 +23,8 @@ These checks cover the wallet, rewards, conversion and withdrawal flows required
 
 1. Register a new account with a password of at least 8 characters.
 2. Login and verify `/auth/me` returns the current user.
+3. In a private/incognito window or a second device, register with a new email and password; confirm registration returns a token and the app opens the new account without requiring a second login.
+4. In that same private window/device, log out and log in using the exact same email and password; verify `/auth/me` returns that account. If registration succeeds but login returns 401, record the registration HTTP status and whether the email already exists before retrying.
 3. Verify the wallet loads from `/wallet/me`.
 4. Verify transaction history loads from `/wallet/me/transactions`.
 5. Click Refresh from Wallet and Transaction History and confirm the data reloads without a 404.
