@@ -1784,14 +1784,14 @@ def health():
 def initialize_payout_configuration():
     """Seed missing payout methods and migrate only the exact incorrect defaults from the prior release."""
     previous_release_default_denominations = {
-        (10, 1000),
-        (25, 2500),
-        (50, 5000),
-        (100, 10000),
-        (150, 15000),
-        (300, 30000),
-        (500, 50000),
-        (1000, 100000),
+        (10, 2400),
+        (25, 5800),
+        (50, 10000),
+        (100, 19500),
+        (150, 28500),
+        (300, 52500),
+        (500, 80500),
+        (1000, 150000),
     }
     migratable_methods = {
         "upi", "bank_transfer", "upi_qr",
