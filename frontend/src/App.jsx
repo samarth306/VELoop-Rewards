@@ -61,6 +61,11 @@ const CURRENCY_META = {
 const SUPPORT_EMAIL = "testuser.veloop@gmail.com";
 const APP_VERSION_LABEL = "2.4.1";
 
+function avatarStorageKey(accountEmail) {
+  const normalizedEmail = String(accountEmail || "").trim().toLowerCase();
+  return normalizedEmail ? `veloop_avatar:${normalizedEmail}` : "veloop_avatar:guest";
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
 
@@ -111,9 +116,24 @@ function App() {
   });
   const [rewardBusy, setRewardBusy] = useState(false);
 
-  const [avatar, setAvatar] = useState(
-    () => localStorage.getItem("veloop_avatar") || "emoji:🦊"
-  );
+  const [avatar, setAvatar] = useState(() => {
+    const accountEmail =
+      localStorage.getItem("veloop_email") ||
+      sessionStorage.getItem("veloop_email") ||
+      "";
+    const key = avatarStorageKey(accountEmail);
+    const savedAvatar = localStorage.getItem(key);
+    if (savedAvatar) return savedAvatar;
+
+    // Migrate the old browser-wide avatar only to the account already signed in here.
+    const legacyAvatar = accountEmail ? localStorage.getItem("veloop_avatar") : null;
+    if (legacyAvatar) {
+      localStorage.setItem(key, legacyAvatar);
+      localStorage.removeItem("veloop_avatar");
+      return legacyAvatar;
+    }
+    return "emoji:🦊";
+  });
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState(() => {
     try {
@@ -450,6 +470,9 @@ function App() {
         );
       }
 
+      setAvatar(
+        localStorage.getItem(avatarStorageKey(email)) || "emoji:🦊"
+      );
       setToken(data.access_token);
       setEmail(email.trim());
       setPassword("");
@@ -966,9 +989,14 @@ function App() {
   }
 
   function handleAvatarChange(value) {
+    const accountEmail = profile.email || email;
+    if (!accountEmail) {
+      setError("Sign in before changing your profile photo.");
+      return;
+    }
     setAvatar(value);
     try {
-      localStorage.setItem("veloop_avatar", value);
+      localStorage.setItem(avatarStorageKey(accountEmail), value);
     } catch {
       setError("Profile photo could not be saved in this browser.");
     }
