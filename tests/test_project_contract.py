@@ -254,6 +254,17 @@ class ProjectContractTests(unittest.TestCase):
         self.assertIn('formatApiError(data.detail || data.message, "Unable to process password reset request.")', FRONTEND)
         self.assertIn('formatApiError(data.detail || data.message, "Unable to reset your password.")', FRONTEND)
 
+    def test_gamified_dashboard_pages_and_responsive_styles_exist(self):
+        for component in ("DashboardPage", "ActivitiesPage", "LeaderboardPage", "AchievementsPage"):
+            self.assertIn(f"function {component}", FRONTEND)
+        for tab in ('key: "Dashboard"', 'key: "Activities"', 'key: "Leaderboard"', 'key: "Achievements"'):
+            self.assertIn(tab, FRONTEND)
+        self.assertIn('"/rewards/daily/claim"', FRONTEND)
+        self.assertIn(".gamified-stats-grid", CSS)
+        self.assertIn("@media (max-width:760px)", CSS)
+        self.assertIn("@media (max-width:420px)", CSS)
+        self.assertNotIn("Lucky Spinner", FRONTEND)
+
     def test_browser_storage_access_is_guarded_for_restricted_contexts(self):
         self.assertIn("function storageGet(storageName, key)", FRONTEND)
         self.assertIn("function storageSet(storageName, key, value)", FRONTEND)
