@@ -221,6 +221,24 @@ The update applies to the authenticated account.
 
 ---
 
+## PATCH `/auth/me/avatar`
+
+Authentication required.
+
+Stores the authenticated user's illustrated avatar or resized JPEG/PNG/WebP data URL in MongoDB. The avatar belongs to the user account and is returned by `GET /auth/me`, so it is shared across devices after signing into the same account.
+
+### Request
+
+```json
+{
+  "avatar": "emoji:🦊"
+}
+```
+
+An uploaded image is sent as a data URL. The API rejects unsupported image types and oversized values.
+
+---
+
 ## POST `/auth/change-password`
 
 Authentication required.
@@ -237,6 +255,21 @@ Verifies the current password before storing the new password.
 ```
 
 The new password must satisfy the backend password validation rules and must not simply reuse the current password.
+
+---
+
+## Password-reset email provider configuration
+
+On Render, outbound SMTP can fail because the hosting environment may block SMTP egress. To send directly from a personal Gmail account without configuring a custom sending domain, the backend supports Gmail API over HTTPS.
+
+Configure these Render environment variables using credentials from a Google OAuth client authorized with the `https://www.googleapis.com/auth/gmail.send` scope:
+
+- `GMAIL_CLIENT_ID`
+- `GMAIL_CLIENT_SECRET`
+- `GMAIL_REFRESH_TOKEN`
+- `GMAIL_SENDER_EMAIL` (the Gmail account authorized by that refresh token)
+
+The Gmail API path is used when all four variables are present. SMTP remains a fallback for environments that permit outbound SMTP. Never commit or share OAuth credentials or refresh tokens.
 
 ---
 
