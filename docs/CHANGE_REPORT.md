@@ -15,6 +15,14 @@ The existing React dashboard, visual design, colors, layout, icons/assets, and u
 8. **Documentation/tests:** updated README/API docs/test notes and added offline source-contract tests.
 9. **Archive cleanup:** excluded the uploaded `.env`, Git internals/history, Python virtual environments, `node_modules`, caches, and build output. Keep your existing local `.env` outside the replacement operation.
 
+## Authentication and profile reliability fixes
+
+- Registration now translates a concurrent duplicate-email unique-index failure into HTTP 400 instead of a generic HTTP 500.
+- Profile avatars are stored on the authenticated MongoDB user document through `PATCH /auth/me/avatar`; `GET /auth/me` returns the saved avatar. This prevents a browser-wide avatar key from being treated as the account's canonical photo and allows the same account's photo to follow it across devices.
+- Password-reset email delivery supports Gmail API over HTTPS using Google OAuth refresh-token credentials, which avoids SMTP egress restrictions and does not require a custom sending domain. SMTP remains a fallback for hosts that permit it. Gmail OAuth environment variables must still be configured in Render before this path can send email.
+- The password-reset endpoint surfaces provider failure as HTTP 503 rather than falsely implying that email delivery succeeded.
+- Added regression checks for profile avatar persistence, duplicate registration handling, and Gmail API email delivery.
+
 ## Deliberately not changed
 
 - Frontend visual design and current UI styling.
