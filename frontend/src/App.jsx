@@ -525,6 +525,7 @@ function App() {
     setLoading(true);
 
     try {
+      const normalizedEmail = registerEmail.trim().toLowerCase();
       const response = await fetch(
         `${API_URL}/auth/register`,
         {
@@ -534,7 +535,7 @@ function App() {
           },
           body: JSON.stringify({
             name: registerName.trim(),
-            email: registerEmail.trim(),
+            email: normalizedEmail,
             password: registerPassword,
           }),
         }
@@ -556,10 +557,30 @@ function App() {
         );
       }
 
-      setEmail(
-        registerEmail.trim()
-      );
+      // The API issues a session token after successful registration.
+      // Use it immediately so a new user is not forced through a second login.
+      if (!data.access_token) {
+        throw new Error(
+          "Account was created, but sign-in could not be completed. Please try logging in."
+        );
+      }
 
+      if (rememberMe) {
+        localStorage.setItem("veloop_token", data.access_token);
+        localStorage.setItem("veloop_email", normalizedEmail);
+        localStorage.setItem("veloop_remember", "true");
+        sessionStorage.removeItem("veloop_token");
+        sessionStorage.removeItem("veloop_email");
+      } else {
+        sessionStorage.setItem("veloop_token", data.access_token);
+        sessionStorage.setItem("veloop_email", normalizedEmail);
+        localStorage.removeItem("veloop_token");
+        localStorage.removeItem("veloop_email");
+        localStorage.setItem("veloop_remember", "false");
+      }
+
+      setEmail(normalizedEmail);
+      setToken(data.access_token);
       setPassword("");
 
       setRegisterName("");
@@ -568,10 +589,7 @@ function App() {
       setRegisterConfirmPassword("");
       setRegisterOpen(false);
 
-      setSuccess(
-        data.message ||
-        "Account created successfully. Please sign in."
-      );
+      setSuccess("Account created successfully. You are now signed in.");
     } catch (err) {
       setError(
         err.message ||
