@@ -3,7 +3,7 @@
 ## Included fixes
 
 - Premium dark Wallet UI with polished cards, hierarchy, spacing, responsive behavior and branded VELOOP logo.
-- Wallet hero shows `100 VEs = ₹1` and an estimated INR value.
+- Wallet hero shows `240 VEs = ₹1` and an estimated INR value.
 - Profile supports 30 illustrated emoji avatars plus camera/device image selection.
 - Notifications are handled as an in-app panel with unread state and `Mark all read`; no missing notifications API call is used.
 - Refresh controls call the authenticated wallet/reward/transaction/withdrawal/profile/payout endpoints and show loading feedback.
