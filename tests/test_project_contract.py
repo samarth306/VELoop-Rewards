@@ -216,6 +216,9 @@ class ProjectContractTests(unittest.TestCase):
         self.assertIn('def throttle_sensitive_requests', MAIN)
         self.assertIn('status_code=429', MAIN)
 
+    def test_cors_preflight_does_not_consume_sensitive_rate_limit(self):
+        self.assertIn('if policy and request.method in {"POST", "PATCH"}:', MAIN)
+
     def test_profile_avatar_is_persisted_per_authenticated_account(self):
         self.assertIn('@app.patch("/auth/me/avatar")', MAIN)
         self.assertIn('{"avatar": avatar, "updated_at": now_utc()}', MAIN)
