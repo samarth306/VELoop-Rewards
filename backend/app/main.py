@@ -88,7 +88,7 @@ from backend.app import collections as app_collections
 
 audit_logs_collection = getattr(app_collections, "audit_logs_collection", None)
 
-APP_VERSION = "2.4.0"
+APP_VERSION = "2.4.1"
 
 MIN_WITHDRAWAL_VES = 100
 
