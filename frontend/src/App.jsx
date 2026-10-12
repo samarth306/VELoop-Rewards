@@ -341,8 +341,7 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail ||
-          "Unable to process password reset request."
+          formatApiError(data.detail || data.message, "Unable to process password reset request.")
         );
       }
 
@@ -420,8 +419,7 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail ||
-          "Unable to reset your password."
+          formatApiError(data.detail || data.message, "Unable to reset your password.")
         );
       }
 
@@ -556,10 +554,8 @@ function App() {
     setError("");
     setSuccess("");
 
-    if (!registerName.trim()) {
-      setError(
-        "Please enter your full name."
-      );
+    if (registerName.trim().length < 2) {
+      setError("Please enter your full name (at least 2 characters).");
       return;
     }
 
