@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MAIN = (ROOT / "backend/app/main.py").read_text(encoding="utf-8")
 COLLECTIONS = (ROOT / "backend/app/collections.py").read_text(encoding="utf-8")
 FRONTEND = (ROOT / "frontend/src/App.jsx").read_text(encoding="utf-8")
+CSS = (ROOT / "frontend/src/App.css").read_text(encoding="utf-8")
 
 
 class ProjectContractTests(unittest.TestCase):
