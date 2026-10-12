@@ -1585,20 +1585,19 @@ def forgot_password(
 
         try:
             email_sent = send_reset_email(user["email"], raw_token, RESET_TOKEN_MINUTES)
-
-            if email_sent:
-                print("PASSWORD_RESET_EMAIL_SENT")
-            else:
-                print("PASSWORD_RESET_EMAIL_NOT_CONFIGURED")
-
-        
+            if not email_sent:
+                raise RuntimeError("Password reset email provider is not configured")
+            print("PASSWORD_RESET_EMAIL_SENT")
         except Exception as exc:
             print(
                 "PASSWORD_RESET_EMAIL_FAILED:",
                 type(exc).__name__,
                 repr(exc),
             )
-
+            raise HTTPException(
+                status_code=503,
+                detail="Password reset email service is unavailable. Please try again later.",
+            ) from None
 
     return {
         "message": (
