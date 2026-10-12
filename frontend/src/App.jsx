@@ -1941,6 +1941,8 @@ function App() {
               setRegisterConfirmPassword,
             }}
             loading={loading}
+            error={error}
+            success={success}
             onClose={() =>
               setRegisterOpen(
                 false
@@ -4689,6 +4691,8 @@ function RegisterModal({
   state,
   setState,
   loading,
+  error,
+  success,
   onClose,
   onSubmit,
 }) {
@@ -4731,6 +4735,9 @@ function RegisterModal({
           manage your rewards wallet
           securely.
         </p>
+
+        {error && <Alert type="error" message={error} />}
+        {success && <Alert type="success" message={success} />}
 
         <Field label="Full name">
           <input
