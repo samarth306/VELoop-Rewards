@@ -248,6 +248,12 @@ class ProjectContractTests(unittest.TestCase):
         self.assertIn('def get_current_user(', MAIN)
         self.assertIn('decode_access_token(', MAIN)
 
+    def test_auth_errors_are_readable_and_short_names_are_rejected_client_side(self):
+        self.assertIn("function formatApiError(value", FRONTEND)
+        self.assertIn("registerName.trim().length < 2", FRONTEND)
+        self.assertIn('formatApiError(data.detail || data.message, "Unable to process password reset request.")', FRONTEND)
+        self.assertIn('formatApiError(data.detail || data.message, "Unable to reset your password.")', FRONTEND)
+
     def test_browser_storage_access_is_guarded_for_restricted_contexts(self):
         self.assertIn("function storageGet(storageName, key)", FRONTEND)
         self.assertIn("function storageSet(storageName, key, value)", FRONTEND)
