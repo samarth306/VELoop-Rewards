@@ -389,7 +389,9 @@ _RATE_POLICIES = {
 @app.middleware("http")
 async def throttle_sensitive_requests(request: Request, call_next):
     policy = _RATE_POLICIES.get(request.url.path)
-    if policy:
+    # Browser CORS preflight requests must not consume authentication/action
+    # rate-limit quota. Only throttle actual state-changing API requests.
+    if policy and request.method in {"POST", "PATCH"}:
         limit, window = policy
         client_ip = request.client.host if request.client else "unknown"
         key = (client_ip, request.method, request.url.path)
