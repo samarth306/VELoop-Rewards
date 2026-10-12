@@ -18,8 +18,12 @@ const EMPTY_WALLET = {
 const PAYOUT_OPTIONS_EMPTY = [];
 
 const NAV_ITEMS = [
+  { key: "Dashboard", icon: "layout-dashboard", label: "Dashboard" },
   { key: "Wallet", icon: "wallet", label: "Wallet" },
-  { key: "Rewards", icon: "plus", label: "Rewards" },
+  { key: "Rewards", icon: "gift", label: "Rewards & Check-in" },
+  { key: "Activities", icon: "target", label: "Activities" },
+  { key: "Leaderboard", icon: "trophy", label: "Leaderboard" },
+  { key: "Achievements", icon: "medal", label: "Achievements" },
   { key: "Transactions", icon: "activity", label: "Transactions" },
   { key: "Withdrawals", icon: "arrow-up", label: "Withdrawals" },
   { key: "About", icon: "info", label: "About VELOOP" },
@@ -135,7 +139,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState("Wallet");
+  const [activeTab, setActiveTab] = useState("Dashboard");
 
   const [token, setToken] = useState(
     storageGet("localStorage", "veloop_token") ||
@@ -1208,7 +1212,7 @@ function App() {
 
     setProfileOpen(false);
     setProfileModalOpen(false);
-    setActiveTab("Wallet");
+    setActiveTab("Dashboard");
   }
 
   function buildWithdrawalPayload() {
@@ -2099,6 +2103,41 @@ function App() {
           />
         )}
 
+        {activeTab === "Dashboard" && (
+          <DashboardPage
+            profile={profile}
+            wallet={wallet}
+            transactions={transactions}
+            dailyReward={dailyReward}
+            rewardConfig={rewardConfig}
+            busy={rewardBusy}
+            onDailyReward={claimDailyReward}
+            onWallet={() => setTab("Wallet")}
+            onRewards={() => setTab("Rewards")}
+            onActivities={() => setTab("Activities")}
+            onTransactions={() => setTab("Transactions")}
+            onWithdraw={() => setTab("Withdrawals")}
+          />
+        )}
+
+        {activeTab === "Activities" && (
+          <ActivitiesPage
+            wallet={wallet}
+            transactions={transactions}
+            onRewards={() => setTab("Rewards")}
+            onTransactions={() => setTab("Transactions")}
+            onWallet={() => setTab("Wallet")}
+          />
+        )}
+
+        {activeTab === "Leaderboard" && (
+          <LeaderboardPage wallet={wallet} transactions={transactions} profile={profile} />
+        )}
+
+        {activeTab === "Achievements" && (
+          <AchievementsPage wallet={wallet} transactions={transactions} dailyReward={dailyReward} />
+        )}
+
         {activeTab ===
           "Rewards" && (
             <RewardsPage
@@ -2428,6 +2467,102 @@ function AvatarDisplay({ avatar, fallback }) {
   if (avatar?.startsWith?.("data:")) return <img src={avatar} alt="Profile" />;
   if (avatar?.startsWith?.("emoji:")) return <span className="avatar-emoji">{avatar.slice(6)}</span>;
   return <span>{fallback || "V"}</span>;
+}
+
+
+function DashboardPage({ profile, wallet, transactions, dailyReward, rewardConfig, busy, onDailyReward, onWallet, onRewards, onActivities, onTransactions, onWithdraw }) {
+  const earned = transactions.filter((item) => Number(item.amount || 0) > 0).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const streak = Number(dailyReward?.streak_day || 0);
+  const day = Number(dailyReward?.day || 1);
+  const nextReward = dailyReward?.reward || {};
+  const rewardLabel = Object.entries(nextReward).map(([key, value]) => `+${formatAmount(value)} ${key.toUpperCase()}`).join(" · ") || "+100 VEs";
+  const activityCount = transactions.length;
+  const tasks = [
+    { icon: "calendar-check", title: "Claim your daily reward", copy: dailyReward?.claimed_today ? "Today's check-in is complete. Come back tomorrow." : "Keep your routine going and collect the next available reward.", action: dailyReward?.claimed_today ? "View rewards" : "Claim reward", onClick: dailyReward?.claimed_today ? onRewards : onDailyReward, done: Boolean(dailyReward?.claimed_today) },
+    { icon: "wallet", title: "Explore your wallet", copy: "Review VEs, SVEs, gems and tokens in one place.", action: "Open wallet", onClick: onWallet, done: false },
+    { icon: "receipt-text", title: "Review recent activity", copy: "Keep track of recorded rewards and wallet movements.", action: "View activity", onClick: onTransactions, done: activityCount > 0 },
+    { icon: "target", title: "Explore reward options", copy: "See available reward actions supported by VELOOP.", action: "Explore rewards", onClick: onRewards, done: false },
+  ];
+  return (
+    <div className="content-stack gamified-page">
+      <section className="gamified-welcome">
+        <div className="gamified-welcome-copy">
+          <span className="gamified-eyebrow"><Icon name="sparkles" /> VELOOP REWARDS DASHBOARD</span>
+          <h1>Welcome back, <em>{profile?.name || "Explorer"}</em></h1>
+          <p>Your wallet, daily rewards and activity — together in one live overview.</p>
+          <div className="gamified-quick-actions">
+            <button className="gamified-btn gold" onClick={onRewards}><Icon name="flame" /> Daily check-in</button>
+            <button className="gamified-btn purple" onClick={onActivities}><Icon name="target" /> Explore activities</button>
+          </div>
+        </div>
+        <div className="gamified-orbit" aria-hidden="true"><div className="orbit-ring"></div><div className="orbit-core"><VeloopLogo size={62} /></div><span className="orbit-coin coin-one">V</span><span className="orbit-coin coin-two">✦</span></div>
+      </section>
+
+      <section className="gamified-stats-grid">
+        <article className="gamified-stat gold-stat"><div className="stat-top"><span>Total VEs</span><Icon name="coins" /></div><strong>{formatAmount(wallet?.ves || 0)}</strong><small>≈ ₹{formatAmount(Math.floor(Number(wallet?.ves || 0) / 240))} estimated value</small></article>
+        <article className="gamified-stat purple-stat"><div className="stat-top"><span>Current streak</span><Icon name="flame" /></div><strong>{streak} {streak === 1 ? "day" : "days"}</strong><small>{dailyReward?.claimed_today ? "Today's check-in completed" : "Your next check-in is ready"}</small></article>
+        <article className="gamified-stat blue-stat"><div className="stat-top"><span>Wallet activity</span><Icon name="activity" /></div><strong>{activityCount}</strong><small>Recorded ledger entries</small></article>
+        <article className="gamified-stat green-stat"><div className="stat-top"><span>Other assets</span><Icon name="gem" /></div><strong>{formatAmount(wallet?.sves || 0)} SVEs</strong><small>{formatAmount(wallet?.gems || 0)} gems · {formatAmount(wallet?.tokens || 0)} tokens</small></article>
+      </section>
+
+      <section className="gamified-main-grid">
+        <article className="gamified-panel checkin-panel">
+          <div className="gamified-section-heading"><div><span className="gamified-kicker">DAILY CHECK-IN SYSTEM</span><h2><Icon name="flame" /> {streak}-day streak</h2></div><span className="streak-pill"><Icon name="calendar-days" /> Day {day}</span></div>
+          <p>{dailyReward?.claimed_today ? "You have collected today's reward. Keep the streak alive by returning tomorrow." : "Your next daily reward is available to claim. One check-in at a time, with rewards recorded to your wallet."}</p>
+          <div className="checkin-week">
+            {["MON","TUE","WED","THU","FRI","SAT","SUN"].map((label,index) => <div className={index < Math.min(streak,7) ? "checkin-day checked" : index === Math.min(day-1,6) ? "checkin-day today" : "checkin-day"} key={label}><span>{label}</span><strong>{index < Math.min(streak,7) ? "✓" : index+1}</strong></div>)}
+          </div>
+          <div className="checkin-reward-line"><span>Available reward</span><strong>{rewardLabel}</strong></div>
+          <button className="gamified-btn gold full" onClick={onDailyReward} disabled={busy || Boolean(dailyReward?.claimed_today)}>{busy ? "Processing…" : dailyReward?.claimed_today ? "✓ Today's reward claimed" : "⚡ Claim reward now"}</button>
+          <small className="gamified-disclaimer">Rewards are confirmed by the backend; one claim per UTC day.</small>
+        </article>
+        <article className="gamified-panel activity-panel">
+          <div className="gamified-section-heading"><div><span className="gamified-kicker">YOUR PROGRESS</span><h2>Activity overview</h2></div><button className="gamified-link" onClick={onTransactions}>View ledger <Icon name="arrow-up-right" /></button></div>
+          <div className="activity-total"><span>Positive ledger entries</span><strong>{formatAmount(earned)}</strong><small>Combined positive transaction amounts; currency units are not converted.</small></div>
+          <div className="activity-mini-list">{(transactions || []).slice(0,4).map((tx,index)=><div className="activity-mini-row" key={tx.transaction_id || tx.id || index}><span className="activity-mini-icon"><Icon name={Number(tx.amount || 0) >= 0 ? "plus" : "minus"} /></span><div><strong>{tx.description || tx.type || "Wallet activity"}</strong><small>{tx.created_at ? new Date(tx.created_at).toLocaleDateString() : "Recorded transaction"}</small></div><b className={Number(tx.amount || 0) >= 0 ? "amount-positive" : "amount-negative"}>{Number(tx.amount || 0) > 0 ? "+" : ""}{formatAmount(tx.amount || 0)} {String(tx.currency || "VEs").toUpperCase()}</b></div>)}
+          {!transactions?.length && <div className="activity-empty">Your recorded wallet activity will appear here.</div>}</div>
+          <button className="gamified-outline full" onClick={onWallet}>Open full wallet <Icon name="arrow-right" /></button>
+        </article>
+      </section>
+
+      <section className="gamified-panel tasks-panel">
+        <div className="gamified-section-heading"><div><span className="gamified-kicker">NEXT BEST ACTIONS</span><h2>Activities & milestones</h2><p>Real actions connected to existing VELOOP features — no simulated reward claims.</p></div><button className="gamified-link" onClick={onActivities}>View all <Icon name="arrow-up-right" /></button></div>
+        <div className="gamified-task-grid">{tasks.map((task)=><article className="gamified-task-card" key={task.title}><div className="task-card-top"><span className="task-icon"><Icon name={task.icon} /></span><span className={task.done ? "task-state done" : "task-state"}>{task.done ? "Completed" : "Available"}</span></div><h3>{task.title}</h3><p>{task.copy}</p><button className="gamified-task-action" onClick={task.onClick} disabled={task.title === "Claim your daily reward" && busy}>{task.action}<Icon name="arrow-up-right" /></button></article>)}</div>
+      </section>
+
+      <section className="gamified-bottom-grid">
+        <article className="gamified-panel rank-preview"><span className="gamified-kicker">COMMUNITY LEADERBOARD</span><h2>Your progress, your pace.</h2><p>Leaderboard rankings need a shared, privacy-safe ranking service. This preview does not invent other users or claim a live rank.</p><div className="rank-preview-metric"><span>Your current VEs balance</span><strong>{formatAmount(wallet?.ves || 0)} <small>VEs</small></strong></div><button className="gamified-outline full" onClick={() => window.dispatchEvent(new CustomEvent("velo-open-leaderboard"))}>View leaderboard details <Icon name="arrow-right" /></button></article>
+        <article className="gamified-panel achievements-preview"><span className="gamified-kicker">ACHIEVEMENTS</span><h2>Milestones from your real activity</h2><div className="achievement-mini-grid"><div><span>🏁</span><strong>First steps</strong><small>{activityCount > 0 ? "Activity recorded" : "Start with a wallet action"}</small></div><div><span>🔥</span><strong>Daily routine</strong><small>{streak > 0 ? `${streak}-day streak recorded` : "Claim a daily reward"}</small></div><div><span>💎</span><strong>Asset collector</strong><small>{Number(wallet?.gems || 0) > 0 ? "Gem balance detected" : "Earn eligible assets"}</small></div></div><button className="gamified-outline full" onClick={onActivities}>Explore milestones <Icon name="arrow-right" /></button></article>
+      </section>
+    </div>
+  );
+}
+
+function ActivitiesPage({ wallet, transactions, onRewards, onTransactions, onWallet }) {
+  const activityCards = [
+    { icon:"calendar-check", title:"Daily check-in", description:"Claim the backend-managed daily reward once per UTC day.", status:"Live feature", action:"Open check-in", click:onRewards },
+    { icon:"wallet", title:"Wallet review", description:"Review your current VEs, SVEs, gems and tokens.", status:"Live feature", action:"Open wallet", click:onWallet },
+    { icon:"receipt-text", title:"Transaction history", description:"See wallet credits and debits recorded by the backend.", status:transactions?.length ? `${transactions.length} entries` : "No entries yet", action:"View transactions", click:onTransactions },
+    { icon:"gem", title:"Asset milestone", description:"Track your real gem balance. No extra coins are awarded by this card.", status:Number(wallet?.gems || 0) > 0 ? "Started" : "Not started", action:"View wallet", click:onWallet },
+  ];
+  return <div className="content-stack gamified-page"><section className="page-heading"><div><span className="gamified-kicker">ACTIVITIES & TASKS</span><h1>Make every action count.</h1><p>These cards connect to working wallet and rewards features. Reward claims are always confirmed by the backend.</p></div></section><div className="gamified-task-grid activity-cards-grid">{activityCards.map((task)=><article className="gamified-task-card" key={task.title}><div className="task-card-top"><span className="task-icon"><Icon name={task.icon}/></span><span className="task-state">{task.status}</span></div><h3>{task.title}</h3><p>{task.description}</p><button className="gamified-task-action" onClick={task.click}>{task.action}<Icon name="arrow-up-right"/></button></article>)}</div><section className="gamified-panel"><div className="gamified-section-heading"><div><span className="gamified-kicker">NO FAKE REWARDS</span><h2>Progress backed by your account</h2><p>Only completed actions recorded by VELOOP's backend change wallet balances.</p></div></div><div className="activity-total"><span>Current VEs balance</span><strong>{formatAmount(wallet?.ves || 0)} VEs</strong></div></section></div>;
+}
+
+function LeaderboardPage({ wallet, transactions, profile }) {
+  return <div className="content-stack gamified-page"><section className="gamified-welcome compact-welcome"><div className="gamified-welcome-copy"><span className="gamified-eyebrow"><Icon name="trophy"/> LEADERBOARD</span><h1>Compete with integrity.</h1><p>Rankings should come from shared, verified account data — not sample names or hard-coded scores.</p></div><div className="rank-large-number"><strong>{formatAmount(wallet?.ves || 0)}</strong><span>Your VEs balance</span></div></section><section className="gamified-panel"><div className="gamified-section-heading"><div><span className="gamified-kicker">LEADERBOARD SERVICE</span><h2>Community rankings</h2></div><span className="task-state">Not connected</span></div><p>A live leaderboard endpoint is not currently available in this project. This page intentionally avoids showing invented participants or claiming a false rank. The current account has {transactions?.length || 0} recorded ledger entries.</p><div className="leaderboard-placeholder"><Icon name="trophy"/><strong>Verified rankings will appear here</strong><span>Connect a privacy-safe backend ranking endpoint to enable weekly ranks, levels and streak comparisons.</span></div></section></div>;
+}
+
+function AchievementsPage({ wallet, transactions, dailyReward }) {
+  const items = [
+    { icon:"footprints", title:"First activity", detail:"Record your first wallet transaction.", done:(transactions?.length || 0)>0 },
+    { icon:"flame", title:"Daily check-in", detail:"Claim a daily reward to start your streak.", done:Number(dailyReward?.streak_day || 0)>0 || Boolean(dailyReward?.claimed_today) },
+    { icon:"gem", title:"Gem collector", detail:"Hold at least one gem in your wallet.", done:Number(wallet?.gems || 0)>0 },
+    { icon:"coins", title:"VEs milestone", detail:"Build a balance of 1,000 VEs.", done:Number(wallet?.ves || 0)>=1000 },
+    { icon:"layers", title:"Multi-asset wallet", detail:"Hold VEs and at least one additional asset.", done:Number(wallet?.ves || 0)>0 && (Number(wallet?.sves || 0)>0 || Number(wallet?.gems || 0)>0 || Number(wallet?.tokens || 0)>0) },
+    { icon:"receipt-text", title:"Activity explorer", detail:"Build a history of 10 ledger entries.", done:(transactions?.length || 0)>=10 },
+  ];
+  const unlocked=items.filter(x=>x.done).length;
+  return <div className="content-stack gamified-page"><section className="page-heading"><div><span className="gamified-kicker">ACHIEVEMENTS</span><h1>Every milestone tells a story.</h1><p>Achievements are calculated from your actual wallet and ledger data. They do not add rewards or alter balances.</p></div></section><section className="gamified-panel achievement-progress-panel"><div className="achievement-progress-head"><div><span className="gamified-kicker">YOUR COLLECTION</span><h2>{unlocked} of {items.length} milestones unlocked</h2></div><strong>{Math.round(unlocked/items.length*100)}%</strong></div><div className="achievement-progress-track"><span style={{width:`${unlocked/items.length*100}%`}}/></div></section><div className="achievement-full-grid">{items.map(item=><article className={item.done?"achievement-card unlocked":"achievement-card"} key={item.title}><div className="achievement-icon">{item.done ? "🏆" : <Icon name={item.icon}/>}</div><span className={item.done?"achievement-status unlocked":"achievement-status"}>{item.done?"Unlocked":"Locked"}</span><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div></div>;
 }
 
 function RewardsPage({ wallet, dailyReward, rewardConfig, busy, conversionAmounts, setConversionAmounts, onDailyReward, onConvert }) {
