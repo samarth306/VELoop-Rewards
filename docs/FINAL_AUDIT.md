@@ -38,6 +38,13 @@
 - API route string cross-check between frontend and backend: PASS
 - User-facing seed configuration, payout tables, and API docs match the PDF mapping. The prior ZIP mapping remains only as an explicit exact-match migration source and test fixture. Removed demo routes / spin endpoints / Convert-All references were checked separately.
 
+## Authentication and profile fixes
+
+- Registration duplicate-key races return a clear duplicate-email response rather than a generic server error.
+- Profile avatars are persisted per authenticated account in MongoDB and load through `GET /auth/me`; changing a photo on one device updates the same account on other devices.
+- Password reset reports delivery failures honestly. Gmail API over HTTPS is supported for personal Gmail senders without a custom sending domain, but Google OAuth credentials and a refresh token with the Gmail send scope are required in Render. SMTP alone is not expected to work on every Render instance.
+- Offline tests cover the avatar endpoint contract, duplicate-email handling, and Gmail email-provider flow. Live cross-device and real mailbox delivery still require production integration testing.
+
 ## Environment note
 
 The supplied development archive contained Windows-specific `node_modules` binaries. The final archive intentionally excludes `node_modules`, so Render/another deployment platform can install platform-correct dependencies. A full production browser build was not claimed from this Linux audit environment.
