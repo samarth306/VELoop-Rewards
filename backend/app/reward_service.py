@@ -168,7 +168,7 @@ def claim_daily_reward(user_id):
 
             if last_date:
                 try:
-                    delta = (date.today() - date.fromisoformat(str(last_date))).days
+                    delta = (_now().date() - date.fromisoformat(str(last_date))).days
                     if delta == 1:
                         next_day = 1 if streak_day >= 10 else streak_day + 1
                     elif delta == 0:
