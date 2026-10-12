@@ -3221,6 +3221,8 @@ function QrPayoutScanner({ form, updateForm }) {
     let scanner = null;
     let frameOne = 0;
     let frameTwo = 0;
+    let invertedFrameCheck = null;
+    let checkingFrame = false;
 
     async function initializeScanner() {
       const reader = document.getElementById("upi-qr-reader");
@@ -3286,6 +3288,39 @@ function QrPayoutScanner({ form, updateForm }) {
 
         if (!cancelled) {
           setScanning(true);
+
+          // html5-qrcode's live decoder can miss inverted PhonePe-style codes.
+          // Periodically decode a captured frame with normal/inverted image fallbacks.
+          invertedFrameCheck = window.setInterval(async () => {
+            if (cancelled || checkingFrame) return;
+            const video = document.querySelector("#upi-qr-reader video");
+            if (!video || video.readyState < 2 || !video.videoWidth || !video.videoHeight) return;
+
+            checkingFrame = true;
+            try {
+              const frameCanvas = document.createElement("canvas");
+              frameCanvas.width = video.videoWidth;
+              frameCanvas.height = video.videoHeight;
+              const frameContext = frameCanvas.getContext("2d");
+              if (!frameContext) return;
+              frameContext.drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
+              const blob = await new Promise((resolve) => frameCanvas.toBlob(resolve, "image/jpeg", 0.92));
+              if (!blob || cancelled) return;
+              const frameFile = new File([blob], "camera-frame.jpg", { type: "image/jpeg" });
+              const decodedText = await decodeQrFileWithFallbacks(frameFile);
+              const upiId = extractUpiId(decodedText);
+              if (!upiId || cancelled) return;
+
+              updateForm("upiId", upiId);
+              setScanSource("Camera scan");
+              await stopScanner(scanner);
+              setScannerOpen(false);
+            } catch {
+              // No QR in this frame, or the current frame could not be decoded.
+            } finally {
+              checkingFrame = false;
+            }
+          }, 1800);
         }
       } catch (err) {
         if (cancelled) return;
@@ -3337,6 +3372,7 @@ function QrPayoutScanner({ form, updateForm }) {
       cancelled = true;
       if (frameOne) window.cancelAnimationFrame(frameOne);
       if (frameTwo) window.cancelAnimationFrame(frameTwo);
+      if (invertedFrameCheck) window.clearInterval(invertedFrameCheck);
       if (scanner) void stopScanner(scanner);
     };
   }, [scannerOpen]);
