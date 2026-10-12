@@ -93,6 +93,47 @@ function storageRemove(storageName, key) {
   }
 }
 
+function formatApiError(value, fallback = "Something went wrong. Please try again.") {
+  if (typeof value === "string" && value.trim()) return value;
+  if (Array.isArray(value)) {
+    const messages = value.map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const location = Array.isArray(item.loc)
+          ? item.loc.filter((part) => part !== "body").join(".")
+          : "";
+        const message = item.msg || item.message || item.detail;
+        return [location, typeof message === "string" ? message : ""]
+          .filter(Boolean)
+          .join(": ");
+      }
+      return "";
+    }).filter(Boolean);
+    return messages.join(" ") || fallback;
+  }
+  if (value && typeof value === "object") {
+    if (typeof value.message === "string" && value.message.trim()) return value.message;
+    if (typeof value.detail === "string" && value.detail.trim()) return value.detail;
+    return fallback;
+  }
+  return fallback;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 45000) {
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error("The server took too long to respond. Your account may have been created; try signing in once before submitting registration again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
 
@@ -254,9 +295,7 @@ function App() {
       }
 
       throw new Error(
-        data.detail ||
-        data.message ||
-        "Something went wrong. Please try again."
+        formatApiError(data.detail || data.message, `Request failed (HTTP ${response.status}). Please try again.`)
       );
     }
 
@@ -444,8 +483,7 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail ||
-          "Invalid email or password"
+          formatApiError(data.detail || data.message, `Invalid email or password (HTTP ${response.status}).`)
         );
       }
 
@@ -553,7 +591,7 @@ function App() {
 
     try {
       const normalizedEmail = registerEmail.trim().toLowerCase();
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${API_URL}/auth/register`,
         {
           method: "POST",
@@ -578,9 +616,7 @@ function App() {
 
       if (!response.ok) {
         throw new Error(
-          data.detail ||
-          data.message ||
-          "Unable to create your account."
+          formatApiError(data.detail || data.message, `Unable to create your account (HTTP ${response.status}).`)
         );
       }
 
