@@ -66,18 +66,45 @@ function avatarStorageKey(accountEmail) {
   return normalizedEmail ? `veloop_avatar:${normalizedEmail}` : "veloop_avatar:guest";
 }
 
+function storageGet(storageName, key) {
+  try {
+    return window[storageName].getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function storageSet(storageName, key, value) {
+  try {
+    window[storageName].setItem(key, value);
+    return true;
+  } catch {
+    // Keep the current session usable even when browser storage is unavailable.
+    // The session will not persist after refresh if storage is blocked.
+    return false;
+  }
+}
+
+function storageRemove(storageName, key) {
+  try {
+    window[storageName].removeItem(key);
+  } catch {
+    // Storage cleanup is best-effort in restricted/private browser contexts.
+  }
+}
+
 function App() {
   const [activeTab, setActiveTab] = useState("Wallet");
 
   const [token, setToken] = useState(
-    localStorage.getItem("veloop_token") ||
-    sessionStorage.getItem("veloop_token") ||
+    storageGet("localStorage", "veloop_token") ||
+    storageGet("sessionStorage", "veloop_token") ||
     ""
   );
 
   const [email, setEmail] = useState(
-    localStorage.getItem("veloop_email") ||
-    sessionStorage.getItem("veloop_email") ||
+    storageGet("localStorage", "veloop_email") ||
+    storageGet("sessionStorage", "veloop_email") ||
     ""
   );
 
@@ -101,7 +128,7 @@ function App() {
   const [showResetPassword, setShowResetPassword] = useState(false);
 
   const [rememberMe, setRememberMe] = useState(
-    localStorage.getItem("veloop_remember") !== "false"
+    storageGet("localStorage", "veloop_remember") !== "false"
   );
 
   const [wallet, setWallet] = useState(EMPTY_WALLET);
@@ -118,18 +145,18 @@ function App() {
 
   const [avatar, setAvatar] = useState(() => {
     const accountEmail =
-      localStorage.getItem("veloop_email") ||
-      sessionStorage.getItem("veloop_email") ||
+      storageGet("localStorage", "veloop_email") ||
+      storageGet("sessionStorage", "veloop_email") ||
       "";
     const key = avatarStorageKey(accountEmail);
-    const savedAvatar = localStorage.getItem(key);
+    const savedAvatar = storageGet("localStorage", key);
     if (savedAvatar) return savedAvatar;
 
     // Migrate the old browser-wide avatar only to the account already signed in here.
-    const legacyAvatar = accountEmail ? localStorage.getItem("veloop_avatar") : null;
+    const legacyAvatar = accountEmail ? storageGet("localStorage", "veloop_avatar") : null;
     if (legacyAvatar) {
-      localStorage.setItem(key, legacyAvatar);
-      localStorage.removeItem("veloop_avatar");
+      storageSet("localStorage", key, legacyAvatar);
+      storageRemove("localStorage", "veloop_avatar");
       return legacyAvatar;
     }
     return "emoji:🦊";
@@ -137,7 +164,7 @@ function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [readNotificationIds, setReadNotificationIds] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("veloop_read_notifications") || "[]");
+      return JSON.parse(storageGet("localStorage", "veloop_read_notifications") || "[]");
     } catch {
       return [];
     }
@@ -185,12 +212,12 @@ function App() {
     const tokenFromUrl = params.get("token");
 
     if (tokenFromUrl) {
-      sessionStorage.setItem("veloop_reset_token", tokenFromUrl);
+      storageSet("sessionStorage", "veloop_reset_token", tokenFromUrl);
       setResetToken(tokenFromUrl);
       // Remove the one-time token from the address bar after capturing it.
       window.history.replaceState({}, "", window.location.pathname || "/");
     } else {
-      const savedToken = sessionStorage.getItem("veloop_reset_token");
+      const savedToken = storageGet("sessionStorage", "veloop_reset_token");
       if (savedToken) setResetToken(savedToken);
     }
   }, []);
@@ -373,7 +400,7 @@ function App() {
         "/"
       );
 
-      sessionStorage.removeItem("veloop_reset_token");
+      storageRemove("sessionStorage", "veloop_reset_token");
       setResetToken("");
     } catch (err) {
       setError(
@@ -423,55 +450,55 @@ function App() {
       }
 
       if (rememberMe) {
-        localStorage.setItem(
+        storageSet("localStorage", 
           "veloop_token",
           data.access_token
         );
 
-        localStorage.setItem(
+        storageSet("localStorage", 
           "veloop_email",
           email.trim()
         );
 
-        localStorage.setItem(
+        storageSet("localStorage", 
           "veloop_remember",
           "true"
         );
 
-        sessionStorage.removeItem(
+        storageRemove("sessionStorage", 
           "veloop_token"
         );
 
-        sessionStorage.removeItem(
+        storageRemove("sessionStorage", 
           "veloop_email"
         );
       } else {
-        sessionStorage.setItem(
+        storageSet("sessionStorage", 
           "veloop_token",
           data.access_token
         );
 
-        sessionStorage.setItem(
+        storageSet("sessionStorage", 
           "veloop_email",
           email.trim()
         );
 
-        localStorage.removeItem(
+        storageRemove("localStorage", 
           "veloop_token"
         );
 
-        localStorage.removeItem(
+        storageRemove("localStorage", 
           "veloop_email"
         );
 
-        localStorage.setItem(
+        storageSet("localStorage", 
           "veloop_remember",
           "false"
         );
       }
 
       setAvatar(
-        localStorage.getItem(avatarStorageKey(email)) || "emoji:🦊"
+        storageGet("localStorage", avatarStorageKey(email)) || "emoji:🦊"
       );
       setToken(data.access_token);
       setEmail(email.trim());
@@ -566,17 +593,17 @@ function App() {
       }
 
       if (rememberMe) {
-        localStorage.setItem("veloop_token", data.access_token);
-        localStorage.setItem("veloop_email", normalizedEmail);
-        localStorage.setItem("veloop_remember", "true");
-        sessionStorage.removeItem("veloop_token");
-        sessionStorage.removeItem("veloop_email");
+        storageSet("localStorage", "veloop_token", data.access_token);
+        storageSet("localStorage", "veloop_email", normalizedEmail);
+        storageSet("localStorage", "veloop_remember", "true");
+        storageRemove("sessionStorage", "veloop_token");
+        storageRemove("sessionStorage", "veloop_email");
       } else {
-        sessionStorage.setItem("veloop_token", data.access_token);
-        sessionStorage.setItem("veloop_email", normalizedEmail);
-        localStorage.removeItem("veloop_token");
-        localStorage.removeItem("veloop_email");
-        localStorage.setItem("veloop_remember", "false");
+        storageSet("sessionStorage", "veloop_token", data.access_token);
+        storageSet("sessionStorage", "veloop_email", normalizedEmail);
+        storageRemove("localStorage", "veloop_token");
+        storageRemove("localStorage", "veloop_email");
+        storageSet("localStorage", "veloop_remember", "false");
       }
 
       setEmail(normalizedEmail);
@@ -756,14 +783,14 @@ function App() {
     if (typeof data?.avatar === "string" && data.avatar) {
       setAvatar(data.avatar);
       try {
-        localStorage.setItem(avatarStorageKey(accountEmail), data.avatar);
+        storageSet("localStorage", avatarStorageKey(accountEmail), data.avatar);
       } catch {
         // Server-side profile remains authoritative if local storage is unavailable.
       }
       return;
     }
 
-    const savedAvatar = localStorage.getItem(avatarStorageKey(accountEmail));
+    const savedAvatar = storageGet("localStorage", avatarStorageKey(accountEmail));
     if (savedAvatar) {
       setAvatar(savedAvatar);
       try {
@@ -1038,7 +1065,7 @@ function App() {
       });
       const savedAvatar = data.avatar || value;
       setAvatar(savedAvatar);
-      localStorage.setItem(avatarStorageKey(accountEmail), savedAvatar);
+      storageSet("localStorage", avatarStorageKey(accountEmail), savedAvatar);
     } catch (err) {
       setAvatar(previousAvatar);
       setError(err.message || "Profile photo could not be saved.");
@@ -1071,7 +1098,7 @@ function App() {
     const ids = notifications.map((item) => item.id);
     setReadNotificationIds((prev) => {
       const next = Array.from(new Set([...prev, ...ids])).slice(-100);
-      localStorage.setItem("veloop_read_notifications", JSON.stringify(next));
+      storageSet("localStorage", "veloop_read_notifications", JSON.stringify(next));
       return next;
     });
   }
@@ -1092,11 +1119,11 @@ function App() {
   }
 
   function handleSessionExpired() {
-    localStorage.removeItem(
+    storageRemove("localStorage", 
       "veloop_token"
     );
 
-    sessionStorage.removeItem(
+    storageRemove("sessionStorage", 
       "veloop_token"
     );
 
@@ -1116,19 +1143,19 @@ function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem(
+    storageRemove("localStorage", 
       "veloop_token"
     );
 
-    localStorage.removeItem(
+    storageRemove("localStorage", 
       "veloop_email"
     );
 
-    sessionStorage.removeItem(
+    storageRemove("sessionStorage", 
       "veloop_token"
     );
 
-    sessionStorage.removeItem(
+    storageRemove("sessionStorage", 
       "veloop_email"
     );
 
