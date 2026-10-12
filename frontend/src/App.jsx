@@ -725,24 +725,39 @@ function App() {
   }
 
   async function loadProfile() {
-    const data =
-      await apiRequest(
-        "/auth/me"
-      );
+    const data = await apiRequest("/auth/me");
+    const accountEmail = String(data?.email || email || "").trim().toLowerCase();
 
     setProfile({
-      name:
-        data?.name ||
-        "VELOOP User",
-
-      email:
-        data?.email ||
-        email ||
-        "",
+      name: data?.name || "VELOOP User",
+      email: accountEmail,
     });
 
-    if (data?.email) {
-      setEmail(data.email);
+    if (data?.email) setEmail(data.email);
+
+    if (typeof data?.avatar === "string" && data.avatar) {
+      setAvatar(data.avatar);
+      try {
+        localStorage.setItem(avatarStorageKey(accountEmail), data.avatar);
+      } catch {
+        // Server-side profile remains authoritative if local storage is unavailable.
+      }
+      return;
+    }
+
+    const savedAvatar = localStorage.getItem(avatarStorageKey(accountEmail));
+    if (savedAvatar) {
+      setAvatar(savedAvatar);
+      try {
+        await apiRequest("/auth/me/avatar", {
+          method: "PATCH",
+          body: JSON.stringify({ avatar: savedAvatar }),
+        });
+      } catch (err) {
+        setError(err.message || "Unable to sync your profile photo.");
+      }
+    } else {
+      setAvatar("emoji:🦊");
     }
   }
 
@@ -988,17 +1003,27 @@ function App() {
     setNotificationsOpen(false);
   }
 
-  function handleAvatarChange(value) {
-    const accountEmail = profile.email || email;
-    if (!accountEmail) {
-      setError("Sign in before changing your profile photo.");
+  async function handleAvatarChange(value) {
+    const accountEmail = String(profile.email || email || "").trim().toLowerCase();
+    if (!accountEmail || !token) {
+      setError("Please sign in before changing your profile photo.");
       return;
     }
+
+    const previousAvatar = avatar;
     setAvatar(value);
+    setError("");
     try {
-      localStorage.setItem(avatarStorageKey(accountEmail), value);
-    } catch {
-      setError("Profile photo could not be saved in this browser.");
+      const data = await apiRequest("/auth/me/avatar", {
+        method: "PATCH",
+        body: JSON.stringify({ avatar: value }),
+      });
+      const savedAvatar = data.avatar || value;
+      setAvatar(savedAvatar);
+      localStorage.setItem(avatarStorageKey(accountEmail), savedAvatar);
+    } catch (err) {
+      setAvatar(previousAvatar);
+      setError(err.message || "Profile photo could not be saved.");
     }
   }
 
@@ -4371,7 +4396,7 @@ function ProfileModal({ profile, email, wallet, getInitial, avatar, onAvatarChan
       <div className="profile-photo-tools"><button className="avatar-action primary" type="button" onClick={() => setCameraOpen(true)}><Icon name="camera" />Use camera</button><label className="avatar-action"><Icon name="upload" />Upload from device<input type="file" accept="image/*" onChange={handleImage} /></label><button className="avatar-action" type="button" onClick={() => setAvatarPickerOpen((v) => !v)}><Icon name="spark" />Illustrated avatar</button></div>
       {avatarPickerOpen && <div className="avatar-picker"><div className="avatar-picker-title">Choose your VELOOP avatar</div><div className="avatar-grid">{AVATAR_PRESETS.map((item) => <button key={item} type="button" className={avatar === `emoji:${item}` ? "preset-avatar selected" : "preset-avatar"} onClick={() => onAvatarChange(`emoji:${item}`)}>{item}</button>)}</div></div>}
       <div className="profile-details"><ProfileRow label="Full name" value={profile.name || "VELOOP User"} /><ProfileRow label="Email address" value={email} /><ProfileRow label="Account access" value="Authenticated" /><ProfileRow label="Wallet VEs" value={`${formatAmount(wallet.ves)} VEs`} /></div>
-      <div className="profile-note"><Icon name="shield" /><span>Photos are stored locally in this browser. Your password is never displayed here.</span></div>
+      <div className="profile-note"><Icon name="shield" /><span>Your profile photo is saved to your account and follows you across devices. Your password is never displayed here.</span></div>
       <button className="primary-btn full-btn" onClick={onClose}>Done</button>
     </div>
     {cameraOpen && <ProfileCameraCapture onCapture={onAvatarChange} onClose={() => setCameraOpen(false)} />}
