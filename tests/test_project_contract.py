@@ -254,7 +254,7 @@ class ProjectContractTests(unittest.TestCase):
         self.assertIn("function storageRemove(storageName, key)", FRONTEND)
         self.assertNotRegex(
             FRONTEND,
-            r"(?:localStorage|sessionStorage)\\.(?:getItem|setItem|removeItem)\\(",
+            r"(?:localStorage|sessionStorage)\.(?:getItem|setItem|removeItem)\(",
         )
 
 
