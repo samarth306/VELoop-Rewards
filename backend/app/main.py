@@ -1011,6 +1011,11 @@ class ProfileUpdateRequest(BaseModel):
 
     )
 
+
+class ProfileAvatarUpdateRequest(BaseModel):
+    avatar: str = Field(min_length=1, max_length=700_000)
+
+
 class ChangePasswordRequest(BaseModel):
 
     current_password: str = Field(
@@ -1223,6 +1228,15 @@ def register(
 
         wallets_collection.insert_one(wallet)
 
+    except DuplicateKeyError:
+
+        users_collection.delete_one({"user_id": user_id})
+        wallets_collection.delete_one({"wallet_id": wallet_id})
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered",
+        ) from None
+
     except Exception:
 
         users_collection.delete_one(
@@ -1408,6 +1422,32 @@ def update_profile(
     )
 
     return updated
+
+
+@app.patch("/auth/me/avatar")
+def update_profile_avatar(
+    request: ProfileAvatarUpdateRequest,
+    current_user: dict = Depends(get_current_user),
+):
+    avatar = request.avatar.strip()
+    if not (
+        avatar.startswith("emoji:")
+        or re.fullmatch(
+            r"data:image/(?:jpeg|png|webp);base64,[A-Za-z0-9+/=\r\n]+",
+            avatar,
+        )
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Avatar must be an illustrated avatar or a JPEG, PNG, or WebP image.",
+        )
+
+    users_collection.update_one(
+        {"user_id": current_user["user_id"]},
+        {"$set": {"avatar": avatar, "updated_at": now_utc()}},
+    )
+    return {"avatar": avatar}
+
 
 @app.post("/auth/change-password")
 
