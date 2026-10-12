@@ -3341,6 +3341,67 @@ function QrPayoutScanner({ form, updateForm }) {
     };
   }, [scannerOpen]);
 
+  async function decodeQrFileWithFallbacks(file) {
+    const makeFile = (blob, suffix) =>
+      new File([blob], `upi-qr-${suffix}.png`, { type: "image/png" });
+
+    const sourceUrl = URL.createObjectURL(file);
+    const image = new Image();
+
+    try {
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = sourceUrl;
+      });
+
+      const maxEdge = 1800;
+      const scale = Math.min(2, maxEdge / Math.max(image.naturalWidth, image.naturalHeight));
+      const width = Math.max(1, Math.round(image.naturalWidth * scale));
+      const height = Math.max(1, Math.round(image.naturalHeight * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) throw new Error("Image processing is not supported in this browser.");
+
+      context.drawImage(image, 0, 0, width, height);
+      const base = context.getImageData(0, 0, width, height);
+      const variants = [{ name: "original", data: base }];
+
+      const inverted = new ImageData(new Uint8ClampedArray(base.data), width, height);
+      const grayscale = new ImageData(new Uint8ClampedArray(base.data), width, height);
+      const invertedGrayscale = new ImageData(new Uint8ClampedArray(base.data), width, height);
+      for (let i = 0; i < base.data.length; i += 4) {
+        const gray = Math.round(0.299 * base.data[i] + 0.587 * base.data[i + 1] + 0.114 * base.data[i + 2]);
+        inverted.data[i] = 255 - base.data[i];
+        inverted.data[i + 1] = 255 - base.data[i + 1];
+        inverted.data[i + 2] = 255 - base.data[i + 2];
+        grayscale.data[i] = grayscale.data[i + 1] = grayscale.data[i + 2] = gray;
+        invertedGrayscale.data[i] = invertedGrayscale.data[i + 1] = invertedGrayscale.data[i + 2] = 255 - gray;
+      }
+      variants.push({ name: "inverted", data: inverted }, { name: "grayscale", data: grayscale }, { name: "inverted-grayscale", data: invertedGrayscale });
+
+      for (const variant of variants) {
+        context.putImageData(variant.data, 0, 0);
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+        if (!blob) continue;
+        const scanner = new Html5Qrcode("upi-qr-file-reader");
+        try {
+          const decoded = await scanner.scanFile(makeFile(blob, variant.name), false);
+          if (decoded) return decoded;
+        } catch {
+          // Try the next normalized variant, including inverted PhonePe-style QR codes.
+        } finally {
+          try { scanner.clear(); } catch {}
+        }
+      }
+      throw new Error("QR_NOT_DECODED");
+    } finally {
+      URL.revokeObjectURL(sourceUrl);
+    }
+  }
+
   async function handleQrImage(event) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -3352,17 +3413,13 @@ function QrPayoutScanner({ form, updateForm }) {
     }
 
     setScannerError("");
-    const scanner = new Html5Qrcode("upi-qr-file-reader");
-
     try {
-      // Keep the decoded image hidden. Rendering it into the display:none reader can
-      // produce a zero-sized preview and make subsequent gallery scans fail.
-      const decodedText = await scanner.scanFile(file, false);
+      const decodedText = await decodeQrFileWithFallbacks(file);
       const upiId = extractUpiId(decodedText);
 
       if (!upiId) {
         setScannerError(
-          "No valid UPI ID was found in this QR image. Please choose a UPI payment QR."
+          "QR code detected, but its payment address could not be identified. Please try another UPI QR or enter your UPI ID manually."
         );
         return;
       }
@@ -3372,16 +3429,10 @@ function QrPayoutScanner({ form, updateForm }) {
       setScanSource("QR image");
     } catch {
       setScannerError(
-        "Unable to read this QR image. Please upload a clear UPI QR code."
+        "QR image could not be decoded after normal and inverted image checks. Try a screenshot/crop of just the QR, or enter your UPI ID manually."
       );
-    } finally {
-      try {
-        scanner.clear();
-      } catch {
-      }
     }
   }
-
   return (
     <div className="form-grid single">
       <div className="input-group">
