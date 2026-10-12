@@ -3350,7 +3350,9 @@ function QrPayoutScanner({ form, updateForm }) {
     const scanner = new Html5Qrcode("upi-qr-file-reader");
 
     try {
-      const decodedText = await scanner.scanFile(file, true);
+      // Keep the decoded image hidden. Rendering it into the display:none reader can
+      // produce a zero-sized preview and make subsequent gallery scans fail.
+      const decodedText = await scanner.scanFile(file, false);
       const upiId = extractUpiId(decodedText);
 
       if (!upiId) {
