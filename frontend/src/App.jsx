@@ -3257,7 +3257,12 @@ function QrPayoutScanner({ form, updateForm }) {
           preferredCamera.id,
           {
             fps: 10,
-            qrbox: { width: 250, height: 250 },
+            // Size the scan window to the actual camera viewport instead of a fixed
+            // 250px box, which can clip QR codes on smaller screens or webcams.
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const edge = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.85);
+              return { width: edge, height: edge };
+            },
             aspectRatio: 1,
           },
           async (decodedText) => {
