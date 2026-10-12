@@ -2115,6 +2115,7 @@ function App() {
             onWallet={() => setTab("Wallet")}
             onRewards={() => setTab("Rewards")}
             onActivities={() => setTab("Activities")}
+            onLeaderboard={() => setTab("Leaderboard")}
             onTransactions={() => setTab("Transactions")}
             onWithdraw={() => setTab("Withdrawals")}
           />
@@ -2470,7 +2471,7 @@ function AvatarDisplay({ avatar, fallback }) {
 }
 
 
-function DashboardPage({ profile, wallet, transactions, dailyReward, rewardConfig, busy, onDailyReward, onWallet, onRewards, onActivities, onTransactions, onWithdraw }) {
+function DashboardPage({ profile, wallet, transactions, dailyReward, rewardConfig, busy, onDailyReward, onWallet, onRewards, onActivities, onLeaderboard, onTransactions, onWithdraw }) {
   const earned = transactions.filter((item) => Number(item.amount || 0) > 0).reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const streak = Number(dailyReward?.streak_day || 0);
   const day = Number(dailyReward?.day || 1);
@@ -2531,7 +2532,7 @@ function DashboardPage({ profile, wallet, transactions, dailyReward, rewardConfi
       </section>
 
       <section className="gamified-bottom-grid">
-        <article className="gamified-panel rank-preview"><span className="gamified-kicker">COMMUNITY LEADERBOARD</span><h2>Your progress, your pace.</h2><p>Leaderboard rankings need a shared, privacy-safe ranking service. This preview does not invent other users or claim a live rank.</p><div className="rank-preview-metric"><span>Your current VEs balance</span><strong>{formatAmount(wallet?.ves || 0)} <small>VEs</small></strong></div><button className="gamified-outline full" onClick={() => window.dispatchEvent(new CustomEvent("velo-open-leaderboard"))}>View leaderboard details <Icon name="arrow-right" /></button></article>
+        <article className="gamified-panel rank-preview"><span className="gamified-kicker">COMMUNITY LEADERBOARD</span><h2>Your progress, your pace.</h2><p>Leaderboard rankings need a shared, privacy-safe ranking service. This preview does not invent other users or claim a live rank.</p><div className="rank-preview-metric"><span>Your current VEs balance</span><strong>{formatAmount(wallet?.ves || 0)} <small>VEs</small></strong></div><button className="gamified-outline full" onClick={onLeaderboard}>View leaderboard details <Icon name="arrow-right" /></button></article>
         <article className="gamified-panel achievements-preview"><span className="gamified-kicker">ACHIEVEMENTS</span><h2>Milestones from your real activity</h2><div className="achievement-mini-grid"><div><span>🏁</span><strong>First steps</strong><small>{activityCount > 0 ? "Activity recorded" : "Start with a wallet action"}</small></div><div><span>🔥</span><strong>Daily routine</strong><small>{streak > 0 ? `${streak}-day streak recorded` : "Claim a daily reward"}</small></div><div><span>💎</span><strong>Asset collector</strong><small>{Number(wallet?.gems || 0) > 0 ? "Gem balance detected" : "Earn eligible assets"}</small></div></div><button className="gamified-outline full" onClick={onActivities}>Explore milestones <Icon name="arrow-right" /></button></article>
       </section>
     </div>
