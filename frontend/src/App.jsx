@@ -2372,7 +2372,7 @@ function RewardsPage({ wallet, dailyReward, rewardConfig, busy, conversionAmount
             <span><Icon name="refresh" /> Server conversion rates</span>
           </div>
         </div>
-        <div className="reward-hero-stat"><strong>{formatAmount(wallet.ves)}</strong><span>VEs balance</span><small>100 VEs = ₹1</small></div>
+        <div className="reward-hero-stat"><strong>{formatAmount(wallet.ves)}</strong><span>VEs balance</span><small>240 VEs = ₹1</small></div>
       </section>
 
       <section className="streak-dashboard-card">
@@ -2456,7 +2456,7 @@ function AboutPage({ payoutOptions, rewardConfig, onRewards, onWallet, onWithdra
             payout denominations and withdrawal validation; the React interface only presents data and submits requests.
           </p>
           <div className="about-metrics">
-            <span><b>100 VEs</b><small>₹1 wallet value</small></span>
+            <span><b>240 VEs</b><small>₹1 wallet value</small></span>
             <span><b>10 Days</b><small>Daily reward cycle</small></span>
             <span><b>3 Types</b><small>Convertible rewards</small></span>
             <span><b>{payoutRules.length || 0} Options</b><small>Configured payouts</small></span>
@@ -2501,7 +2501,7 @@ function AboutPage({ payoutOptions, rewardConfig, onRewards, onWallet, onWithdra
           <span className="about-number">04</span>
           <div className="about-icon"><Icon name="arrow-up" /></div>
           <h3>Withdrawal rules</h3>
-          <p>Supported denominations are backend-controlled. The wallet value shown in the app is based on 100 VEs = ₹1.</p>
+          <p>Supported denominations are backend-controlled. The wallet value shown in the app is based on 240 VEs = ₹1.</p>
           <div className="about-payout-grid">
             {payoutRules.map(([rupees, ves]) => (
               <span key={rupees}><b>₹{formatAmount(rupees)}</b><small>{formatAmount(ves)} VEs</small></span>
@@ -2598,7 +2598,7 @@ function WalletPage({
           </h2>
 
           <p>
-            100 VEs = ₹1 · VEs ready for supported rewards
+            240 VEs = ₹1 · VEs ready for supported rewards
             and withdrawals.
           </p>
 
@@ -2620,7 +2620,7 @@ function WalletPage({
             <div className="hero-brand-orb"><VeloopLogo size={88} /></div>
             <div className="hero-brand-caption"><strong>VELOOP</strong><span>Rewards Wallet</span></div>
           </div>
-          <div className="hero-inr-card"><span>ESTIMATED VALUE</span><strong>₹{formatAmount(Math.floor(Number(wallet.ves || 0) / 100))}</strong><small>100 VEs = ₹1</small></div>
+          <div className="hero-inr-card"><span>ESTIMATED VALUE</span><strong>₹{formatAmount(Math.floor(Number(wallet.ves || 0) / 240))}</strong><small>240 VEs = ₹1</small></div>
 
           <button
             className="hero-cta"
