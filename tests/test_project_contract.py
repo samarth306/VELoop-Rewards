@@ -238,5 +238,25 @@ class ProjectContractTests(unittest.TestCase):
         self.assertNotIn('const PAYOUT_OPTIONS = [', FRONTEND)
 
 
+    def test_cross_device_auth_uses_shared_backend_and_permitted_cors_origin(self):
+        self.assertIn("https://veloop-rewards-jj94.onrender.com", FRONTEND)
+        self.assertIn('"https://veloop-rewards-frontend-ggzf.onrender.com"', MAIN)
+        self.assertIn('email = request.email.strip().lower()', MAIN)
+        self.assertIn('users_collection.insert_one(user)', MAIN)
+        self.assertIn('wallets_collection.insert_one(wallet)', MAIN)
+        self.assertIn('create_access_token(', MAIN)
+        self.assertIn('def get_current_user(', MAIN)
+        self.assertIn('decode_access_token(', MAIN)
+
+    def test_browser_storage_access_is_guarded_for_restricted_contexts(self):
+        self.assertIn("function storageGet(storageName, key)", FRONTEND)
+        self.assertIn("function storageSet(storageName, key, value)", FRONTEND)
+        self.assertIn("function storageRemove(storageName, key)", FRONTEND)
+        self.assertNotRegex(
+            FRONTEND,
+            r"(?:localStorage|sessionStorage)\\.(?:getItem|setItem|removeItem)\\(",
+        )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
