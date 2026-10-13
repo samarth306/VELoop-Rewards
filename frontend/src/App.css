@@ -6701,3 +6701,177 @@ input:focus,select:focus,textarea:focus {
  .achievement-full-grid {grid-template-columns:minmax(0,1fr)}
  .achievement-mini-grid {grid-template-columns:minmax(0,1fr)}
 }
+
+
+/* VELOOP unified premium palette: shared by every tab, wallet, ledger and profile editor. */
+:root {
+  --vl-bg:#080612;
+  --vl-card:rgba(24,15,39,.78);
+  --vl-line:rgba(255,95,155,.22);
+  --vl-blue:#8267ff;
+  --vl-cyan:#ff70b5;
+  --vl-purple:#a855f7;
+  --vl-pink:#ff4f9a;
+  --vl-yellow:#ffc247;
+  --vl-red:#ff657a;
+  --vl-glass:rgba(255,255,255,.035);
+}
+html,body,#root { background:#080612 !important; }
+body {
+  background:
+    radial-gradient(ellipse at 7% 8%,rgba(255,79,154,.09),transparent 31%),
+    radial-gradient(ellipse at 93% 7%,rgba(255,194,71,.075),transparent 29%),
+    radial-gradient(ellipse at 48% 100%,rgba(139,78,255,.08),transparent 38%),
+    #080612 !important;
+}
+.app-shell {
+  background:
+    radial-gradient(ellipse at 78% 0%,rgba(255,79,154,.10),transparent 34%),
+    radial-gradient(ellipse at 5% 75%,rgba(255,101,122,.055),transparent 35%),
+    #080612 !important;
+}
+.sidebar {
+  background:
+    radial-gradient(ellipse at 20% 15%,rgba(255,79,154,.10),transparent 46%),
+    linear-gradient(180deg,#100a1b 0%,#100c20 55%,#090713 100%) !important;
+  border-right:1px solid rgba(255,95,155,.18) !important;
+  box-shadow:inset -1px 0 rgba(255,255,255,.025),12px 0 42px rgba(0,0,0,.2) !important;
+}
+.sidebar-divider { background:linear-gradient(90deg,transparent,rgba(255,194,71,.34),rgba(255,79,154,.30),transparent) !important; }
+.velo-logo { filter:drop-shadow(0 0 12px rgba(255,79,154,.30)); }
+.nav-item:hover { background:linear-gradient(100deg,rgba(255,79,154,.10),rgba(255,194,71,.045)) !important;border-color:rgba(255,95,155,.18) !important; }
+.nav-item.active { background:linear-gradient(105deg,rgba(255,79,154,.94),rgba(186,57,131,.92) 54%,rgba(255,151,65,.88)) !important;box-shadow:0 8px 25px rgba(255,79,154,.17),inset 0 1px rgba(255,255,255,.2) !important;color:#fff !important; }
+.topbar { background:rgba(12,8,22,.78) !important;border-bottom-color:rgba(255,95,155,.14) !important;backdrop-filter:blur(22px); }
+.topbar-actions .icon-btn,.icon-btn,.profile-avatar { border-color:rgba(255,105,164,.22) !important;background:linear-gradient(145deg,rgba(255,79,154,.09),rgba(255,194,71,.045)) !important; }
+.profile-avatar { box-shadow:0 0 0 3px rgba(255,79,154,.07),0 0 24px rgba(255,79,154,.08) !important; }
+.wallet-hero,.rewards-hero-pro,.about-hero-pro,.gamified-welcome {
+  border-color:rgba(255,111,164,.35) !important;
+  background:
+    radial-gradient(circle at 88% 16%,rgba(255,194,71,.19),transparent 25%),
+    radial-gradient(circle at 8% 92%,rgba(255,79,154,.18),transparent 34%),
+    linear-gradient(125deg,rgba(42,17,48,.97),rgba(24,14,39,.95) 52%,rgba(25,17,43,.96)) !important;
+  box-shadow:0 20px 52px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.08) !important;
+}
+.wallet-hero::before,.rewards-hero-pro::before,.about-hero-pro::before {
+  background:radial-gradient(circle,rgba(255,194,71,.12),rgba(255,79,154,.09) 42%,transparent 72%) !important;
+}
+.wallet-hero::after,.rewards-hero-pro::after,.about-hero-pro::after {
+  border-color:rgba(255,194,71,.13) !important;
+}
+.hero-overline,.section-kicker,.gamified-kicker,.reward-kicker { color:#ff9dc5 !important; }
+.hero-inr-card,.hero-badges span,.hero-chip,.hero-brand-orb {
+  border-color:rgba(255,194,71,.23) !important;
+  background:linear-gradient(140deg,rgba(255,79,154,.11),rgba(255,194,71,.07)) !important;
+}
+.hero-inr-card strong,.hero-inr-card small { color:#ffd16d !important; }
+.hero-cta,.reward-btn.primary,.primary-btn,.gamified-btn.gold {
+  background:linear-gradient(110deg,#ffb83f,#ff8a36 48%,#ff557e) !important;
+  color:#25101c !important;
+  box-shadow:0 9px 26px rgba(255,105,84,.19),inset 0 1px rgba(255,255,255,.26) !important;
+}
+.gamified-btn.purple,.gamified-outline,.soft-btn,.text-btn {
+  border-color:rgba(255,105,164,.24) !important;
+  background:linear-gradient(110deg,rgba(255,79,154,.12),rgba(153,88,255,.12)) !important;
+  color:#ffc1da !important;
+}
+.gamified-eyebrow,.streak-pill,.task-state,.reward-mini-assets,.hero-badges span {
+  border-color:rgba(255,105,164,.24) !important;
+  background:linear-gradient(110deg,rgba(255,79,154,.10),rgba(255,194,71,.055)) !important;
+}
+.gamified-eyebrow,.gamified-link,.gamified-task-action { color:#ff9ec6 !important; }
+.gamified-stat,.gamified-panel,.gamified-task-card,.achievement-card,
+.section-block,.panel,.action-card,.wallet-note,.currency-card,
+.reward-card,.about-card-pro,.about-tech-card,.transaction-row,
+.withdraw-form,.profile-summary,.profile-note,.profile-details,
+.profile-row,.about-contact,.about-security,.about-how,.about-payout-grid > *,
+.streak-dashboard-card,.streak-summary,.conversion-row,.payout-panel,.page-panel {
+  border-color:rgba(255,115,165,.17) !important;
+  background:
+    linear-gradient(145deg,rgba(255,79,154,.045),transparent 46%),
+    linear-gradient(145deg,rgba(28,17,42,.90),rgba(13,11,27,.91)) !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.035),0 12px 30px rgba(0,0,0,.10);
+}
+.gamified-stat.gold-stat,.gold-stat,.currency-card.featured,.conversion-feature-card {
+  border-color:rgba(255,194,71,.30) !important;
+  background:linear-gradient(145deg,rgba(255,194,71,.09),rgba(255,79,154,.045) 54%,rgba(18,12,30,.93)) !important;
+}
+.gamified-stat.purple-stat,.achievement-card.unlocked {
+  border-color:rgba(255,79,154,.29) !important;
+  background:linear-gradient(145deg,rgba(255,79,154,.09),rgba(31,15,43,.92)) !important;
+}
+.gamified-stat.blue-stat { border-color:rgba(177,119,255,.28) !important;background:linear-gradient(145deg,rgba(144,89,255,.10),rgba(17,13,31,.94)) !important; }
+.gamified-stat.green-stat { border-color:rgba(255,194,71,.22) !important;background:linear-gradient(145deg,rgba(255,194,71,.06),rgba(17,13,31,.94)) !important; }
+.gamified-stat.gold-stat strong,.rank-preview-metric strong,.rank-large-number strong { color:#ffd06a !important; }
+.gamified-stat.purple-stat .stat-top svg,.task-icon,.achievement-icon { color:#ff8fc1 !important; }
+.gamified-stat.green-stat .stat-top svg { color:#ffc247 !important; }
+.task-icon,.achievement-icon,.activity-mini-icon,.action-icon,.about-icon,.about-security-icon,.about-contact-icon {
+  border-color:rgba(255,105,164,.22) !important;
+  background:linear-gradient(145deg,rgba(255,79,154,.12),rgba(255,194,71,.065)) !important;
+}
+.gamified-task-action { border-top-color:rgba(255,105,164,.15) !important; }
+.checkin-day { border-color:rgba(255,105,164,.13) !important;background:rgba(255,255,255,.025) !important; }
+.checkin-day.checked { border-color:rgba(255,194,71,.35) !important;background:rgba(255,194,71,.075) !important; }
+.checkin-day.checked strong { background:linear-gradient(140deg,#ffd66e,#ffad36) !important;color:#2a1720 !important; }
+.checkin-day.today { border-color:rgba(255,79,154,.55) !important; }
+.checkin-day.today strong { background:linear-gradient(140deg,#ff6ea9,#b34dff) !important; }
+.checkin-reward-line strong,.streak-pill { color:#ffd06a !important; }
+.activity-total { border-color:rgba(255,105,164,.17) !important;background:linear-gradient(110deg,rgba(255,79,154,.09),rgba(255,194,71,.045)) !important; }
+.amount-positive { color:#ffd06a !important; }.amount-negative { color:#ff7e8e !important; }
+.gamified-outline,.soft-btn,.action-card,.hero-cta,.reward-btn,.primary-btn,.gamified-btn { transition:transform .2s ease,filter .2s ease,box-shadow .2s ease !important; }
+.gamified-outline:hover,.soft-btn:hover,.action-card:hover,.hero-cta:hover,.reward-btn:hover,.primary-btn:hover,.gamified-btn:hover { filter:brightness(1.08); }
+.section-head h2,.gamified-section-heading h2,.about-card-pro h3,.reward-card h3 { letter-spacing:-.025em; }
+input,select,textarea,.field input,.field select,.field textarea {
+  border-color:rgba(255,111,164,.18) !important;
+  background:rgba(12,9,24,.68) !important;
+}
+input:focus,select:focus,textarea:focus,.field input:focus,.field select:focus,.field textarea:focus {
+  border-color:rgba(255,111,164,.58) !important;
+  box-shadow:0 0 0 3px rgba(255,79,154,.10) !important;
+}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible {
+  outline:2px solid rgba(255,194,71,.8) !important;outline-offset:3px;
+}
+.alert-success,.success-alert,.status-success { border-color:rgba(255,194,71,.26) !important; }
+.alert-error,.error-alert,.status-error { border-color:rgba(255,101,122,.32) !important; }
+.profile-modal,.profile-editor-modal,.camera-modal,.confirm-modal,.modal-content {
+  border:1px solid rgba(255,105,164,.30) !important;
+  background:
+    radial-gradient(circle at 92% 0%,rgba(255,194,71,.10),transparent 28%),
+    radial-gradient(circle at 0% 100%,rgba(255,79,154,.10),transparent 35%),
+    linear-gradient(145deg,#1b1028,#100b1d 72%) !important;
+  box-shadow:0 28px 90px rgba(0,0,0,.52),inset 0 1px rgba(255,255,255,.07) !important;
+}
+.profile-modal-head,.profile-editor-head,.camera-modal-head { border-bottom-color:rgba(255,105,164,.16) !important; }
+.profile-photo-large {
+  border-color:rgba(255,194,71,.45) !important;
+  background:linear-gradient(145deg,#ff4f9a,#8d4bff 58%,#ffbd38) !important;
+  box-shadow:0 12px 32px rgba(255,79,154,.20) !important;
+}
+.avatar-action,.avatar-picker,.preset-avatar,.camera-modal-actions button {
+  border-color:rgba(255,105,164,.17) !important;
+  background:linear-gradient(145deg,rgba(255,79,154,.075),rgba(255,194,71,.035)) !important;
+  color:#f4eaf5 !important;
+}
+.avatar-action.primary,.preset-avatar.selected,.preset-avatar:hover {
+  border-color:rgba(255,194,71,.55) !important;
+  background:linear-gradient(145deg,rgba(255,79,154,.19),rgba(255,194,71,.11)) !important;
+  box-shadow:0 8px 22px rgba(255,79,154,.10) !important;
+}
+.avatar-picker-title,.profile-editor-head>div:last-child>span:last-child { color:#ffb5d2 !important; }
+.profile-details .profile-row,.profile-details .field { border-bottom-color:rgba(255,105,164,.12) !important; }
+.profile-note { border-left:3px solid #ffb14a !important; }
+.profile-dropdown { border-color:rgba(255,105,164,.22) !important;background:#160d24 !important; }
+.profile-dropdown button:hover { background:rgba(255,79,154,.10) !important; }
+.modal-close { border-color:rgba(255,105,164,.2) !important;background:rgba(255,79,154,.08) !important; }
+.about-logo-pro,.hero-brand-orb { box-shadow:0 0 34px rgba(255,79,154,.14) !important; }
+.about-number,.reward-hero-stat strong { color:#ffd06a !important; }
+.transaction-icon.debit { color:#ff7c91 !important;background:rgba(255,101,122,.10) !important; }
+.transaction-icon:not(.debit) { color:#ffd06a !important;background:rgba(255,194,71,.09) !important; }
+@media (max-width:760px) {
+  .gamified-welcome,.wallet-hero,.rewards-hero-pro,.about-hero-pro { border-radius:20px !important; }
+  .profile-editor-modal,.profile-modal,.camera-modal { max-width:calc(100vw - 24px) !important; }
+  .avatar-grid { grid-template-columns:repeat(6,minmax(0,1fr)) !important; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .gamified-btn,.gamified-outline,.gamified-task-action,.action-card,.hero-cta,.reward-btn { transition:none !important; }
+}
