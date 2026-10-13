@@ -6929,3 +6929,29 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .reward-hero-stat small {
   border-color:rgba(255,194,71,.25) !important;
 }
+
+
+/* Wallet conversion chip: translucent pink/gold glass like the Rewards check-in 240 VEs = ₹1 block. */
+.wallet-hero .hero-inr-card,
+.wallet-hero .hero-side .hero-inr-card,
+.wallet-page .hero-inr-card,
+.wallet-hero .hero-inr-card:hover {
+  background:linear-gradient(135deg,rgba(255,111,177,.16),rgba(255,194,71,.10)) !important;
+  border:1px solid rgba(255,164,199,.26) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 5px 18px rgba(255,79,154,.06) !important;
+  backdrop-filter:blur(14px) saturate(120%) !important;
+  -webkit-backdrop-filter:blur(14px) saturate(120%) !important;
+}
+.wallet-hero .hero-inr-card span,
+.wallet-page .hero-inr-card span {
+  color:rgba(255,210,226,.76) !important;
+}
+.wallet-hero .hero-inr-card strong,
+.wallet-page .hero-inr-card strong {
+  color:#fff4fa !important;
+  text-shadow:0 1px 10px rgba(255,111,177,.10) !important;
+}
+.wallet-hero .hero-inr-card small,
+.wallet-page .hero-inr-card small {
+  color:#ffd6a0 !important;
+}
