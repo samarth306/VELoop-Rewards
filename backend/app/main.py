@@ -2144,6 +2144,45 @@ def convert_my_reward(
         request.amount,
     )
 
+@app.get("/leaderboard")
+def get_public_leaderboard(current_user: dict = Depends(get_current_user)):
+    """Return privacy-safe aggregate stats for active registered accounts."""
+    active_users = list(users_collection.find(
+        {"account_status": "ACTIVE"},
+        {"_id": 0, "user_id": 1, "name": 1, "email": 1, "created_at": 1},
+    ).limit(500))
+    rows = []
+    for user in active_users:
+        uid = user.get("user_id")
+        wallet = wallets_collection.find_one(
+            {"user_id": uid}, {"_id": 0, "ves": 1, "sves": 1, "gems": 1, "tokens": 1,
+                              "daily_streak_day": 1}
+        ) or {}
+        activity_count = transactions_collection.count_documents(
+            {"user_id": uid, "status": "COMPLETED"}
+        )
+        email = str(user.get("email", ""))
+        local, _, domain = email.partition("@")
+        masked_email = (local[:1] + "***" if local else "***") + ("@" + domain if domain else "")
+        rows.append({
+            "user_id": uid,
+            "name": user.get("name") or "VELOOP Member",
+            "email": masked_email,
+            "ves": int(wallet.get("ves", 0) or 0),
+            "sves": int(wallet.get("sves", 0) or 0),
+            "gems": int(wallet.get("gems", 0) or 0),
+            "tokens": int(wallet.get("tokens", 0) or 0),
+            "streak_day": int(wallet.get("daily_streak_day", 0) or 0),
+            "activity_count": activity_count,
+            "created_at": user.get("created_at"),
+            "is_current_user": uid == current_user.get("user_id"),
+        })
+    rows.sort(key=lambda row: (row["ves"], row["activity_count"], row["streak_day"]), reverse=True)
+    for index, row in enumerate(rows, start=1):
+        row["rank"] = index
+    return {"leaderboard": rows[:100], "total_registered": len(active_users)}
+
+
 @app.get("/wallet/me")
 
 def get_my_wallet(
