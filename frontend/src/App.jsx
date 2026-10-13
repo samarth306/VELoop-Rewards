@@ -2560,7 +2560,7 @@ function LeaderboardPage({ wallet, transactions, profile, apiRequest }) {
       .catch(error => { if (active) setLoadError(error.message || "Unable to load leaderboard."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [apiRequest]);
+  }, []);
   const me = rows.find(row => row.is_current_user);
   return <div className="content-stack gamified-page">
     <section className="gamified-welcome compact-welcome"><div className="gamified-welcome-copy"><span className="gamified-eyebrow"><Icon name="trophy"/> LEADERBOARD</span><h1>Compete with integrity.</h1><p>Rankings use registered active accounts and their recorded wallet activity. Email addresses are masked for privacy.</p></div><div className="rank-large-number"><strong>{formatAmount(wallet?.ves || 0)}</strong><span>Your VEs balance</span></div></section>
@@ -2593,7 +2593,7 @@ function AchievementsPage({ wallet, transactions, dailyReward, apiRequest }) {
       .catch(error => { if (active) setLoadError(error.message || "Unable to sync achievements."); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [apiRequest, wallet?.ves, wallet?.sves, wallet?.gems, transactions?.length, dailyReward?.streak_day]);
+  }, [wallet?.ves, wallet?.sves, wallet?.gems, transactions?.length, dailyReward?.streak_day]);
   const fallback = [
     { id:"first_activity", icon:"footprints", title:"First activity", detail:"Record your first wallet transaction.", done:(transactions?.length || 0)>0, bonus_claimed:false },
     { id:"first_checkin", icon:"flame", title:"Daily check-in", detail:"Claim a daily reward to start your streak. Bonus: +100 VEs once.", done:Number(dailyReward?.streak_day || 0)>0 || Boolean(dailyReward?.claimed_today), bonus_claimed:false },
