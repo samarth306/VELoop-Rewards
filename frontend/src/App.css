@@ -6955,3 +6955,32 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .wallet-page .hero-inr-card small {
   color:#ffd6a0 !important;
 }
+
+
+/* Match the Wallet "Withdraw supported VEs" action to the translucent Rewards conversion chip. */
+.wallet-hero ~ .quick-grid > .action-card.primary-action {
+  background:linear-gradient(135deg,rgba(255,111,177,.16),rgba(255,194,71,.10)) !important;
+  border:1px solid rgba(255,164,199,.28) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 8px 24px rgba(255,79,154,.075) !important;
+  backdrop-filter:blur(14px) saturate(120%) !important;
+  -webkit-backdrop-filter:blur(14px) saturate(120%) !important;
+}
+.wallet-hero ~ .quick-grid > .action-card.primary-action .action-icon {
+  background:linear-gradient(135deg,rgba(255,111,177,.15),rgba(255,194,71,.09)) !important;
+  border-color:rgba(255,164,199,.24) !important;
+  color:#ffd6a0 !important;
+}
+.wallet-hero ~ .quick-grid > .action-card.primary-action > svg:last-child,
+.wallet-hero ~ .quick-grid > .action-card.primary-action strong {
+  color:#fff4fa !important;
+}
+.wallet-hero ~ .quick-grid > .action-card.primary-action > div > span {
+  color:#ffb5d2 !important;
+}
+.wallet-hero ~ .quick-grid > .action-card.primary-action small {
+  color:rgba(255,230,241,.72) !important;
+}
+.wallet-hero ~ .quick-grid > .action-card.primary-action:hover {
+  border-color:rgba(255,194,71,.38) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 10px 28px rgba(255,79,154,.11) !important;
+}
