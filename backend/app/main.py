@@ -2144,6 +2144,85 @@ def convert_my_reward(
         request.amount,
     )
 
+@app.get("/achievements/me")
+def get_my_achievements(current_user: dict = Depends(get_current_user)):
+    """Evaluate milestones and grant each eligible bonus once, using server-side wallet data."""
+    from pymongo.errors import DuplicateKeyError
+
+    user_id = current_user["user_id"]
+    claims = app_collections.db["achievement_claims"]
+    try:
+        claims.create_index(
+            [("user_id", 1), ("achievement_id", 1)],
+            unique=True,
+            name="unique_user_achievement",
+        )
+    except Exception:
+        pass
+
+    wallet = wallets_collection.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    activity_count = transactions_collection.count_documents(
+        {"user_id": user_id, "status": "COMPLETED"}
+    )
+    daily_streak = int(wallet.get("daily_streak_day", 0) or 0)
+    milestones = [
+        {"id": "first_activity", "title": "First activity", "done": activity_count >= 1,
+         "detail": "Record your first wallet transaction.", "bonus_currency": None, "bonus_amount": 0},
+        {"id": "first_checkin", "title": "Daily check-in", "done": daily_streak >= 1,
+         "detail": "Claim a daily reward to start your streak.", "bonus_currency": "ves", "bonus_amount": 100},
+        {"id": "gem_collector", "title": "Gem collector", "done": int(wallet.get("gems", 0) or 0) >= 1,
+         "detail": "Hold at least one gem in your wallet.", "bonus_currency": "ves", "bonus_amount": 200},
+        {"id": "ves_milestone", "title": "VEs milestone", "done": int(wallet.get("ves", 0) or 0) >= 1000,
+         "detail": "Build a balance of 1,000 VEs.", "bonus_currency": "sves", "bonus_amount": 1},
+        {"id": "multi_asset", "title": "Multi-asset wallet", "done": int(wallet.get("ves", 0) or 0) > 0 and any(int(wallet.get(c, 0) or 0) > 0 for c in ("sves", "gems", "tokens")),
+         "detail": "Hold VEs and at least one additional asset.", "bonus_currency": None, "bonus_amount": 0},
+        {"id": "activity_explorer", "title": "Activity explorer", "done": activity_count >= 10,
+         "detail": "Build a history of 10 ledger entries.", "bonus_currency": None, "bonus_amount": 0},
+    ]
+    granted = []
+    for item in milestones:
+        if not item["done"] or not item["bonus_amount"]:
+            continue
+        try:
+            claims.insert_one({
+                "user_id": user_id, "achievement_id": item["id"],
+                "status": "PROCESSING", "created_at": now_utc(),
+            })
+        except DuplicateKeyError:
+            continue
+        try:
+            transaction = credit_wallet(
+                user_id, item["bonus_currency"], item["bonus_amount"],
+                source="ACHIEVEMENT_BONUS",
+                description=f"Achievement bonus: {item['title']}",
+                reference_id=item["id"],
+                transaction_type="ACHIEVEMENT_REWARD",
+            )
+            claims.update_one(
+                {"user_id": user_id, "achievement_id": item["id"]},
+                {"$set": {"status": "COMPLETED", "transaction_id": transaction["transaction_id"],
+                          "completed_at": now_utc()}},
+            )
+            granted.append({"achievement_id": item["id"], "currency": item["bonus_currency"],
+                            "amount": item["bonus_amount"]})
+        except Exception:
+            claims.delete_one({"user_id": user_id, "achievement_id": item["id"], "status": "PROCESSING"})
+            raise
+
+    wallet = wallets_collection.find_one({"user_id": user_id}, {"_id": 0}) or {}
+    claimed_ids = {
+        row["achievement_id"] for row in claims.find(
+            {"user_id": user_id, "status": "COMPLETED"}, {"_id": 0, "achievement_id": 1}
+        )
+    }
+    for item in milestones:
+        item["bonus_claimed"] = item["id"] in claimed_ids
+        item.pop("bonus_currency", None)
+        item.pop("bonus_amount", None)
+    return {"achievements": milestones, "granted": granted, "wallet": wallet,
+            "activity_count": activity_count}
+
+
 @app.get("/leaderboard")
 def get_public_leaderboard(current_user: dict = Depends(get_current_user)):
     """Return privacy-safe aggregate stats for active registered accounts."""
