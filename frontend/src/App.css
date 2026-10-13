@@ -6892,3 +6892,40 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .achievement-bonus-notice{display:flex;flex-direction:column;gap:8px;border-color:rgba(255,194,71,.32)!important;background:linear-gradient(120deg,rgba(255,194,71,.10),rgba(255,79,154,.08))!important}.achievement-bonus-notice strong{color:#ffd06a;font-size:15px}.achievement-bonus-notice span{color:#f5dce8;font-size:12px;text-transform:capitalize}
 .achievement-bonus-state{display:inline-block;margin-top:10px;padding:6px 9px;border:1px solid rgba(255,194,71,.24);border-radius:9px;color:#ffd06a;background:rgba(255,194,71,.06);font-size:10px;font-weight:800}
 @media(max-width:760px){.leaderboard-you{gap:9px;padding:13px}.leaderboard-you strong{font-size:22px}.leaderboard-table th,.leaderboard-table td{padding:12px}.leaderboard-table{min-width:600px}}
+
+
+/* Final wallet/withdrawal/support balance parity: match the Rewards check-in INR conversion chip. */
+.wallet-hero .hero-inr-card,
+.wallet-hero .hero-inr-card small,
+.wallet-page .hero-inr-card,
+.wallet-page .hero-inr-card small,
+.payout-panel .balance-chip,
+.withdraw-form .balance-chip,
+.withdrawal-page .balance-chip,
+.support-page .balance-chip {
+  background:linear-gradient(125deg,rgba(255,79,154,.13),rgba(255,194,71,.095)) !important;
+  border:1px solid rgba(255,194,71,.25) !important;
+  color:#ffd16d !important;
+  box-shadow:inset 0 1px rgba(255,255,255,.045),0 4px 14px rgba(255,79,154,.055) !important;
+}
+.wallet-hero .hero-inr-card span,
+.wallet-page .hero-inr-card span,
+.payout-panel .balance-chip span,
+.withdraw-form .balance-chip span,
+.withdrawal-page .balance-chip span,
+.support-page .balance-chip span {
+  color:#ffb5d2 !important;
+}
+.wallet-hero .hero-inr-card strong,
+.wallet-page .hero-inr-card strong,
+.payout-panel .balance-chip strong,
+.withdraw-form .balance-chip strong,
+.withdrawal-page .balance-chip strong,
+.support-page .balance-chip strong {
+  color:#ffe0a0 !important;
+  text-shadow:none !important;
+}
+.reward-hero-stat,
+.reward-hero-stat small {
+  border-color:rgba(255,194,71,.25) !important;
+}
